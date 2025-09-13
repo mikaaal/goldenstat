@@ -1,0 +1,683 @@
+#!/usr/bin/env python3
+"""
+GoldenStat Web Application
+A Flask web app for viewing dart player statistics
+"""
+
+from flask import Flask, render_template, request, jsonify
+import json
+from datetime import datetime
+from database import DartDatabase
+
+app = Flask(__name__)
+app.secret_key = 'goldenstat-secret-key'
+
+db = DartDatabase()
+
+@app.route('/')
+def index():
+    """Main page with player search"""
+    return render_template('index.html')
+
+@app.route('/api/players')
+def get_players():
+    """API endpoint to get all player names for autocomplete"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT DISTINCT name FROM players ORDER BY name")
+            players = [row[0] for row in cursor.fetchall()]
+        return jsonify(players)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/player/<player_name>')
+def get_player_stats(player_name):
+    """API endpoint to get detailed player statistics"""
+    try:
+        # Get limit parameter (default: show all matches)
+        limit = request.args.get('limit', type=int)
+        
+        stats = db.get_player_stats(player_name)
+        if not stats:
+            return jsonify({'error': 'Player not found'}), 404
+        
+        # Apply limit if specified
+        if limit and 'recent_matches' in stats:
+            stats['recent_matches'] = stats['recent_matches'][:limit]
+        
+        # Convert datetime objects to strings for JSON serialization
+        if 'recent_matches' in stats:
+            for match in stats['recent_matches']:
+                if 'match_date' in match and match['match_date']:
+                    match['match_date'] = str(match['match_date'])
+        
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/player/<player_name>/detailed')
+def get_player_detailed_stats(player_name):
+    """Get detailed player statistics including match history and trends"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get player ID
+            cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+            player_result = cursor.fetchone()
+            if not player_result:
+                return jsonify({'error': 'Player not found'}), 404
+            
+            player_id = player_result['id']
+            
+            # Get detailed match history with averages over time
+            cursor.execute("""
+                SELECT 
+                    m.match_date,
+                    t1.name as team1_name,
+                    t2.name as team2_name,
+                    sm.match_type,
+                    sm.match_name,
+                    sm.team1_legs,
+                    sm.team2_legs,
+                    smp.team_number,
+                    smp.player_avg,
+                    CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as player_team,
+                    CASE 
+                        WHEN (smp.team_number = 1 AND sm.team1_legs > sm.team2_legs) 
+                          OR (smp.team_number = 2 AND sm.team2_legs > sm.team1_legs) 
+                        THEN 1 ELSE 0 
+                    END as won,
+                    sm.id as sub_match_id
+                FROM sub_match_participants smp
+                JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE smp.player_id = ?
+                ORDER BY m.match_date DESC, sm.match_number
+            """, (player_id,))
+            
+            matches = [dict(row) for row in cursor.fetchall()]
+            
+            # Get match type breakdown
+            cursor.execute("""
+                SELECT 
+                    sm.match_type,
+                    COUNT(*) as total_matches,
+                    SUM(CASE 
+                        WHEN (smp.team_number = 1 AND sm.team1_legs > sm.team2_legs) 
+                          OR (smp.team_number = 2 AND sm.team2_legs > sm.team1_legs) 
+                        THEN 1 ELSE 0 
+                    END) as wins,
+                    AVG(smp.player_avg) as avg_score
+                FROM sub_match_participants smp
+                JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                WHERE smp.player_id = ?
+                GROUP BY sm.match_type
+            """, (player_id,))
+            
+            match_type_stats = [dict(row) for row in cursor.fetchall()]
+            
+            # Calculate trends (last 10 vs previous 10)
+            recent_matches = matches[:10] if len(matches) >= 10 else matches
+            previous_matches = matches[10:20] if len(matches) >= 20 else []
+            
+            recent_avg = sum(m['player_avg'] for m in recent_matches if m['player_avg']) / max(1, len([m for m in recent_matches if m['player_avg']]))
+            previous_avg = sum(m['player_avg'] for m in previous_matches if m['player_avg']) / max(1, len([m for m in previous_matches if m['player_avg']])) if previous_matches else recent_avg
+            
+            # Convert dates for JSON
+            for match in matches:
+                if match['match_date']:
+                    match['match_date'] = str(match['match_date'])
+            
+            return jsonify({
+                'player_name': player_name,
+                'match_history': matches,
+                'match_type_breakdown': match_type_stats,
+                'trends': {
+                    'recent_average': round(recent_avg, 2),
+                    'previous_average': round(previous_avg, 2),
+                    'improvement': round(recent_avg - previous_avg, 2)
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/player/<player_name>')
+def player_detail(player_name):
+    """Player detail page"""
+    return render_template('player_detail.html', player_name=player_name)
+
+@app.route('/sub_match_throws')
+def sub_match_throws():
+    """Sub-match throws visualization page"""
+    return render_template('sub_match_throws.html')
+
+@app.route('/test_throws')
+def test_throws():
+    """Test page for throws visualization"""
+    return render_template('test_throws.html')
+
+@app.route('/api/overview')
+def get_overview():
+    """Get database overview statistics"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Get basic counts
+            cursor.execute("SELECT COUNT(*) FROM players")
+            total_players = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM matches")
+            total_matches = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM sub_matches")
+            total_sub_matches = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM legs")
+            total_legs = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM throws")
+            total_throws = cursor.fetchone()[0]
+            
+            # Get recent activity
+            cursor.execute("""
+                SELECT 
+                    t1.name as team1, t2.name as team2,
+                    m.team1_score, m.team2_score,
+                    m.scraped_at
+                FROM matches m
+                JOIN teams t1 ON m.team1_id = t1.id  
+                JOIN teams t2 ON m.team2_id = t2.id
+                ORDER BY m.scraped_at DESC
+                LIMIT 5
+            """)
+            
+            recent_matches = []
+            for row in cursor.fetchall():
+                recent_matches.append({
+                    'team1': row[0],
+                    'team2': row[1], 
+                    'team1_score': row[2],
+                    'team2_score': row[3],
+                    'scraped_at': str(row[4])
+                })
+            
+            return jsonify({
+                'total_players': total_players,
+                'total_matches': total_matches,
+                'total_sub_matches': total_sub_matches,
+                'total_legs': total_legs,
+                'total_throws': total_throws,
+                'recent_matches': recent_matches
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/player/<player_name>/throws')
+def get_player_throws(player_name):
+    """Get detailed throw analysis for a player"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get player ID
+            cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+            player_result = cursor.fetchone()
+            if not player_result:
+                return jsonify({'error': 'Player not found'}), 404
+            
+            player_id = player_result['id']
+            
+            # Get detailed throw data - ONLY from Singles matches
+            cursor.execute("""
+                SELECT 
+                    t.score,
+                    t.remaining_score,
+                    t.darts_used,
+                    t.round_number,
+                    l.leg_number,
+                    sm.match_type,
+                    sm.match_name,
+                    m.match_date,
+                    CASE 
+                        WHEN (smp.team_number = 1 AND sm.team1_legs > sm.team2_legs) 
+                          OR (smp.team_number = 2 AND sm.team2_legs > sm.team1_legs) 
+                        THEN 1 ELSE 0 
+                    END as won_match
+                FROM throws t
+                JOIN legs l ON t.leg_id = l.id
+                JOIN sub_matches sm ON l.sub_match_id = sm.id
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                JOIN matches m ON sm.match_id = m.id
+                WHERE smp.player_id = ? AND t.team_number = smp.team_number 
+                  AND sm.match_type = 'Singles'
+                ORDER BY m.match_date DESC, l.leg_number, t.round_number
+            """, (player_id,))
+            
+            throws = [dict(row) for row in cursor.fetchall()]
+            
+            # Calculate throw statistics
+            if throws:
+                scores = [t['score'] for t in throws if t['score'] > 0]
+                avg_score = sum(scores) / len(scores) if scores else 0
+                max_score = max(scores) if scores else 0
+                
+                # Count different score ranges
+                score_ranges = {
+                    '0-20': len([s for s in scores if 0 <= s <= 20]),
+                    '21-40': len([s for s in scores if 21 <= s <= 40]),
+                    '41-60': len([s for s in scores if 41 <= s <= 60]),
+                    '61-80': len([s for s in scores if 61 <= s <= 80]),
+                    '81-100': len([s for s in scores if 81 <= s <= 100]),
+                    '100+': len([s for s in scores if s > 100])
+                }
+                
+                # Calculate checkouts (scores when remaining_score became 0)
+                checkouts = [t['score'] for t in throws if t['remaining_score'] == 0 and t['score'] > 0]
+                
+                # Advanced statistics
+                throws_over_100 = len([s for s in scores if s > 100])
+                throws_180 = len([s for s in scores if s == 180])
+                throws_over_140 = len([s for s in scores if s > 140])
+                throws_26 = len([s for s in scores if s == 26])
+                throws_under_20 = len([s for s in scores if s < 20])
+                
+                # Most common scores
+                from collections import Counter
+                score_frequency = Counter(scores)
+                most_common_scores = score_frequency.most_common(5)
+                
+                statistics = {
+                    'total_throws': len(throws),
+                    'average_score': round(avg_score, 2),
+                    'max_score': max_score,
+                    'score_ranges': score_ranges,
+                    'total_checkouts': len(checkouts),
+                    'checkout_scores': checkouts,
+                    'throws_over_100': throws_over_100,
+                    'throws_180': throws_180,
+                    'throws_over_140': throws_over_140,
+                    'throws_26': throws_26,
+                    'throws_under_20': throws_under_20,
+                    'most_common_scores': [{'score': score, 'count': count} for score, count in most_common_scores]
+                }
+            else:
+                statistics = {}
+            
+            # Convert dates for JSON
+            for throw in throws:
+                if throw['match_date']:
+                    throw['match_date'] = str(throw['match_date'])
+            
+            return jsonify({
+                'player_name': player_name,
+                'throws': throws[:100],  # Limit to last 100 throws for performance
+                'statistics': statistics
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sub_match/<int:sub_match_id>/throws/<player_name>')
+def get_sub_match_player_throws(sub_match_id, player_name):
+    """Get detailed throw data for a specific player in a specific sub-match"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get player ID
+            cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+            player_result = cursor.fetchone()
+            if not player_result:
+                return jsonify({'error': 'Player not found'}), 404
+            
+            player_id = player_result['id']
+            
+            # Get sub-match info and verify player participated
+            cursor.execute("""
+                SELECT 
+                    sm.*,
+                    smp.team_number,
+                    smp.player_avg,
+                    m.match_date,
+                    t1.name as team1_name,
+                    t2.name as team2_name
+                FROM sub_matches sm
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE sm.id = ? AND smp.player_id = ?
+            """, (sub_match_id, player_id))
+            
+            sub_match_info = cursor.fetchone()
+            if not sub_match_info:
+                return jsonify({'error': 'Player did not participate in this sub-match'}), 404
+            
+            # Get opponent info and averages
+            opposing_team_number = 2 if sub_match_info['team_number'] == 1 else 1
+            cursor.execute("""
+                SELECT p.name, smp.player_avg 
+                FROM sub_match_participants smp
+                JOIN players p ON smp.player_id = p.id
+                WHERE smp.sub_match_id = ? AND smp.team_number = ?
+                ORDER BY p.name
+            """, (sub_match_id, opposing_team_number))
+            
+            opponent_data = cursor.fetchall()
+            opponents = [row[0] for row in opponent_data]
+            opponent_names = ' + '.join(opponents) if len(opponents) > 1 else (opponents[0] if opponents else 'Okänd')
+            opponent_avg = sum(row[1] or 0 for row in opponent_data) / len(opponent_data) if opponent_data else 0
+
+            # Get all throws for both players in this sub-match
+            # Filter out starting throw (score=0, remaining_score=501)
+            cursor.execute("""
+                SELECT 
+                    t.score,
+                    t.remaining_score,
+                    t.darts_used,
+                    t.round_number,
+                    t.team_number,
+                    l.leg_number,
+                    l.winner_team,
+                    l.total_rounds as leg_total_rounds
+                FROM throws t
+                JOIN legs l ON t.leg_id = l.id
+                WHERE l.sub_match_id = ?
+                  AND NOT (t.score = 0 AND t.remaining_score = 501)
+                ORDER BY l.leg_number, t.round_number, t.team_number
+            """, (sub_match_id,))
+            
+            throws = [dict(row) for row in cursor.fetchall()]
+            
+            # Separate throws by player and opponent
+            player_throws = [t for t in throws if t['team_number'] == sub_match_info['team_number']]
+            opponent_throws = [t for t in throws if t['team_number'] != sub_match_info['team_number']]
+            
+            # Group throws by leg with both player and opponent data
+            legs_with_throws = {}
+            
+            for throw in throws:
+                leg_num = throw['leg_number']
+                if leg_num not in legs_with_throws:
+                    # Determine leg winner by looking for negative throws
+                    cursor.execute("""
+                        SELECT team_number FROM throws t
+                        JOIN legs l ON t.leg_id = l.id
+                        WHERE l.sub_match_id = ? AND l.leg_number = ? AND t.score < 0
+                        LIMIT 1
+                    """, (sub_match_id, leg_num))
+                    winning_throw_result = cursor.fetchone()
+                    
+                    if winning_throw_result:
+                        leg_winner_team = winning_throw_result[0]
+                    else:
+                        # Fallback to stored winner_team if available
+                        leg_winner_team = throw['winner_team']
+                    
+                    legs_with_throws[leg_num] = {
+                        'leg_number': leg_num,
+                        'winner_team': leg_winner_team,
+                        'leg_total_rounds': throw['leg_total_rounds'],
+                        'player_won_leg': leg_winner_team == sub_match_info['team_number'],
+                        'player_throws': [],
+                        'opponent_throws': []
+                    }
+            
+            # Add throws to appropriate player/opponent lists
+            for throw in player_throws:
+                leg_num = throw['leg_number']
+                legs_with_throws[leg_num]['player_throws'].append({
+                    'round_number': throw['round_number'],
+                    'score': throw['score'],
+                    'remaining_score': throw['remaining_score'],
+                    'darts_used': throw['darts_used']
+                })
+            
+            for throw in opponent_throws:
+                leg_num = throw['leg_number']
+                legs_with_throws[leg_num]['opponent_throws'].append({
+                    'round_number': throw['round_number'],
+                    'score': throw['score'],
+                    'remaining_score': throw['remaining_score'],
+                    'darts_used': throw['darts_used']
+                })
+            
+            # Calculate statistics for both players
+            def calculate_player_stats(throws_list, team_number):
+                total_throws = len(throws_list)
+                scores = [t['score'] for t in throws_list if t['score'] >= 0]
+                total_score = sum(scores)
+                
+                # Calculate total darts used for proper average calculation
+                total_darts = 0
+                for throw in throws_list:
+                    if throw['score'] < 0:
+                        # Checkout throw - use the dart count
+                        total_darts += abs(throw['score'])
+                    else:
+                        # Regular throw - use 3 darts (or darts_used if available)
+                        total_darts += throw.get('darts_used', 3)
+                
+                # Use the database player_avg instead of calculating it
+                avg_score = sub_match_info['player_avg'] if team_number == sub_match_info['team_number'] else opponent_avg
+                max_score = max(scores, default=0)
+                legs_won = sum(1 for leg in legs_with_throws.values() if leg['winner_team'] == team_number)
+                
+                # Get checkout scores (what they actually scored to finish)
+                checkout_scores = []
+                for throw in throws_list:
+                    if throw['score'] < 0:
+                        # Find what score was needed to finish (remaining_score before the checkout)
+                        cursor.execute("""
+                            SELECT remaining_score
+                            FROM throws 
+                            WHERE leg_id = (SELECT id FROM legs WHERE sub_match_id = ? AND leg_number = ?)
+                              AND team_number = ? AND round_number = ?
+                        """, (sub_match_id, throw['leg_number'], team_number, throw['round_number'] - 1))
+                        
+                        checkout_result = cursor.fetchone()
+                        if checkout_result:
+                            checkout_score = checkout_result[0]  # This is what they scored to finish
+                            checkout_scores.append(checkout_score)
+                
+                # Advanced statistics
+                all_scores = scores + checkout_scores
+                throws_100_139 = len([s for s in all_scores if 100 <= s < 140])
+                throws_140_179 = len([s for s in all_scores if 140 <= s < 180])
+                throws_180 = len([s for s in all_scores if s == 180])
+                throws_100_plus_total = len([s for s in all_scores if s >= 100])
+                throws_under_20 = len([s for s in scores if s < 20])
+                throws_60_plus = len([s for s in all_scores if s >= 60])
+                
+                # Calculate "Första 9 pil" (first 3 rounds average across all legs)
+                first_9_dart_scores = []
+                for leg in legs_with_throws.values():
+                    leg_throws_key = 'player_throws' if team_number == sub_match_info['team_number'] else 'opponent_throws'
+                    leg_throws = leg[leg_throws_key]
+                    # Take first 3 throws (rounds) from each leg
+                    for i, throw in enumerate(leg_throws):
+                        if i < 3 and throw['score'] >= 0:  # Only first 3 rounds and only positive scores
+                            first_9_dart_scores.append(throw['score'])
+                
+                first_9_dart_avg = round(sum(first_9_dart_scores) / max(1, len(first_9_dart_scores)), 2) if first_9_dart_scores else 0
+                
+                checkouts = [-t['score'] for t in throws_list if t['score'] < 0]
+                total_checkouts = len(checkouts)
+                checkout_darts = sum(checkouts) if checkouts else 0
+                
+                # Calculate special leg achievements (only for legs won by this player)
+                short_legs = 0  # 18 darts or fewer (6 rounds or fewer)
+                high_finishes = 0  # 100+ checkout
+                
+                for leg in legs_with_throws.values():
+                    if leg['winner_team'] == team_number:
+                        # Count throws for this player in this leg
+                        leg_throws_key = 'player_throws' if team_number == sub_match_info['team_number'] else 'opponent_throws'
+                        leg_throws = leg.get(leg_throws_key, [])
+                        
+                        # Calculate total darts used in this leg
+                        total_darts_in_leg = 0
+                        checkout_score = 0
+                        
+                        for throw in leg_throws:
+                            if throw['score'] < 0:
+                                # Winning throw - add the darts used to win
+                                total_darts_in_leg += abs(throw['score'])
+                                # Get the checkout score (what they finished on)
+                                checkout_score = throw['remaining_score'] + abs(throw['score']) * (501 - throw['remaining_score']) // 501
+                                # Actually, get the score before this throw
+                                for prev_throw in leg_throws:
+                                    if prev_throw['round_number'] == throw['round_number'] - 1:
+                                        checkout_score = prev_throw['remaining_score']
+                                        break
+                            else:
+                                total_darts_in_leg += 3  # Normal throw uses 3 darts
+                        
+                        # Check for short leg (18 darts or fewer)
+                        if total_darts_in_leg <= 18:
+                            short_legs += 1
+                        
+                        # Check for high finish (100+)
+                        # We need to get the actual checkout score from the database
+                        if any(t['score'] < 0 for t in leg_throws):
+                            cursor.execute("""
+                                SELECT t2.remaining_score
+                                FROM throws t1
+                                JOIN throws t2 ON t1.leg_id = t2.leg_id 
+                                WHERE t1.leg_id = (SELECT id FROM legs WHERE sub_match_id = ? AND leg_number = ?)
+                                  AND t1.score < 0 AND t1.team_number = ? AND t2.round_number = t1.round_number - 1
+                                LIMIT 1
+                            """, (sub_match_id, leg['leg_number'], team_number))
+                            
+                            checkout_result = cursor.fetchone()
+                            if checkout_result and checkout_result[0] >= 100:
+                                high_finishes += 1
+                
+                return {
+                    'total_throws': total_throws,
+                    'total_score': total_score,
+                    'average_score': avg_score,
+                    'max_score': max_score,
+                    'legs_won': legs_won,
+                    'throws_100_139': throws_100_139,
+                    'throws_140_179': throws_140_179,
+                    'throws_180': throws_180,
+                    'throws_100_plus_total': throws_100_plus_total,
+                    'throws_under_20': throws_under_20,
+                    'throws_60_plus': throws_60_plus,
+                    'total_checkouts': total_checkouts,
+                    'checkout_darts': checkout_darts,
+                    'short_legs': short_legs,
+                    'high_finishes': high_finishes,
+                    'first_9_dart_avg': first_9_dart_avg
+                }
+            
+            player_stats = calculate_player_stats(player_throws, sub_match_info['team_number'])
+            opponent_stats = calculate_player_stats(opponent_throws, opposing_team_number)
+            
+            return jsonify({
+                'sub_match_info': dict(sub_match_info),
+                'player_name': player_name,
+                'opponent_names': opponent_names,
+                'legs': list(legs_with_throws.values()),
+                'player_statistics': {
+                    **player_stats,
+                    'legs_total': len(legs_with_throws)
+                },
+                'opponent_statistics': {
+                    **opponent_stats,
+                    'legs_total': len(legs_with_throws)
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/match/<int:match_id>/legs')
+def get_match_legs(match_id):
+    """Get detailed leg information for a match"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get match info
+            cursor.execute("""
+                SELECT m.*, t1.name as team1_name, t2.name as team2_name
+                FROM matches m
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE m.id = ?
+            """, (match_id,))
+            
+            match_info = cursor.fetchone()
+            if not match_info:
+                return jsonify({'error': 'Match not found'}), 404
+            
+            # Get all sub-matches with legs
+            cursor.execute("""
+                SELECT 
+                    sm.*,
+                    l.id as leg_id,
+                    l.leg_number,
+                    l.winner_team,
+                    l.first_player_team,
+                    l.total_rounds
+                FROM sub_matches sm
+                LEFT JOIN legs l ON sm.id = l.sub_match_id
+                WHERE sm.match_id = ?
+                ORDER BY sm.match_number, l.leg_number
+            """, (match_id,))
+            
+            legs_data = cursor.fetchall()
+            
+            # Group by sub-match
+            sub_matches = {}
+            for row in legs_data:
+                sm_id = row['id']
+                if sm_id not in sub_matches:
+                    sub_matches[sm_id] = {
+                        'sub_match_id': sm_id,
+                        'match_type': row['match_type'],
+                        'match_name': row['match_name'],
+                        'team1_legs': row['team1_legs'],
+                        'team2_legs': row['team2_legs'],
+                        'legs': []
+                    }
+                
+                if row['leg_id']:  # Only add if leg exists
+                    sub_matches[sm_id]['legs'].append({
+                        'leg_number': row['leg_number'],
+                        'winner_team': row['winner_team'],
+                        'first_player_team': row['first_player_team'],
+                        'total_rounds': row['total_rounds']
+                    })
+            
+            return jsonify({
+                'match_info': dict(match_info),
+                'sub_matches': list(sub_matches.values())
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+if __name__ == '__main__':
+    print("🎯 Starting GoldenStat Web Application...")
+    print("📊 Open your browser to: http://localhost:3000")
+    app.run(debug=True, host='0.0.0.0', port=3000)

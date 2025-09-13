@@ -1,0 +1,447 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-5">
+            <h1 class="display-4 text-primary">🎯 GoldenStat</h1>
+            <p class="lead">Upptäck din dart-utveckling och prestationer</p>
+        </div>
+    </div>
+</div>
+
+<!-- Search Section -->
+<div class="row justify-content-center mb-5">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-lg">
+            <div class="card-body p-4">
+                <h3 class="card-title text-center mb-4">Sök Spelare</h3>
+                <div class="input-group input-group-lg">
+                    <input type="text" 
+                           id="playerSearch" 
+                           class="form-control" 
+                           placeholder="Skriv spelarens namn..."
+                           autocomplete="off">
+                    <button class="btn btn-primary" type="button" onclick="searchPlayer()">
+                        <i class="bi bi-search">🔍</i> Sök
+                    </button>
+                </div>
+                <div id="searchSuggestions" class="list-group mt-2" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Overview -->
+<div class="row mb-5">
+    <div class="col-12">
+        <h3 class="text-center mb-4">Databas Översikt</h3>
+        <div class="row" id="overviewStats">
+            <!-- Stats will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Senaste Matcher</h5>
+            </div>
+            <div class="card-body">
+                <div id="recentMatches">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Laddar...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Results Modal -->
+<div class="modal fade" id="playerModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="playerModalTitle">Spelarstatistik</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="playerModalBody">
+                <!-- Player stats will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load overview stats on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadOverview();
+    loadPlayerList();
+});
+
+let allPlayers = [];
+
+async function loadPlayerList() {
+    try {
+        const response = await fetch('/api/players');
+        allPlayers = await response.json();
+    } catch (error) {
+        console.error('Failed to load players:', error);
+    }
+}
+
+async function loadOverview() {
+    try {
+        const response = await fetch('/api/overview');
+        const data = await response.json();
+        
+        const statsContainer = document.getElementById('overviewStats');
+        statsContainer.innerHTML = `
+            <div class="col-md-2 col-sm-6 mb-3">
+                <div class="card text-center bg-primary text-white">
+                    <div class="card-body">
+                        <h4>${data.total_players}</h4>
+                        <p class="card-text">Spelare</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-6 mb-3">
+                <div class="card text-center bg-success text-white">
+                    <div class="card-body">
+                        <h4>${data.total_matches}</h4>
+                        <p class="card-text">Lag-matcher</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-6 mb-3">
+                <div class="card text-center bg-info text-white">
+                    <div class="card-body">
+                        <h4>${data.total_sub_matches}</h4>
+                        <p class="card-text">Delmatcher</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-6 mb-3">
+                <div class="card text-center bg-warning text-white">
+                    <div class="card-body">
+                        <h4>${data.total_legs}</h4>
+                        <p class="card-text">Legs</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2 col-sm-6 mb-3">
+                <div class="card text-center bg-danger text-white">
+                    <div class="card-body">
+                        <h4>${data.total_throws}</h4>
+                        <p class="card-text">Kast</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Load recent matches
+        const recentContainer = document.getElementById('recentMatches');
+        if (data.recent_matches && data.recent_matches.length > 0) {
+            recentContainer.innerHTML = data.recent_matches.map(match => `
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <strong>${match.team1}</strong> vs <strong>${match.team2}</strong>
+                    </div>
+                    <div>
+                        <span class="badge bg-primary">${match.team1_score} - ${match.team2_score}</span>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            recentContainer.innerHTML = '<p class="text-muted">Inga matcher hittades. Kör scrapern för att samla data.</p>';
+        }
+        
+    } catch (error) {
+        console.error('Failed to load overview:', error);
+        document.getElementById('overviewStats').innerHTML = 
+            '<div class="col-12"><div class="alert alert-danger">Kunde inte ladda översikt</div></div>';
+    }
+}
+
+// Search functionality
+document.getElementById('playerSearch').addEventListener('input', function(e) {
+    const query = e.target.value.toLowerCase();
+    if (query.length < 2) {
+        document.getElementById('searchSuggestions').style.display = 'none';
+        return;
+    }
+    
+    const suggestions = allPlayers.filter(player => 
+        player.toLowerCase().includes(query)
+    ).slice(0, 5);
+    
+    const suggestionsContainer = document.getElementById('searchSuggestions');
+    if (suggestions.length > 0) {
+        suggestionsContainer.innerHTML = suggestions.map(player => 
+            `<button type="button" class="list-group-item list-group-item-action" onclick="selectPlayer('${player}')">${player}</button>`
+        ).join('');
+        suggestionsContainer.style.display = 'block';
+    } else {
+        suggestionsContainer.style.display = 'none';
+    }
+});
+
+function selectPlayer(playerName) {
+    document.getElementById('playerSearch').value = playerName;
+    document.getElementById('searchSuggestions').style.display = 'none';
+    searchPlayer();
+}
+
+async function searchPlayer() {
+    const playerName = document.getElementById('playerSearch').value.trim();
+    if (!playerName) return;
+    
+    try {
+        const response = await fetch(`/api/player/${encodeURIComponent(playerName)}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            showPlayerStats(data);
+        } else {
+            alert(`Spelare hittades inte: ${data.error}`);
+        }
+    } catch (error) {
+        console.error('Search failed:', error);
+        alert('Sökfel');
+    }
+}
+
+async function showPlayerStats(stats) {
+    const modal = new bootstrap.Modal(document.getElementById('playerModal'));
+    document.getElementById('playerModalTitle').textContent = `${stats.player_name} - Statistik`;
+    
+    const winPercentage = stats.total_matches > 0 ? ((stats.wins / stats.total_matches) * 100).toFixed(1) : 0;
+    
+    // First show modal with basic stats
+    document.getElementById('playerModalBody').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laddar kast-analys...</span>
+            </div>
+            <p>Hämtar detaljerad spelanalys...</p>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Then load throw analysis in background
+    const throwData = await goldenStat.fetchThrowAnalysis(stats.player_name);
+    
+    console.log('Received throwData:', throwData); // Debug
+    
+    document.getElementById('playerModalBody').innerHTML = `
+        <!-- Navigation tabs -->
+        <ul class="nav nav-tabs" id="playerTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Översikt</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="throws-tab" data-bs-toggle="tab" data-bs-target="#throws" type="button">Kast-analys</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button">Matchhistorik</button>
+            </li>
+        </ul>
+        
+        <!-- Tab content -->
+        <div class="tab-content mt-3" id="playerTabsContent">
+            <!-- Overview Tab -->
+            <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card text-center bg-light">
+                            <div class="card-body">
+                                <h4 class="text-primary">${stats.total_matches}</h4>
+                                <p class="card-text">Totala matcher</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-light">
+                            <div class="card-body">
+                                <h4 class="text-success">${stats.wins}</h4>
+                                <p class="card-text">Vinster</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-light">
+                            <div class="card-body">
+                                <h4 class="text-warning">${winPercentage}%</h4>
+                                <p class="card-text">Vinstprocent</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-light">
+                            <div class="card-body">
+                                <h4 class="text-info">${stats.average_score}</h4>
+                                <p class="card-text">Snitt-average</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts row -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <canvas id="winLossChart" style="height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <canvas id="progressChart" style="height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Throws Tab -->
+            <div class="tab-pane fade" id="throws" role="tabpanel">
+                ${throwData && throwData.statistics && Object.keys(throwData.statistics).length > 0 ? `
+                    <div class="row mb-4">
+                        <div class="col-md-2">
+                            <div class="card text-center bg-light">
+                                <div class="card-body">
+                                    <h4 class="text-primary">${throwData.statistics.total_throws || 0}</h4>
+                                    <p class="card-text">Kast (Singles)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card text-center bg-light">
+                                <div class="card-body">
+                                    <h4 class="text-success">${throwData.statistics.average_score || 0}</h4>
+                                    <p class="card-text">Snitt/kast (Singles)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card text-center bg-light">
+                                <div class="card-body">
+                                    <h4 class="text-warning">${throwData.statistics.max_score || 0}</h4>
+                                    <p class="card-text">Högsta kast</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="card text-center bg-light">
+                                <div class="card-body">
+                                    <h4 class="text-info">${throwData.statistics.total_checkouts || 0}</h4>
+                                    <p class="card-text">Checkouts</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-body">
+                                    <canvas id="throwDistributionChart" style="height: 400px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <canvas id="checkoutChart" style="height: 400px;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="alert alert-info">
+                        <h5>🎯 Kast-analys (Singles)</h5>
+                        <p class="mb-2">Ingen detaljerad Singles kast-data tillgänglig ännu.</p>
+                        <p class="mb-0 small">För att få detaljerad kast-för-kast analys från Singles-matcher behöver localStorage-data scrapas från n01darts.com</p>
+                    </div>
+                `}
+            </div>
+            
+            <!-- Matches Tab -->
+            <div class="tab-pane fade" id="matches" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th>Motstånd</th>
+                                <th>Typ</th>
+                                <th>Resultat</th>
+                                <th>Average</th>
+                                <th>Resultat</th>
+                                <th>Kastomgångar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${stats.recent_matches.map(match => `
+                                <tr>
+                                    <td>${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</td>
+                                    <td>${match.opponent || match.team1_name + ' vs ' + match.team2_name}</td>
+                                    <td><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_type}</span></td>
+                                    <td>${match.team1_legs} - ${match.team2_legs}</td>
+                                    <td>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</td>
+                                    <td>
+                                        ${match.won ? 
+                                            '<span class="badge bg-success">Vinst</span>' : 
+                                            '<span class="badge bg-danger">Förlust</span>'
+                                        }
+                                    </td>
+                                    <td>
+                                        ${match.sub_match_id ? 
+                                            '<a href="/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '" class="btn btn-sm btn-outline-primary" target="_blank">🎯 Visa</a>' : 
+                                            '<span class="text-muted">-</span>'
+                                        }
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    modal.show();
+    
+    // Create charts after modal is shown
+    setTimeout(() => {
+        // Overview charts
+        goldenStat.createWinLossChart('winLossChart', stats.wins, stats.losses);
+        goldenStat.createProgressChart('progressChart', stats.recent_matches);
+        
+        // Throw analysis charts
+        if (throwData && throwData.statistics) {
+            goldenStat.createThrowDistributionChart('throwDistributionChart', throwData.statistics.score_ranges);
+            goldenStat.createCheckoutChart('checkoutChart', throwData.statistics.checkout_scores);
+        }
+    }, 100);
+}
+
+// Handle Enter key in search
+document.getElementById('playerSearch').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        document.getElementById('searchSuggestions').style.display = 'none';
+        searchPlayer();
+    }
+});
+</script>
+{% endblock %}
