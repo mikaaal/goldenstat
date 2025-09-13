@@ -114,7 +114,7 @@ function displayThrowData(data) {
                         <small class="text-muted">Totalt kast</small>
                     </div>
                     <div class="col-4">
-                        <div class="h5 text-success mb-0">${playerStats.average_score}</div>
+                        <div class="h5 text-success mb-0">${playerStats.average_score ? parseFloat(playerStats.average_score).toFixed(2) : 'N/A'}</div>
                         <small class="text-muted">Snitt</small>
                     </div>
                     <div class="col-4">
@@ -170,7 +170,7 @@ function displayThrowData(data) {
                         <small class="text-muted">Totalt kast</small>
                     </div>
                     <div class="col-4">
-                        <div class="h5 text-success mb-0">${opponentStats.average_score}</div>
+                        <div class="h5 text-success mb-0">${opponentStats.average_score ? parseFloat(opponentStats.average_score).toFixed(2) : 'N/A'}</div>
                         <small class="text-muted">Snitt</small>
                     </div>
                     <div class="col-4">
@@ -229,11 +229,23 @@ function displayThrowData(data) {
         const legWonIcon = leg.player_won_leg ? '🏆' : '❌';
         const legWonBadge = leg.player_won_leg ? 'bg-success' : 'bg-danger';
         
+        // Calculate dart count for winner
+        const playerDarts = calculateTotalDarts(leg.player_throws);
+        const opponentDarts = calculateTotalDarts(leg.opponent_throws);
+        const winnerName = leg.player_won_leg ? data.player_name : data.opponent_names;
+        const winnerDarts = leg.player_won_leg ? playerDarts : opponentDarts;
+        const dartInfo = `${winnerName} vann på ${winnerDarts} pilar`;
+        
         legsHtml += `
             <div class="card mb-4 ${legWonClass}">
-                <div class="card-header ${legWonBg} d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Leg ${leg.leg_number} ${legWonIcon}</h6>
-                    <span class="badge ${legWonBadge}">${legWonText}</span>
+                <div class="card-header ${legWonBg}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Leg ${leg.leg_number} ${legWonIcon}</h6>
+                        <span class="badge ${legWonBadge}">${legWonText}</span>
+                    </div>
+                    <div class="text-center mt-1">
+                        <small class="text-muted">${dartInfo}</small>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="row g-2 mb-3">
@@ -265,8 +277,8 @@ function displayThrowData(data) {
             // Player throw
             if (playerThrow) {
                 const scoreClass = getScoreClass(playerThrow.score);
-                const isWinningThrow = playerThrow.score < 0;
-                const displayScore = isWinningThrow ? `${Math.abs(playerThrow.score)} pilar (VANN)` : playerThrow.score;
+                const isWinningThrow = playerThrow.remaining_score === 0;
+                const displayScore = isWinningThrow ? `🏆 ${playerThrow.darts_used || 3} pilar` : playerThrow.score;
                 const winningClass = isWinningThrow ? 'bg-success bg-opacity-25' : '';
                 
                 legsHtml += `
@@ -275,7 +287,7 @@ function displayThrowData(data) {
                             <div class="card ${scoreClass} px-2 py-1 me-2" style="min-width: 60px;">
                                 <div class="fw-bold">${displayScore}</div>
                             </div>
-                            <small class="text-muted">${playerThrow.remaining_score}</small>
+                            <small class="text-muted">${isWinningThrow ? `🎯 ${calculateTotalDarts(leg.player_throws)} pilar` : playerThrow.remaining_score}</small>
                         </div>
                     </td>
                 `;
@@ -289,14 +301,14 @@ function displayThrowData(data) {
             // Opponent throw
             if (opponentThrow) {
                 const scoreClass = getScoreClass(opponentThrow.score);
-                const isWinningThrow = opponentThrow.score < 0;
-                const displayScore = isWinningThrow ? `${Math.abs(opponentThrow.score)} pilar (VANN)` : opponentThrow.score;
+                const isWinningThrow = opponentThrow.remaining_score === 0;
+                const displayScore = isWinningThrow ? `🏆 ${opponentThrow.darts_used || 3} pilar` : opponentThrow.score;
                 const winningClass = isWinningThrow ? 'bg-success bg-opacity-25' : '';
                 
                 legsHtml += `
                     <td class="text-center ${winningClass}">
                         <div class="d-flex justify-content-center align-items-center">
-                            <small class="text-muted me-2">${opponentThrow.remaining_score}</small>
+                            <small class="text-muted me-2">${isWinningThrow ? `🎯 ${calculateTotalDarts(leg.opponent_throws)} pilar` : opponentThrow.remaining_score}</small>
                             <div class="card ${scoreClass} px-2 py-1" style="min-width: 60px;">
                                 <div class="fw-bold">${displayScore}</div>
                             </div>
