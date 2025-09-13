@@ -24,7 +24,7 @@ class PlayerAverageFixer:
     def get_player_stats_from_api(self, match_url: str, player_name: str, match_name: str) -> Optional[float]:
         """Get player average from API statsData for specific sub-match"""
         try:
-            response = self.session.get(match_url, timeout=10)
+            response = self.session.get(match_url, timeout=15)
             if response.status_code != 200:
                 return None
             
@@ -63,7 +63,7 @@ class PlayerAverageFixer:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
-            # Get all sub_match_participants with NULL player_avg
+            # Get all sub_match_participants with NULL player_avg, skipping already processed
             query = """
                 SELECT smp.id, smp.player_id, p.name, m.match_url, sm.match_name
                 FROM sub_match_participants smp
@@ -71,6 +71,7 @@ class PlayerAverageFixer:
                 JOIN sub_matches sm ON smp.sub_match_id = sm.id
                 JOIN matches m ON sm.match_id = m.id
                 WHERE smp.player_avg IS NULL
+                ORDER BY smp.id
             """
             if limit:
                 query += f" LIMIT {limit}"
@@ -104,17 +105,27 @@ class PlayerAverageFixer:
                     failed += 1
                     print(f"❌ Failed to get average")
                 
-                # Progress update
-                if i % 10 == 0:
+                # Progress update and commit less frequently
+                if i % 50 == 0:
                     print(f"\\n📊 Progress: {i}/{len(participants)}")
                     print(f"   ✅ Successful: {successful}")
                     print(f"   ❌ Failed: {failed}")
                     
-                    # Commit progress
-                    conn.commit()
+                    # Commit progress less frequently to avoid I/O errors
+                    try:
+                        conn.commit()
+                        print(f"   💾 Committed batch at {i}")
+                    except Exception as e:
+                        print(f"   ⚠️  Commit warning: {e}")
+                        # Continue without committing this batch
             
-            # Final commit
-            conn.commit()
+            # Final commit with error handling
+            try:
+                conn.commit()
+                print(f"   💾 Final commit successful")
+            except Exception as e:
+                print(f"   ⚠️  Final commit error: {e}")
+                print(f"   📊 Progress saved: {successful} successful updates")
             
             print(f"\\n🎉 Player average fixing completed!")
             print(f"📊 Final statistics: {successful} successful, {failed} failed")
