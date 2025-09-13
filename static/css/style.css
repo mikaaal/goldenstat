@@ -199,3 +199,46 @@ body {
     border-radius: 3px;
     margin-right: 8px;
 }
+
+/* Dart Score Color Coding */
+.score-180 {
+    background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+    color: white !important;
+    font-weight: bold !important;
+    border: 2px solid #198754 !important;
+    box-shadow: 0 2px 8px rgba(25, 135, 84, 0.4) !important;
+}
+
+.score-140-179 {
+    background: linear-gradient(135deg, #0d6efd 0%, #084298 100%) !important;
+    color: white !important;
+    border: 2px solid #0d6efd !important;
+    box-shadow: 0 2px 6px rgba(13, 110, 253, 0.3) !important;
+}
+
+.score-101-139 {
+    background: linear-gradient(135deg, #0dcaf0 0%, #087990 100%) !important;
+    color: white !important;
+    border: 2px solid #0dcaf0 !important;
+    box-shadow: 0 2px 6px rgba(13, 202, 240, 0.3) !important;
+}
+
+.score-100 {
+    background: linear-gradient(135deg, #ffc107 0%, #d39e00 100%) !important;
+    color: #212529 !important;
+    font-weight: 600 !important;
+    border: 2px solid #ffc107 !important;
+    box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3) !important;
+}
+
+.score-60-99 {
+    background: linear-gradient(135deg, #d1e7dd 0%, #a3cfbb 100%) !important;
+    color: #0f5132 !important;
+    border: 2px solid #badbcc !important;
+}
+
+.score-under-60 {
+    background: #f8f9fa !important;
+    color: #6c757d !important;
+    border: 1px solid #dee2e6 !important;
+}

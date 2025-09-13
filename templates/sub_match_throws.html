@@ -334,12 +334,12 @@ function displayThrowData(data) {
 function getScoreClass(score) {
     // Ignore negative scores for color classification
     const absScore = Math.abs(score);
-    if (absScore >= 140) return 'bg-danger bg-opacity-25 border-danger';           // 140+ röd
-    if (absScore >= 100) return 'bg-warning bg-opacity-25 border-warning';         // 100-139 orange
-    if (absScore >= 85) return 'bg-primary bg-opacity-25 border-primary';          // 85-99 blå
-    if (absScore >= 61) return 'bg-warning bg-opacity-10 border-warning';          // 61-84 ljusgul
-    if (absScore === 60) return 'bg-info bg-opacity-25 border-info';               // 60 ljusblå
-    return 'bg-light border-light';                                                // <60 ingen färg
+    if (absScore === 180) return 'score-180';              // 180 - bästa färgen (grön gradient)
+    if (absScore >= 140) return 'score-140-179';           // 140-179 - ännu mer positiv (blå gradient)  
+    if (absScore >= 101) return 'score-101-139';           // 101-139 - väldigt positiv (ljusblå gradient)
+    if (absScore === 100) return 'score-100';              // 100 - positiv (gul gradient)
+    if (absScore >= 60) return 'score-60-99';              // 60-99 - ganska positiv (ljus grön)
+    return 'score-under-60';                               // <60 - neutral färg
 }
 
 function calculateTotalDarts(throws) {
