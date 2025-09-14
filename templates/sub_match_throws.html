@@ -164,52 +164,36 @@ function displayThrowData(data) {
                     <h6 class="text-primary text-center mb-3">${makePlayerNameClickable(data.player_name)}${data.teammate_names ? ' / ' + makePlayerNameClickable(data.teammate_names) : ''}</h6>
                     <div class="row g-2 text-center">
                     <div class="col-4">
-                        <div class="h5 text-primary mb-0">${playerStats.total_throws}</div>
-                        <small class="text-muted">Totalt kast</small>
-                    </div>
-                    <div class="col-4">
-                        <div class="h5 text-success mb-0">${playerStats.average_score ? parseFloat(playerStats.average_score).toFixed(2) : 'N/A'}</div>
                         <small class="text-muted">Snitt</small>
+                        <div class="h5 text-success mb-0">${playerStats.average_score ? parseFloat(playerStats.average_score).toFixed(2) : 'N/A'}</div>
                     </div>
                     <div class="col-4">
-                        <div class="h5 text-danger mb-0">${playerStats.max_score}</div>
-                        <small class="text-muted">Högsta</small>
-                    </div>
-                    <div class="col-4">
-                        <div class="h5 text-warning mb-0">${playerStats.legs_won}</div>
-                        <small class="text-muted">Legs</small>
-                    </div>
-                    <div class="col-4">
-                        <div class="h5 text-info mb-0">${playerStats.throws_100_139}</div>
                         <small class="text-muted">100+</small>
+                        <div class="h5 text-info mb-0">${playerStats.throws_100_139}</div>
                     </div>
                     <div class="col-4">
-                        <div class="h5 text-dark mb-0">${playerStats.throws_140_179}</div>
                         <small class="text-muted">140+</small>
+                        <div class="h5 text-dark mb-0">${playerStats.throws_140_179}</div>
                     </div>
                     <div class="col-4">
-                        <div class="h6 text-muted mb-0">${playerStats.throws_180}</div>
                         <small class="text-muted">180</small>
+                        <div class="h6 text-muted mb-0">${playerStats.throws_180}</div>
                     </div>
                     <div class="col-4">
-                        <div class="h6 text-primary mb-0">${playerStats.total_checkouts}</div>
-                        <small class="text-muted">Checkouts</small>
-                    </div>
-                    <div class="col-4">
-                        <div class="h6 text-secondary mb-0">${playerStats.throws_100_plus_total}</div>
                         <small class="text-muted">Tot 100+</small>
+                        <div class="h6 text-secondary mb-0">${playerStats.throws_100_plus_total}</div>
                     </div>
-                    <div class="col-6">
-                        <div class="h6 text-success mb-0">${playerStats.short_legs}</div>
-                        <small class="text-muted">Korta legs</small>
-                    </div>
-                    <div class="col-6">
-                        <div class="h6 text-warning mb-0">${playerStats.high_finishes}</div>
-                        <small class="text-muted">Höga utgångar</small>
-                    </div>
-                    <div class="col-12">
-                        <div class="h6 text-info mb-0">${playerStats.first_9_dart_avg}</div>
+                    <div class="col-4">
                         <small class="text-muted">Första 9 pil</small>
+                        <div class="h6 text-info mb-0">${playerStats.first_9_dart_avg}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Korta legs (pilar)</small>
+                        <div class="h6 text-success mb-0">${playerStats.short_legs_detail && playerStats.short_legs_detail.length > 0 ? playerStats.short_legs_detail.join(', ') : '0'}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Höga utgångar (poäng)</small>
+                        <div class="h6 text-warning mb-0">${playerStats.high_finishes_detail && playerStats.high_finishes_detail.length > 0 ? playerStats.high_finishes_detail.join(', ') : '0'}</div>
                     </div>
                     </div>
                 </div>
@@ -220,52 +204,36 @@ function displayThrowData(data) {
                     <h6 class="text-danger text-center mb-3">${makePlayerNameClickable(data.opponent_names, true)}</h6>
                     <div class="row g-2 text-center">
                     <div class="col-4">
-                        <div class="h5 text-primary mb-0">${opponentStats.total_throws}</div>
-                        <small class="text-muted">Totalt kast</small>
-                    </div>
-                    <div class="col-4">
-                        <div class="h5 text-success mb-0">${opponentStats.average_score ? parseFloat(opponentStats.average_score).toFixed(2) : 'N/A'}</div>
                         <small class="text-muted">Snitt</small>
+                        <div class="h5 text-success mb-0">${opponentStats.average_score ? parseFloat(opponentStats.average_score).toFixed(2) : 'N/A'}</div>
                     </div>
                     <div class="col-4">
-                        <div class="h5 text-danger mb-0">${opponentStats.max_score}</div>
-                        <small class="text-muted">Högsta</small>
-                    </div>
-                    <div class="col-4">
-                        <div class="h5 text-warning mb-0">${opponentStats.legs_won}</div>
-                        <small class="text-muted">Legs</small>
-                    </div>
-                    <div class="col-4">
-                        <div class="h5 text-info mb-0">${opponentStats.throws_100_139}</div>
                         <small class="text-muted">100+</small>
+                        <div class="h5 text-info mb-0">${opponentStats.throws_100_139}</div>
                     </div>
                     <div class="col-4">
-                        <div class="h5 text-dark mb-0">${opponentStats.throws_140_179}</div>
                         <small class="text-muted">140+</small>
+                        <div class="h5 text-dark mb-0">${opponentStats.throws_140_179}</div>
                     </div>
                     <div class="col-4">
-                        <div class="h6 text-muted mb-0">${opponentStats.throws_180}</div>
                         <small class="text-muted">180</small>
+                        <div class="h6 text-muted mb-0">${opponentStats.throws_180}</div>
                     </div>
                     <div class="col-4">
-                        <div class="h6 text-primary mb-0">${opponentStats.total_checkouts}</div>
-                        <small class="text-muted">Checkouts</small>
-                    </div>
-                    <div class="col-4">
-                        <div class="h6 text-secondary mb-0">${opponentStats.throws_100_plus_total}</div>
                         <small class="text-muted">Tot 100+</small>
+                        <div class="h6 text-secondary mb-0">${opponentStats.throws_100_plus_total}</div>
                     </div>
-                    <div class="col-6">
-                        <div class="h6 text-success mb-0">${opponentStats.short_legs}</div>
-                        <small class="text-muted">Korta legs</small>
-                    </div>
-                    <div class="col-6">
-                        <div class="h6 text-warning mb-0">${opponentStats.high_finishes}</div>
-                        <small class="text-muted">Höga utgångar</small>
-                    </div>
-                    <div class="col-12">
-                        <div class="h6 text-info mb-0">${opponentStats.first_9_dart_avg}</div>
+                    <div class="col-4">
                         <small class="text-muted">Första 9 pil</small>
+                        <div class="h6 text-info mb-0">${opponentStats.first_9_dart_avg}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Korta legs (pilar)</small>
+                        <div class="h6 text-success mb-0">${opponentStats.short_legs_detail && opponentStats.short_legs_detail.length > 0 ? opponentStats.short_legs_detail.join(', ') : '0'}</div>
+                    </div>
+                    <div class="col-6">
+                        <small class="text-muted">Höga utgångar (poäng)</small>
+                        <div class="h6 text-warning mb-0">${opponentStats.high_finishes_detail && opponentStats.high_finishes_detail.length > 0 ? opponentStats.high_finishes_detail.join(', ') : '0'}</div>
                     </div>
                     </div>
                 </div>
