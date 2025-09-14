@@ -155,8 +155,8 @@ class DartDatabase:
                 throw_data.get('darts_used')
             ))
     
-    def get_player_stats(self, player_name: str) -> Dict[str, Any]:
-        """Get comprehensive stats for a player"""
+    def get_player_stats(self, player_name: str, season: str = None, division: str = None) -> Dict[str, Any]:
+        """Get comprehensive stats for a player with optional filtering"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -169,10 +169,26 @@ class DartDatabase:
             
             player_id = player_result['id']
             
-            # Get all matches for this player with detailed stats
-            cursor.execute("""
+            # Build WHERE clause for filtering
+            where_conditions = ["smp.player_id = ?"]
+            params = [player_id]
+            
+            if season:
+                where_conditions.append("m.season = ?")
+                params.append(season)
+            
+            if division:
+                where_conditions.append("m.division = ?")
+                params.append(division)
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            # Get all matches for this player with detailed stats and filtering
+            cursor.execute(f"""
                 SELECT 
                     m.match_date,
+                    m.season,
+                    m.division,
                     t1.name as team1_name,
                     t2.name as team2_name,
                     sm.match_type,
@@ -182,6 +198,7 @@ class DartDatabase:
                     smp.team_number,
                     smp.player_avg,
                     CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as player_team,
+                    CASE WHEN smp.team_number = 1 THEN t2.name ELSE t1.name END as opponent_team,
                     CASE 
                         WHEN (smp.team_number = 1 AND sm.team1_legs > sm.team2_legs) 
                           OR (smp.team_number = 2 AND sm.team2_legs > sm.team1_legs) 
@@ -193,9 +210,9 @@ class DartDatabase:
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id
-                WHERE smp.player_id = ?
+                WHERE {where_clause}
                 ORDER BY m.match_date DESC
-            """, (player_id,))
+            """, params)
             
             matches = [dict(row) for row in cursor.fetchall()]
             
@@ -218,14 +235,26 @@ class DartDatabase:
                 else:  # Doubles
                     match['opponent'] = ' + '.join(opponents) if opponents else 'Unknown'
             
-            # Calculate summary stats
+            # Calculate summary stats - separate by match type
+            singles_matches = [m for m in matches if m['match_type'] == 'Singles']
+            doubles_matches = [m for m in matches if m['match_type'] == 'Doubles']
+            
+            # Overall stats
             total_matches = len(matches)
             wins = sum(1 for match in matches if match['won'])
             losses = total_matches - wins
             
-            # Calculate average only from Singles matches
-            singles_matches = [m for m in matches if m['match_type'] == 'Singles' and m['player_avg']]
-            avg_score = sum(match['player_avg'] for match in singles_matches) / max(1, len(singles_matches)) if singles_matches else 0
+            # Singles stats
+            singles_total = len(singles_matches)
+            singles_wins = sum(1 for match in singles_matches if match['won'])
+            singles_losses = singles_total - singles_wins
+            singles_avg_matches = [m for m in singles_matches if m['player_avg']]
+            singles_avg_score = sum(match['player_avg'] for match in singles_avg_matches) / max(1, len(singles_avg_matches)) if singles_avg_matches else 0
+            
+            # Doubles stats  
+            doubles_total = len(doubles_matches)
+            doubles_wins = sum(1 for match in doubles_matches if match['won'])
+            doubles_losses = doubles_total - doubles_wins
             
             return {
                 'player_name': player_name,
@@ -233,6 +262,19 @@ class DartDatabase:
                 'wins': wins,
                 'losses': losses,
                 'win_percentage': (wins / max(1, total_matches)) * 100,
-                'average_score': round(avg_score, 2),
+                'average_score': round(singles_avg_score, 2),  # Only from singles as before
+                'singles': {
+                    'total_matches': singles_total,
+                    'wins': singles_wins,
+                    'losses': singles_losses,
+                    'win_percentage': (singles_wins / max(1, singles_total)) * 100,
+                    'average_score': round(singles_avg_score, 2)
+                },
+                'doubles': {
+                    'total_matches': doubles_total,
+                    'wins': doubles_wins,
+                    'losses': doubles_losses,
+                    'win_percentage': (doubles_wins / max(1, doubles_total)) * 100
+                },
                 'recent_matches': matches  # All matches
             }

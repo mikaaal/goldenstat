@@ -231,7 +231,14 @@ body {
     box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3) !important;
 }
 
-.score-60-99 {
+.score-61-99 {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%) !important;
+    color: #664d03 !important;
+    border: 2px solid #ffdf7e !important;
+    box-shadow: 0 2px 4px rgba(255, 193, 7, 0.2) !important;
+}
+
+.score-60 {
     background: linear-gradient(135deg, #d1e7dd 0%, #a3cfbb 100%) !important;
     color: #0f5132 !important;
     border: 2px solid #badbcc !important;
@@ -241,4 +248,80 @@ body {
     background: #f8f9fa !important;
     color: #6c757d !important;
     border: 1px solid #dee2e6 !important;
+}
+
+/* Clickable table rows and cards */
+.table-row-clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.table-row-clickable:hover {
+    background-color: #e3f2fd !important;
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+}
+
+.table-row-clickable::after {
+    content: "🎯";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    font-size: 0.8em;
+}
+
+.table-row-clickable:hover::after {
+    opacity: 0.6;
+}
+
+.card-clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    border: 1px solid #dee2e6;
+}
+
+.card-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 123, 255, 0.15);
+    border-color: #007bff;
+    background-color: #f8f9ff;
+}
+
+.card-clickable::after {
+    content: "🎯";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    font-size: 0.9em;
+}
+
+.card-clickable:hover::after {
+    opacity: 0.7;
+}
+
+/* Player name links */
+.player-link {
+    color: #007bff;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    background-color: rgba(0, 123, 255, 0.1);
+    border: 1px solid rgba(0, 123, 255, 0.2);
+}
+
+.player-link:hover {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+    text-decoration: none;
+    transform: translateY(-1px);
 }

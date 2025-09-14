@@ -1,6 +1,33 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Filter Section -->
+<div class="row justify-content-center mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col-md-3">
+                        <label for="seasonFilter" class="form-label small mb-1">Säsong</label>
+                        <select id="seasonFilter" class="form-select form-select-sm">
+                            <option value="">Alla säsonger</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="divisionFilter" class="form-label small mb-1">Liga</label>
+                        <select id="divisionFilter" class="form-select form-select-sm">
+                            <option value="">Alla ligor</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <small class="text-muted" id="filterInfo">Visar data för alla säsonger och ligor</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Search Section -->
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
@@ -41,10 +68,89 @@
 
 {% block scripts %}
 <script>
+
+// Global state
+let currentFilters = {
+    season: '',
+    division: ''
+};
+
 // Load player list on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadPlayerList();
+    loadFilters();
+    
+    // Setup filter change handlers
+    document.getElementById('seasonFilter').addEventListener('change', updateFilters);
+    document.getElementById('divisionFilter').addEventListener('change', updateFilters);
+    
+    // Check for URL parameter for automatic player search
+    const urlParams = new URLSearchParams(window.location.search);
+    const playerParam = urlParams.get('player');
+    if (playerParam) {
+        document.getElementById('playerSearch').value = playerParam;
+        searchPlayer();
+    }
 });
+
+async function loadFilters() {
+    try {
+        const response = await fetch('/api/leagues');
+        const data = await response.json();
+        
+        // Populate season filter
+        const seasonSelect = document.getElementById('seasonFilter');
+        data.seasons.forEach(season => {
+            if (season && season !== 'Unknown') {
+                const option = document.createElement('option');
+                option.value = season;
+                option.textContent = season;
+                seasonSelect.appendChild(option);
+            }
+        });
+        
+        // Populate division filter  
+        const divisionSelect = document.getElementById('divisionFilter');
+        data.divisions.forEach(division => {
+            if (division && division !== 'Unknown') {
+                const option = document.createElement('option');
+                option.value = division;
+                option.textContent = division;
+                divisionSelect.appendChild(option);
+            }
+        });
+        
+    } catch (error) {
+        console.error('Failed to load filters:', error);
+    }
+}
+
+function updateFilters() {
+    currentFilters.season = document.getElementById('seasonFilter').value;
+    currentFilters.division = document.getElementById('divisionFilter').value;
+    
+    // Update filter info text
+    const filterInfo = document.getElementById('filterInfo');
+    let infoText = 'Visar data för ';
+    
+    if (currentFilters.season && currentFilters.division) {
+        infoText += `${currentFilters.season}, ${currentFilters.division}`;
+    } else if (currentFilters.season) {
+        infoText += `säsong ${currentFilters.season}, alla ligor`;
+    } else if (currentFilters.division) {
+        infoText += `alla säsonger, liga ${currentFilters.division}`;
+    } else {
+        infoText += 'alla säsonger och ligor';
+    }
+    
+    filterInfo.textContent = infoText;
+    
+    // If a player is currently searched, refresh their stats with new filters
+    const currentPlayer = document.getElementById('playerSearch').value.trim();
+    if (currentPlayer) {
+        searchPlayer();
+    }
+}
 
 let allPlayers = [];
 
@@ -91,7 +197,15 @@ async function searchPlayer() {
     if (!playerName) return;
     
     try {
-        const response = await fetch(`/api/player/${encodeURIComponent(playerName)}`);
+        // Build query parameters with filters
+        const params = new URLSearchParams();
+        if (currentFilters.season) params.append('season', currentFilters.season);
+        if (currentFilters.division) params.append('division', currentFilters.division);
+        
+        const queryString = params.toString();
+        const url = `/api/player/${encodeURIComponent(playerName)}${queryString ? '?' + queryString : ''}`;
+        
+        const response = await fetch(url);
         const data = await response.json();
         
         if (response.ok) {
@@ -107,7 +221,7 @@ async function searchPlayer() {
 
 async function showPlayerStats(stats) {
     const modal = new bootstrap.Modal(document.getElementById('playerModal'));
-    document.getElementById('playerModalTitle').textContent = `${stats.player_name} - Statistik`;
+    document.getElementById('playerModalTitle').textContent = `${stats.player_name} - Spelarstatistik`;
     
     const winPercentage = stats.total_matches > 0 ? ((stats.wins / stats.total_matches) * 100).toFixed(1) : 0;
     
@@ -124,7 +238,7 @@ async function showPlayerStats(stats) {
     modal.show();
     
     // Then load throw analysis in background
-    const throwData = await goldenStat.fetchThrowAnalysis(stats.player_name);
+    const throwData = await goldenStat.fetchThrowAnalysis(stats.player_name, currentFilters);
     
     console.log('Received throwData:', throwData); // Debug
     
@@ -135,9 +249,6 @@ async function showPlayerStats(stats) {
                 <button class="nav-link active small" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Översikt</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link small" id="throws-tab" data-bs-toggle="tab" data-bs-target="#throws" type="button">Kast-analys</button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link small" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button">Matcher</button>
             </li>
         </ul>
@@ -146,36 +257,79 @@ async function showPlayerStats(stats) {
         <div class="tab-content mt-3" id="playerTabsContent">
             <!-- Overview Tab -->
             <div class="tab-pane fade show active" id="overview" role="tabpanel">
-                <div class="row g-2 mb-4">
-                    <div class="col-6 col-md-3">
-                        <div class="card text-center bg-light h-100">
-                            <div class="card-body py-2">
-                                <h5 class="text-primary mb-1">${stats.total_matches}</h5>
-                                <small class="card-text">Matcher</small>
+                <!-- Singles Statistics -->
+                <div class="mb-3">
+                    <h6 class="text-muted mb-2">🎯 Singlar</h6>
+                    <div class="row g-2">
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-primary mb-1">${stats.singles.total_matches}</h5>
+                                    <small class="card-text">Matcher</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-success mb-1">${stats.singles.wins}</h5>
+                                    <small class="card-text">Vinster</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-warning mb-1">${stats.singles.win_percentage.toFixed(1)}%</h5>
+                                    <small class="card-text">Vinstprocent</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-info mb-1">${stats.singles.average_score}</h5>
+                                    <small class="card-text">Snitt-average</small>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div class="card text-center bg-light h-100">
-                            <div class="card-body py-2">
-                                <h5 class="text-success mb-1">${stats.wins}</h5>
-                                <small class="card-text">Vinster</small>
+                </div>
+                
+                <!-- Doubles Statistics -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">👥 Dubblar</h6>
+                    <div class="row g-2">
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-primary mb-1">${stats.doubles.total_matches}</h5>
+                                    <small class="card-text">Matcher</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="card text-center bg-light h-100">
-                            <div class="card-body py-2">
-                                <h5 class="text-warning mb-1">${winPercentage}%</h5>
-                                <small class="card-text">Vinstprocent</small>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-success mb-1">${stats.doubles.wins}</h5>
+                                    <small class="card-text">Vinster</small>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="card text-center bg-light h-100">
-                            <div class="card-body py-2">
-                                <h5 class="text-info mb-1">${stats.average_score}</h5>
-                                <small class="card-text">Snitt-average</small>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-warning mb-1">${stats.doubles.win_percentage.toFixed(1)}%</h5>
+                                    <small class="card-text">Vinstprocent</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-muted mb-1">-</h5>
+                                    <small class="card-text">Snitt-average</small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -183,32 +337,30 @@ async function showPlayerStats(stats) {
                 
                 <!-- Charts row -->
                 <div class="row g-2">
-                    <div class="col-12 col-md-6 mb-2">
+                    <div class="col-12 col-md-8 mb-2">
                         <div class="card">
                             <div class="card-body">
-                                <canvas id="winLossChart" style="height: 250px;"></canvas>
+                                <canvas id="progressChart" style="height: 300px;"></canvas>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-6 mb-2">
+                    <div class="col-12 col-md-4 mb-2">
                         <div class="card">
                             <div class="card-body">
-                                <canvas id="progressChart" style="height: 250px;"></canvas>
+                                <canvas id="throwDistributionChart" style="height: 300px;"></canvas>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Throws Tab -->
-            <div class="tab-pane fade" id="throws" role="tabpanel">
+                
                 ${throwData && throwData.statistics && Object.keys(throwData.statistics).length > 0 ? `
+                    <!-- Throw statistics row -->
                     <div class="row g-2 mb-3">
                         <div class="col-6 col-md-3">
                             <div class="card text-center bg-light h-100">
                                 <div class="card-body py-2">
                                     <h6 class="text-primary mb-1">${throwData.statistics.total_throws || 0}</h6>
-                                    <small class="card-text">Kast</small>
+                                    <small class="card-text">Totala kast</small>
                                 </div>
                             </div>
                         </div>
@@ -216,53 +368,29 @@ async function showPlayerStats(stats) {
                             <div class="card text-center bg-light h-100">
                                 <div class="card-body py-2">
                                     <h6 class="text-success mb-1">${throwData.statistics.average_score || 0}</h6>
-                                    <small class="card-text">Snitt/kast</small>
+                                    <small class="card-text">Snitt per kast</small>
                                 </div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="card text-center bg-light h-100">
                                 <div class="card-body py-2">
-                                    <h6 class="text-warning mb-1">${throwData.statistics.max_score || 0}</h6>
-                                    <small class="card-text">Högsta kast</small>
+                                    <h6 class="text-warning mb-1">${throwData.statistics.throws_over_100 || 0}</h6>
+                                    <small class="card-text">100+ kast</small>
                                 </div>
                             </div>
                         </div>
                         <div class="col-6 col-md-3">
                             <div class="card text-center bg-light h-100">
                                 <div class="card-body py-2">
-                                    <h6 class="text-info mb-1">${throwData.statistics.total_checkouts || 0}</h6>
-                                    <small class="card-text">Checkouts</small>
+                                    <h6 class="text-info mb-1">${throwData.statistics.throws_180 || 0}</h6>
+                                    <small class="card-text">180-kast</small>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="row g-2">
-                        <div class="col-12 col-md-8 mb-2">
-                            <div class="card">
-                                <div class="card-body">
-                                    <canvas id="throwDistributionChart" style="height: 300px;"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-4 mb-2">
-                            <div class="card">
-                                <div class="card-body">
-                                    <canvas id="checkoutChart" style="height: 300px;"></canvas>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ` : `
-                    <div class="alert alert-info">
-                        <h5>🎯 Kast-analys (Singles)</h5>
-                        <p class="mb-2">Ingen detaljerad Singles kast-data tillgänglig ännu.</p>
-                        <p class="mb-0 small">För att få detaljerad kast-för-kast analys från Singles-matcher behöver localStorage-data scrapas från n01darts.com</p>
-                    </div>
-                `}
+                ` : ''}
             </div>
-            
             <!-- Matches Tab -->
             <div class="tab-pane fade" id="matches" role="tabpanel">
                 <div class="d-none d-md-block">
@@ -272,31 +400,22 @@ async function showPlayerStats(stats) {
                                 <tr>
                                     <th>Datum</th>
                                     <th>Motstånd</th>
-                                    <th>Typ</th>
                                     <th>Resultat</th>
                                     <th>Average</th>
                                     <th>Resultat</th>
-                                    <th>Kastomgångar</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 ${stats.recent_matches.map(match => `
-                                    <tr>
-                                        <td><small>${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
-                                        <td><small>${match.opponent || match.team1_name + ' vs ' + match.team2_name}</small></td>
-                                        <td><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_type}</span></td>
+                                    <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'" title="Klicka för att se kastomgångar"' : ''}>
+                                        <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
+                                        <td><small>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))} <span class="text-muted">(${match.opponent_team || match.match_type})</span></small></td>
                                         <td><small>${match.team1_legs} - ${match.team2_legs}</small></td>
                                         <td><small>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></td>
                                         <td>
                                             ${match.won ? 
-                                                '<span class="badge bg-success badge-sm">Vinst</span>' : 
-                                                '<span class="badge bg-danger badge-sm">Förlust</span>'
-                                            }
-                                        </td>
-                                        <td>
-                                            ${match.sub_match_id ? 
-                                                '<a href="/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '" class="btn btn-sm btn-outline-primary btn-sm" target="_blank">🎯</a>' : 
-                                                '<span class="text-muted">-</span>'
+                                                `<span class="badge bg-success badge-sm">Vinst</span>` : 
+                                                `<span class="badge bg-danger badge-sm">Förlust</span>`
                                             }
                                         </td>
                                     </tr>
@@ -309,17 +428,16 @@ async function showPlayerStats(stats) {
                 <!-- Mobile view -->
                 <div class="d-md-none">
                     ${stats.recent_matches.map(match => `
-                        <div class="card mb-2">
-                            <div class="card-body py-2">
+                        <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''}>
+                            <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'"' : ''}>
                                 <div class="row">
                                     <div class="col-8">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div>
-                                                <small class="text-muted">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
-                                                <div><strong>${match.opponent || match.team1_name + ' vs ' + match.team2_name}</strong></div>
+                                                <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
+                                                <div><strong>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
                                                 <div>
-                                                    <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_type}</span>
-                                                    <span class="ms-1">${match.team1_legs} - ${match.team2_legs}</span>
+                                                    <span class="fw-bold">${match.team1_legs} - ${match.team2_legs}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -327,17 +445,12 @@ async function showPlayerStats(stats) {
                                     <div class="col-4 text-end">
                                         <div>
                                             ${match.won ? 
-                                                '<span class="badge bg-success">Vinst</span>' : 
-                                                '<span class="badge bg-danger">Förlust</span>'
+                                                `<span class="badge bg-success">Vinst</span>` : 
+                                                `<span class="badge bg-danger">Förlust</span>`
                                             }
                                         </div>
-                                        <div><small class="text-muted">Avg: ${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></div>
-                                        <div>
-                                            ${match.sub_match_id ? 
-                                                '<a href="/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '" class="btn btn-sm btn-outline-primary" target="_blank">🎯</a>' : 
-                                                ''
-                                            }
-                                        </div>
+                                        <div><small class="text-muted">Average: ${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></div>
+                                        ${match.sub_match_id ? '<div><small class="text-primary">🎯 Visa kast</small></div>' : ''}
                                     </div>
                                 </div>
                             </div>
@@ -353,13 +466,11 @@ async function showPlayerStats(stats) {
     // Create charts after modal is shown
     setTimeout(() => {
         // Overview charts
-        goldenStat.createWinLossChart('winLossChart', stats.wins, stats.losses);
         goldenStat.createProgressChart('progressChart', stats.recent_matches);
         
-        // Throw analysis charts
-        if (throwData && throwData.statistics) {
+        // Throw distribution chart in overview
+        if (throwData && throwData.statistics && throwData.statistics.score_ranges) {
             goldenStat.createThrowDistributionChart('throwDistributionChart', throwData.statistics.score_ranges);
-            goldenStat.createCheckoutChart('checkoutChart', throwData.statistics.checkout_scores);
         }
     }, 100);
 }

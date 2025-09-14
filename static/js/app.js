@@ -83,21 +83,34 @@ class GoldenStat {
     createProgressChart(canvasId, matches) {
         if (!matches || matches.length === 0) return;
 
-        const sortedMatches = matches
-            .filter(match => match.player_avg && match.match_date)
+        // First filter for singles matches with valid data
+        const singlesMatches = matches.filter(match => 
+            match.player_avg && 
+            match.match_date && 
+            match.match_type === 'Singles'
+        );
+
+        // Sort in chronological order (oldest first) for proper time series
+        const sortedMatches = singlesMatches
             .sort((a, b) => new Date(a.match_date) - new Date(b.match_date))
-            .slice(-20); // Last 20 matches
+            .slice(-20); // Last 20 chronological matches
+
+        // Return early if no valid matches
+        if (sortedMatches.length === 0) {
+            console.warn('No singles matches with valid averages found for progress chart');
+            return;
+        }
 
         const labels = sortedMatches.map(match => this.formatDate(match.match_date));
         const averages = sortedMatches.map(match => match.player_avg);
         
-        // Calculate moving average
+        // Calculate moving average (3-match for better responsiveness)
         const movingAvg = [];
         for (let i = 0; i < averages.length; i++) {
-            const start = Math.max(0, i - 4); // 5-match moving average
+            const start = Math.max(0, i - 2); // 3-match moving average
             const slice = averages.slice(start, i + 1);
             const avg = slice.reduce((sum, val) => sum + val, 0) / slice.length;
-            movingAvg.push(avg);
+            movingAvg.push(Math.round(avg * 100) / 100); // Round to 2 decimals
         }
 
         const config = {
@@ -105,7 +118,7 @@ class GoldenStat {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Average per match',
+                    label: 'Average per singles match',
                     data: averages,
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.1)',
@@ -113,7 +126,7 @@ class GoldenStat {
                     fill: false,
                     tension: 0.1
                 }, {
-                    label: '5-match moving average',
+                    label: '3-match moving average',
                     data: movingAvg,
                     borderColor: '#28a745',
                     backgroundColor: 'rgba(40, 167, 69, 0.1)',
@@ -128,7 +141,7 @@ class GoldenStat {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Average Development Over Time'
+                        text: 'Singlar - Average utveckling över tid'
                     },
                     legend: {
                         display: true,
@@ -361,9 +374,17 @@ class GoldenStat {
     }
 
     // Fetch and display detailed throw analysis
-    async fetchThrowAnalysis(playerName) {
+    async fetchThrowAnalysis(playerName, filters = {}) {
         try {
-            const response = await fetch(`/api/player/${encodeURIComponent(playerName)}/throws`);
+            // Build query parameters with filters
+            const params = new URLSearchParams();
+            if (filters.season) params.append('season', filters.season);
+            if (filters.division) params.append('division', filters.division);
+            
+            const queryString = params.toString();
+            const url = `/api/player/${encodeURIComponent(playerName)}/throws${queryString ? '?' + queryString : ''}`;
+            
+            const response = await fetch(url);
             if (!response.ok) {
                 throw new Error('Failed to fetch throw data');
             }
@@ -382,6 +403,37 @@ class GoldenStat {
     calculateWinPercentage(wins, total) {
         if (total === 0) return 0;
         return ((wins / total) * 100).toFixed(1);
+    }
+
+    // SPA navigation for player searches
+    navigateToPlayer(playerName, showModal = true) {
+        if (showModal) {
+            // Update search field and trigger search with modal
+            document.getElementById('playerSearch').value = playerName;
+            // Trigger the existing search function which shows modal
+            window.searchPlayer();
+        } else {
+            // Direct navigation without modal (for future SPA routes)
+            const url = new URL(window.location);
+            url.searchParams.set('player', playerName);
+            window.history.pushState({player: playerName}, `${playerName} - GoldenStat`, url);
+        }
+    }
+
+    // Make player name clickable
+    makePlayerNameClickable(playerName, isDoubles = false) {
+        const escapedName = playerName.replace(/'/g, "\\'");
+        if (isDoubles && (playerName.includes(' + ') || playerName.includes(' / '))) {
+            // Handle doubles - make each player clickable
+            const separator = playerName.includes(' + ') ? ' + ' : ' / ';
+            const players = playerName.split(separator);
+            const newSeparator = ' / ';
+            return players.map(player => 
+                `<span class="player-link" onclick="goldenStat.navigateToPlayer('${player.trim().replace(/'/g, "\\'")}'); event.stopPropagation();" title="Klicka för att se ${player.trim()}">${player.trim()}</span>`
+            ).join(newSeparator);
+        } else {
+            return `<span class="player-link" onclick="goldenStat.navigateToPlayer('${escapedName}'); event.stopPropagation();" title="Klicka för att se ${playerName}">${playerName}</span>`;
+        }
     }
 
     // Cleanup charts

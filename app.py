@@ -12,12 +12,14 @@ from database import DartDatabase
 app = Flask(__name__)
 app.secret_key = 'goldenstat-secret-key'
 
+
 db = DartDatabase()
 
 @app.route('/')
 def index():
     """Main page with player search"""
     return render_template('index.html')
+
 
 @app.route('/api/players')
 def get_players():
@@ -36,10 +38,12 @@ def get_players():
 def get_player_stats(player_name):
     """API endpoint to get detailed player statistics"""
     try:
-        # Get limit parameter (default: show all matches)
+        # Get parameters
         limit = request.args.get('limit', type=int)
+        season = request.args.get('season')
+        division = request.args.get('division')
         
-        stats = db.get_player_stats(player_name)
+        stats = db.get_player_stats(player_name, season=season, division=division)
         if not stats:
             return jsonify({'error': 'Player not found'}), 404
         
@@ -52,6 +56,12 @@ def get_player_stats(player_name):
             for match in stats['recent_matches']:
                 if 'match_date' in match and match['match_date']:
                     match['match_date'] = str(match['match_date'])
+        
+        # Add filter information to response
+        stats['filters'] = {
+            'season': season,
+            'division': division
+        }
         
         return jsonify(stats)
     except Exception as e:
@@ -164,6 +174,42 @@ def test_throws():
     """Test page for throws visualization"""
     return render_template('test_throws.html')
 
+@app.route('/api/leagues')
+def get_leagues():
+    """Get available leagues and seasons"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+            
+            # Get distinct seasons and divisions
+            cursor.execute("""
+                SELECT DISTINCT season, division 
+                FROM matches 
+                WHERE season IS NOT NULL OR division IS NOT NULL
+                ORDER BY season DESC, division ASC
+            """)
+            
+            leagues = []
+            seasons = set()
+            divisions = set()
+            
+            for row in cursor.fetchall():
+                season = row[0] or 'Unknown'
+                division = row[1] or 'Unknown'
+                leagues.append({'season': season, 'division': division})
+                seasons.add(season)
+                divisions.add(division)
+            
+            return jsonify({
+                'leagues': leagues,
+                'seasons': sorted(list(seasons), reverse=True),
+                'divisions': sorted(list(divisions))
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/overview')
 def get_overview():
     """Get database overview statistics"""
@@ -172,34 +218,55 @@ def get_overview():
         with sqlite3.connect(db.db_path) as conn:
             cursor = conn.cursor()
             
-            # Get basic counts
-            cursor.execute("SELECT COUNT(*) FROM players")
+            # Get query parameters for filtering
+            season = request.args.get('season')
+            division = request.args.get('division')
+            
+            # Build WHERE clause for filtering
+            where_conditions = []
+            params = []
+            
+            if season:
+                where_conditions.append("m.season = ?")
+                params.append(season)
+            
+            if division:
+                where_conditions.append("m.division = ?")
+                params.append(division)
+            
+            where_clause = " AND ".join(where_conditions)
+            if where_clause:
+                where_clause = " WHERE " + where_clause
+            
+            # Get basic counts with filtering
+            cursor.execute(f"SELECT COUNT(DISTINCT p.id) FROM players p JOIN sub_match_participants smp ON p.id = smp.player_id JOIN sub_matches sm ON smp.sub_match_id = sm.id JOIN matches m ON sm.match_id = m.id{where_clause}", params)
             total_players = cursor.fetchone()[0]
             
-            cursor.execute("SELECT COUNT(*) FROM matches")
+            cursor.execute(f"SELECT COUNT(*) FROM matches m{where_clause}", params)
             total_matches = cursor.fetchone()[0]
             
-            cursor.execute("SELECT COUNT(*) FROM sub_matches")
+            cursor.execute(f"SELECT COUNT(*) FROM sub_matches sm JOIN matches m ON sm.match_id = m.id{where_clause}", params)
             total_sub_matches = cursor.fetchone()[0]
             
-            cursor.execute("SELECT COUNT(*) FROM legs")
+            cursor.execute(f"SELECT COUNT(*) FROM legs l JOIN sub_matches sm ON l.sub_match_id = sm.id JOIN matches m ON sm.match_id = m.id{where_clause}", params)
             total_legs = cursor.fetchone()[0]
             
-            cursor.execute("SELECT COUNT(*) FROM throws")
+            cursor.execute(f"SELECT COUNT(*) FROM throws t JOIN legs l ON t.leg_id = l.id JOIN sub_matches sm ON l.sub_match_id = sm.id JOIN matches m ON sm.match_id = m.id{where_clause}", params)
             total_throws = cursor.fetchone()[0]
             
-            # Get recent activity
-            cursor.execute("""
+            # Get recent activity with filtering
+            cursor.execute(f"""
                 SELECT 
                     t1.name as team1, t2.name as team2,
                     m.team1_score, m.team2_score,
-                    m.scraped_at
+                    m.scraped_at, m.season, m.division
                 FROM matches m
                 JOIN teams t1 ON m.team1_id = t1.id  
                 JOIN teams t2 ON m.team2_id = t2.id
+                {where_clause}
                 ORDER BY m.scraped_at DESC
                 LIMIT 5
-            """)
+            """, params)
             
             recent_matches = []
             for row in cursor.fetchall():
@@ -208,7 +275,9 @@ def get_overview():
                     'team2': row[1], 
                     'team1_score': row[2],
                     'team2_score': row[3],
-                    'scraped_at': str(row[4])
+                    'scraped_at': str(row[4]),
+                    'season': row[5],
+                    'division': row[6]
                 })
             
             return jsonify({
@@ -217,7 +286,11 @@ def get_overview():
                 'total_sub_matches': total_sub_matches,
                 'total_legs': total_legs,
                 'total_throws': total_throws,
-                'recent_matches': recent_matches
+                'recent_matches': recent_matches,
+                'filters': {
+                    'season': season,
+                    'division': division
+                }
             })
             
     except Exception as e:
@@ -382,6 +455,19 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             opponents = [row[0] for row in opponent_data]
             opponent_names = ' + '.join(opponents) if len(opponents) > 1 else (opponents[0] if opponents else 'Okänd')
             opponent_avg = sum(row[1] or 0 for row in opponent_data) / len(opponent_data) if opponent_data else 0
+            
+            # Get teammate info (other players on the same team)
+            cursor.execute("""
+                SELECT p.name, smp.player_avg 
+                FROM sub_match_participants smp
+                JOIN players p ON smp.player_id = p.id
+                WHERE smp.sub_match_id = ? AND smp.team_number = ? AND smp.player_id != ?
+                ORDER BY p.name
+            """, (sub_match_id, sub_match_info['team_number'], player_id))
+            
+            teammate_data = cursor.fetchall()
+            teammates = [row[0] for row in teammate_data]
+            teammate_names = ' + '.join(teammates) if teammates else None
 
             # Get all throws for both players in this sub-match
             # Filter out starting throw (score=0, remaining_score=501)
@@ -522,7 +608,9 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                 
                 # Calculate special leg achievements (only for legs won by this player)
                 short_legs = 0  # 18 darts or fewer (6 rounds or fewer)
+                short_legs_detail = []  # List of actual dart counts for short legs
                 high_finishes = 0  # 100+ checkout
+                high_finishes_detail = []  # List of actual checkout scores
                 
                 for leg in legs_with_throws.values():
                     if leg['winner_team'] == team_number:
@@ -551,22 +639,22 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                         # Check for short leg (18 darts or fewer)
                         if total_darts_in_leg <= 18:
                             short_legs += 1
+                            short_legs_detail.append(total_darts_in_leg)
                         
                         # Check for high finish (100+)
-                        # We need to get the actual checkout score from the database
-                        if any(t['score'] < 0 for t in leg_throws):
-                            cursor.execute("""
-                                SELECT t2.remaining_score
-                                FROM throws t1
-                                JOIN throws t2 ON t1.leg_id = t2.leg_id 
-                                WHERE t1.leg_id = (SELECT id FROM legs WHERE sub_match_id = ? AND leg_number = ?)
-                                  AND t1.score < 0 AND t1.team_number = ? AND t2.round_number = t1.round_number - 1
-                                LIMIT 1
-                            """, (sub_match_id, leg['leg_number'], team_number))
-                            
-                            checkout_result = cursor.fetchone()
-                            if checkout_result and checkout_result[0] >= 100:
-                                high_finishes += 1
+                        # Get actual checkout scores from the database for this leg and team
+                        cursor.execute("""
+                            SELECT t.score, t.remaining_score
+                            FROM throws t
+                            JOIN legs l ON t.leg_id = l.id
+                            WHERE l.sub_match_id = ? AND l.leg_number = ? 
+                              AND t.team_number = ? AND t.remaining_score = 0 AND t.score > 0
+                        """, (sub_match_id, leg['leg_number'], team_number))
+                        
+                        checkout_result = cursor.fetchone()
+                        if checkout_result and checkout_result[0] >= 100:
+                            high_finishes += 1
+                            high_finishes_detail.append(checkout_result[0])
                 
                 return {
                     'total_throws': total_throws,
@@ -583,7 +671,9 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                     'total_checkouts': total_checkouts,
                     'checkout_darts': checkout_darts,
                     'short_legs': short_legs,
+                    'short_legs_detail': short_legs_detail,
                     'high_finishes': high_finishes,
+                    'high_finishes_detail': high_finishes_detail,
                     'first_9_dart_avg': first_9_dart_avg
                 }
             
@@ -594,6 +684,7 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                 'sub_match_info': dict(sub_match_info),
                 'player_name': player_name,
                 'opponent_names': opponent_names,
+                'teammate_names': teammate_names,
                 'legs': list(legs_with_throws.values()),
                 'player_statistics': {
                     **player_stats,
@@ -676,6 +767,8 @@ def get_match_legs(match_id):
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
 
 if __name__ == '__main__':
     print("🎯 Starting GoldenStat Web Application...")

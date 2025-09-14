@@ -8,7 +8,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h1 class="h3 mb-0">🎲 Kastomgångar</h1>
-                <a href="/" class="btn btn-primary">← Tillbaka</a>
+                <button onclick="window.history.back()" class="btn btn-primary">← Tillbaka</button>
             </div>
             <div class="card-body">
                 
@@ -50,13 +50,44 @@ const urlParams = new URLSearchParams(window.location.search);
 const subMatchId = urlParams.get('sub_match_id');
 const playerName = urlParams.get('player_name');
 
-if (!subMatchId || !playerName) {
-    document.getElementById('error-message').innerHTML = 'Felaktiga parametrar i URL';
-    document.getElementById('error-message').classList.remove('d-none');
-    document.getElementById('loading').classList.add('d-none');
-} else {
-    loadThrowData();
+
+function pluralizeDarts(count) {
+    return count === 1 ? 'pil' : 'pilar';
 }
+
+function makePlayerNameClickable(playerName, isDoubles = false) {
+    const escapedName = playerName.replace(/'/g, "\\'");
+    if (isDoubles && (playerName.includes(' + ') || playerName.includes(' / '))) {
+        // Handle doubles - make each player clickable
+        const separator = playerName.includes(' + ') ? ' + ' : ' / ';
+        const players = playerName.split(separator);
+        const newSeparator = ' / ';
+        return players.map(player => 
+            `<span class="player-link" onclick="navigateToPlayer('${player.trim().replace(/'/g, "\\'")}')" title="Klicka för att se ${player.trim()}">${player.trim()}</span>`
+        ).join(newSeparator);
+    } else {
+        return `<span class="player-link" onclick="navigateToPlayer('${escapedName}')" title="Klicka för att se ${playerName}">${playerName}</span>`;
+    }
+}
+
+function navigateToPlayer(playerName) {
+    // Navigate back to main page and trigger search
+    window.location.href = `/?player=${encodeURIComponent(playerName)}`;
+}
+
+
+async function initPage() {
+    if (!subMatchId || !playerName) {
+        document.getElementById('error-message').innerHTML = 'Felaktiga parametrar i URL';
+        document.getElementById('error-message').classList.remove('d-none');
+        document.getElementById('loading').classList.add('d-none');
+    } else {
+        loadThrowData();
+    }
+}
+
+// Initialize page
+initPage();
 
 async function loadThrowData() {
     try {
@@ -82,32 +113,55 @@ function displayThrowData(data) {
     
     // Display match info
     const matchInfo = data.sub_match_info;
-    document.getElementById('match-info').querySelector('.card-body').innerHTML = `
-        <h5 class="card-title mb-3">📊 Delmatch Information</h5>
+    // Function to format match name to short format
+    function formatMatchName(matchName, matchType) {
+        if (!matchName) return 'N/A';
+        
+        // Extract Singles1, Doubles3 etc from match name
+        if (matchName.includes('Singles')) {
+            const match = matchName.match(/Singles(\d+)/);
+            return match ? `S${match[1]}` : 'S1';
+        } else if (matchName.includes('Doubles')) {
+            const match = matchName.match(/Doubles(\d+)/);
+            return match ? `D${match[1]}` : 'D1';
+        }
+        
+        // Fallback
+        return matchType === 'Singles' ? 'S1' : 'D1';
+    }
+
+    const matchInfoHtml = `
+        <h5 class="card-title mb-3">📊 ${formatMatchName(matchInfo.match_name, matchInfo.match_type)}</h5>
         <div class="row g-3">
-            <div class="col-md-3 col-6"><strong>Spelare:</strong> ${data.player_name}</div>
-            <div class="col-md-3 col-6"><strong>Motstånd:</strong> ${data.opponent_names}</div>
-            <div class="col-md-3 col-6"><strong>Typ:</strong> ${matchInfo.match_type}</div>
-            <div class="col-md-3 col-6"><strong>Match:</strong> ${matchInfo.match_name}</div>
-            <div class="col-md-3 col-6"><strong>Datum:</strong> ${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okänt'}</div>
-            <div class="col-md-3 col-6"><strong>Lag 1:</strong> ${matchInfo.team1_name}</div>
-            <div class="col-md-3 col-6"><strong>Lag 2:</strong> ${matchInfo.team2_name}</div>
-            <div class="col-md-3 col-6"><strong>Resultat:</strong> ${matchInfo.team1_legs}-${matchInfo.team2_legs}</div>
-            <div class="col-md-3 col-6"><strong>Snitt:</strong> ${matchInfo.player_avg ? matchInfo.player_avg.toFixed(2) : 'N/A'}</div>
+            <div class="col-md-6">
+                <div class="text-center">
+                    <h6 class="text-primary mb-2">${matchInfo.team1_name}</h6>
+                    <div>${makePlayerNameClickable(data.player_name)}${data.teammate_names ? ' / ' + makePlayerNameClickable(data.teammate_names) : ''}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-center">
+                    <h6 class="text-danger mb-2">${matchInfo.team2_name}</h6>
+                    <div>${makePlayerNameClickable(data.opponent_names, true)}</div>
+                </div>
+            </div>
+            <div class="col-md-4 col-6"><strong>Datum:</strong> ${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okänt'}</div>
+            <div class="col-md-4 col-6"><strong>Resultat:</strong> ${matchInfo.team1_legs}-${matchInfo.team2_legs}</div>
         </div>
     `;
+    document.getElementById('match-info').querySelector('.card-body').innerHTML = matchInfoHtml;
     
     // Display statistics for both players
     const playerStats = data.player_statistics;
     const opponentStats = data.opponent_statistics;
     
-    document.getElementById('statistics').querySelector('.card-body').innerHTML = `
+    const statisticsHtml = `
         <h5 class="card-title mb-3 text-center">📈 Statistik - Jämförelse</h5>
         
         <div class="row">
             <div class="col-md-6">
                 <div class="border border-primary rounded p-3">
-                    <h6 class="text-primary text-center mb-3">${data.player_name}</h6>
+                    <h6 class="text-primary text-center mb-3">${makePlayerNameClickable(data.player_name)}${data.teammate_names ? ' / ' + makePlayerNameClickable(data.teammate_names) : ''}</h6>
                     <div class="row g-2 text-center">
                     <div class="col-4">
                         <div class="h5 text-primary mb-0">${playerStats.total_throws}</div>
@@ -147,11 +201,11 @@ function displayThrowData(data) {
                     </div>
                     <div class="col-6">
                         <div class="h6 text-success mb-0">${playerStats.short_legs}</div>
-                        <small class="text-muted">Korta legs (≤18 pilar)</small>
+                        <small class="text-muted">Korta legs</small>
                     </div>
                     <div class="col-6">
                         <div class="h6 text-warning mb-0">${playerStats.high_finishes}</div>
-                        <small class="text-muted">Höga utgångar (≥100)</small>
+                        <small class="text-muted">Höga utgångar</small>
                     </div>
                     <div class="col-12">
                         <div class="h6 text-info mb-0">${playerStats.first_9_dart_avg}</div>
@@ -163,7 +217,7 @@ function displayThrowData(data) {
             
             <div class="col-md-6">
                 <div class="border border-danger rounded p-3">
-                    <h6 class="text-danger text-center mb-3">${data.opponent_names}</h6>
+                    <h6 class="text-danger text-center mb-3">${makePlayerNameClickable(data.opponent_names, true)}</h6>
                     <div class="row g-2 text-center">
                     <div class="col-4">
                         <div class="h5 text-primary mb-0">${opponentStats.total_throws}</div>
@@ -203,11 +257,11 @@ function displayThrowData(data) {
                     </div>
                     <div class="col-6">
                         <div class="h6 text-success mb-0">${opponentStats.short_legs}</div>
-                        <small class="text-muted">Korta legs (≤18 pilar)</small>
+                        <small class="text-muted">Korta legs</small>
                     </div>
                     <div class="col-6">
                         <div class="h6 text-warning mb-0">${opponentStats.high_finishes}</div>
-                        <small class="text-muted">Höga utgångar (≥100)</small>
+                        <small class="text-muted">Höga utgångar</small>
                     </div>
                     <div class="col-12">
                         <div class="h6 text-info mb-0">${opponentStats.first_9_dart_avg}</div>
@@ -218,8 +272,9 @@ function displayThrowData(data) {
             </div>
         </div>
     `;
+    document.getElementById('statistics').querySelector('.card-body').innerHTML = statisticsHtml;
     
-    // Display legs with throws
+    // Display legs with throws  
     let legsHtml = '<h5 class="mb-4">🎯 Legs och Kastomgångar</h5>';
     
     data.legs.forEach(leg => {
@@ -229,12 +284,6 @@ function displayThrowData(data) {
         const legWonIcon = leg.player_won_leg ? '🏆' : '❌';
         const legWonBadge = leg.player_won_leg ? 'bg-success' : 'bg-danger';
         
-        // Calculate dart count for winner
-        const playerDarts = calculateTotalDarts(leg.player_throws);
-        const opponentDarts = calculateTotalDarts(leg.opponent_throws);
-        const winnerName = leg.player_won_leg ? data.player_name : data.opponent_names;
-        const winnerDarts = leg.player_won_leg ? playerDarts : opponentDarts;
-        const dartInfo = `${winnerName} vann på ${winnerDarts} pilar`;
         
         legsHtml += `
             <div class="card mb-4 ${legWonClass}">
@@ -242,9 +291,6 @@ function displayThrowData(data) {
                     <div class="d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Leg ${leg.leg_number} ${legWonIcon}</h6>
                         <span class="badge ${legWonBadge}">${legWonText}</span>
-                    </div>
-                    <div class="text-center mt-1">
-                        <small class="text-muted">${dartInfo}</small>
                     </div>
                 </div>
                 <div class="card-body">
@@ -259,9 +305,9 @@ function displayThrowData(data) {
                 <table class="table table-sm">
                     <thead>
                         <tr>
-                            <th class="text-primary text-center" style="width: 40%">${data.player_name}</th>
+                            <th class="text-primary text-center" style="width: 40%">${makePlayerNameClickable(data.player_name)}${data.teammate_names ? ' / ' + makePlayerNameClickable(data.teammate_names) : ''}</th>
                             <th class="text-center bg-light" style="width: 20%">Pilar</th>
-                            <th class="text-danger text-center" style="width: 40%">${data.opponent_names}</th>
+                            <th class="text-danger text-center" style="width: 40%">${makePlayerNameClickable(data.opponent_names, true)}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -278,7 +324,7 @@ function displayThrowData(data) {
             if (playerThrow) {
                 const scoreClass = getScoreClass(playerThrow.score);
                 const isWinningThrow = playerThrow.remaining_score === 0;
-                const displayScore = isWinningThrow ? `🏆 ${playerThrow.darts_used || 3} pilar` : playerThrow.score;
+                const displayScore = isWinningThrow ? `🏆 ${playerThrow.darts_used || 3} ${pluralizeDarts(playerThrow.darts_used || 3)}` : playerThrow.score;
                 const winningClass = isWinningThrow ? 'bg-success bg-opacity-25' : '';
                 
                 legsHtml += `
@@ -287,7 +333,7 @@ function displayThrowData(data) {
                             <div class="card ${scoreClass} px-2 py-1 me-2" style="min-width: 60px;">
                                 <div class="fw-bold">${displayScore}</div>
                             </div>
-                            <small class="text-muted">${isWinningThrow ? `🎯 ${calculateTotalDarts(leg.player_throws)} pilar` : playerThrow.remaining_score}</small>
+                            <small class="text-muted">${isWinningThrow ? `🎯 ${calculateTotalDarts(leg.player_throws)} ${pluralizeDarts(calculateTotalDarts(leg.player_throws))}` : playerThrow.remaining_score}</small>
                         </div>
                     </td>
                 `;
@@ -302,13 +348,13 @@ function displayThrowData(data) {
             if (opponentThrow) {
                 const scoreClass = getScoreClass(opponentThrow.score);
                 const isWinningThrow = opponentThrow.remaining_score === 0;
-                const displayScore = isWinningThrow ? `🏆 ${opponentThrow.darts_used || 3} pilar` : opponentThrow.score;
+                const displayScore = isWinningThrow ? `🏆 ${opponentThrow.darts_used || 3} ${pluralizeDarts(opponentThrow.darts_used || 3)}` : opponentThrow.score;
                 const winningClass = isWinningThrow ? 'bg-success bg-opacity-25' : '';
                 
                 legsHtml += `
                     <td class="text-center ${winningClass}">
                         <div class="d-flex justify-content-center align-items-center">
-                            <small class="text-muted me-2">${isWinningThrow ? `🎯 ${calculateTotalDarts(leg.opponent_throws)} pilar` : opponentThrow.remaining_score}</small>
+                            <small class="text-muted me-2">${isWinningThrow ? `🎯 ${calculateTotalDarts(leg.opponent_throws)} ${pluralizeDarts(calculateTotalDarts(leg.opponent_throws))}` : opponentThrow.remaining_score}</small>
                             <div class="card ${scoreClass} px-2 py-1" style="min-width: 60px;">
                                 <div class="fw-bold">${displayScore}</div>
                             </div>
@@ -330,10 +376,6 @@ function displayThrowData(data) {
         
         legsHtml += `
                     </div>
-                    <div class="text-muted small">
-                        <strong>${data.player_name}:</strong> ${leg.player_throws.length} omgångar, ${calculateTotalDarts(leg.player_throws)} pilar |
-                        <strong>${data.opponent_names}:</strong> ${leg.opponent_throws.length} omgångar, ${calculateTotalDarts(leg.opponent_throws)} pilar
-                    </div>
                 </div>
             </div>
         `;
@@ -350,7 +392,8 @@ function getScoreClass(score) {
     if (absScore >= 140) return 'score-140-179';           // 140-179 - ännu mer positiv (blå gradient)  
     if (absScore >= 101) return 'score-101-139';           // 101-139 - väldigt positiv (ljusblå gradient)
     if (absScore === 100) return 'score-100';              // 100 - positiv (gul gradient)
-    if (absScore >= 60) return 'score-60-99';              // 60-99 - ganska positiv (ljus grön)
+    if (absScore >= 61) return 'score-61-99';              // 61-99 - ganska positiv (orange/gul)
+    if (absScore === 60) return 'score-60';               // 60 - bra (grön)  
     return 'score-under-60';                               // <60 - neutral färg
 }
 
