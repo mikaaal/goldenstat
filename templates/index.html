@@ -1,17 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="text-center mb-5">
-            <h1 class="display-4 text-primary">🎯 GoldenStat</h1>
-            <p class="lead">Upptäck din dart-utveckling och prestationer</p>
-        </div>
-    </div>
-</div>
-
 <!-- Search Section -->
-<div class="row justify-content-center mb-5">
+<div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="card shadow-lg">
             <div class="card-body p-4">
@@ -32,39 +23,9 @@
     </div>
 </div>
 
-<!-- Quick Stats Overview -->
-<div class="row mb-5">
-    <div class="col-12">
-        <h3 class="text-center mb-4">Databas Översikt</h3>
-        <div class="row" id="overviewStats">
-            <!-- Stats will be loaded here -->
-        </div>
-    </div>
-</div>
-
-<!-- Recent Activity -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Senaste Matcher</h5>
-            </div>
-            <div class="card-body">
-                <div id="recentMatches">
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Laddar...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Player Results Modal -->
 <div class="modal fade" id="playerModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="playerModalTitle">Spelarstatistik</h5>
@@ -80,9 +41,8 @@
 
 {% block scripts %}
 <script>
-// Load overview stats on page load
+// Load player list on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadOverview();
     loadPlayerList();
 });
 
@@ -94,79 +54,6 @@ async function loadPlayerList() {
         allPlayers = await response.json();
     } catch (error) {
         console.error('Failed to load players:', error);
-    }
-}
-
-async function loadOverview() {
-    try {
-        const response = await fetch('/api/overview');
-        const data = await response.json();
-        
-        const statsContainer = document.getElementById('overviewStats');
-        statsContainer.innerHTML = `
-            <div class="col-md-2 col-sm-6 mb-3">
-                <div class="card text-center bg-primary text-white">
-                    <div class="card-body">
-                        <h4>${data.total_players}</h4>
-                        <p class="card-text">Spelare</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-2 col-sm-6 mb-3">
-                <div class="card text-center bg-success text-white">
-                    <div class="card-body">
-                        <h4>${data.total_matches}</h4>
-                        <p class="card-text">Lag-matcher</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-2 col-sm-6 mb-3">
-                <div class="card text-center bg-info text-white">
-                    <div class="card-body">
-                        <h4>${data.total_sub_matches}</h4>
-                        <p class="card-text">Delmatcher</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-2 col-sm-6 mb-3">
-                <div class="card text-center bg-warning text-white">
-                    <div class="card-body">
-                        <h4>${data.total_legs}</h4>
-                        <p class="card-text">Legs</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-2 col-sm-6 mb-3">
-                <div class="card text-center bg-danger text-white">
-                    <div class="card-body">
-                        <h4>${data.total_throws}</h4>
-                        <p class="card-text">Kast</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Load recent matches
-        const recentContainer = document.getElementById('recentMatches');
-        if (data.recent_matches && data.recent_matches.length > 0) {
-            recentContainer.innerHTML = data.recent_matches.map(match => `
-                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-                    <div>
-                        <strong>${match.team1}</strong> vs <strong>${match.team2}</strong>
-                    </div>
-                    <div>
-                        <span class="badge bg-primary">${match.team1_score} - ${match.team2_score}</span>
-                    </div>
-                </div>
-            `).join('');
-        } else {
-            recentContainer.innerHTML = '<p class="text-muted">Inga matcher hittades. Kör scrapern för att samla data.</p>';
-        }
-        
-    } catch (error) {
-        console.error('Failed to load overview:', error);
-        document.getElementById('overviewStats').innerHTML = 
-            '<div class="col-12"><div class="alert alert-danger">Kunde inte ladda översikt</div></div>';
     }
 }
 
@@ -243,15 +130,15 @@ async function showPlayerStats(stats) {
     
     document.getElementById('playerModalBody').innerHTML = `
         <!-- Navigation tabs -->
-        <ul class="nav nav-tabs" id="playerTabs" role="tablist">
+        <ul class="nav nav-tabs nav-fill" id="playerTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Översikt</button>
+                <button class="nav-link active small" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Översikt</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="throws-tab" data-bs-toggle="tab" data-bs-target="#throws" type="button">Kast-analys</button>
+                <button class="nav-link small" id="throws-tab" data-bs-toggle="tab" data-bs-target="#throws" type="button">Kast-analys</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button">Matchhistorik</button>
+                <button class="nav-link small" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button">Matcher</button>
             </li>
         </ul>
         
@@ -259,54 +146,54 @@ async function showPlayerStats(stats) {
         <div class="tab-content mt-3" id="playerTabsContent">
             <!-- Overview Tab -->
             <div class="tab-pane fade show active" id="overview" role="tabpanel">
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card text-center bg-light">
-                            <div class="card-body">
-                                <h4 class="text-primary">${stats.total_matches}</h4>
-                                <p class="card-text">Totala matcher</p>
+                <div class="row g-2 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="card text-center bg-light h-100">
+                            <div class="card-body py-2">
+                                <h5 class="text-primary mb-1">${stats.total_matches}</h5>
+                                <small class="card-text">Matcher</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-light">
-                            <div class="card-body">
-                                <h4 class="text-success">${stats.wins}</h4>
-                                <p class="card-text">Vinster</p>
+                    <div class="col-6 col-md-3">
+                        <div class="card text-center bg-light h-100">
+                            <div class="card-body py-2">
+                                <h5 class="text-success mb-1">${stats.wins}</h5>
+                                <small class="card-text">Vinster</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-light">
-                            <div class="card-body">
-                                <h4 class="text-warning">${winPercentage}%</h4>
-                                <p class="card-text">Vinstprocent</p>
+                    <div class="col-6 col-md-3">
+                        <div class="card text-center bg-light h-100">
+                            <div class="card-body py-2">
+                                <h5 class="text-warning mb-1">${winPercentage}%</h5>
+                                <small class="card-text">Vinstprocent</small>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="card text-center bg-light">
-                            <div class="card-body">
-                                <h4 class="text-info">${stats.average_score}</h4>
-                                <p class="card-text">Snitt-average</p>
+                    <div class="col-6 col-md-3">
+                        <div class="card text-center bg-light h-100">
+                            <div class="card-body py-2">
+                                <h5 class="text-info mb-1">${stats.average_score}</h5>
+                                <small class="card-text">Snitt-average</small>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Charts row -->
-                <div class="row">
-                    <div class="col-md-6">
+                <div class="row g-2">
+                    <div class="col-12 col-md-6 mb-2">
                         <div class="card">
                             <div class="card-body">
-                                <canvas id="winLossChart" style="height: 300px;"></canvas>
+                                <canvas id="winLossChart" style="height: 250px;"></canvas>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6 mb-2">
                         <div class="card">
                             <div class="card-body">
-                                <canvas id="progressChart" style="height: 300px;"></canvas>
+                                <canvas id="progressChart" style="height: 250px;"></canvas>
                             </div>
                         </div>
                     </div>
@@ -316,53 +203,53 @@ async function showPlayerStats(stats) {
             <!-- Throws Tab -->
             <div class="tab-pane fade" id="throws" role="tabpanel">
                 ${throwData && throwData.statistics && Object.keys(throwData.statistics).length > 0 ? `
-                    <div class="row mb-4">
-                        <div class="col-md-2">
-                            <div class="card text-center bg-light">
-                                <div class="card-body">
-                                    <h4 class="text-primary">${throwData.statistics.total_throws || 0}</h4>
-                                    <p class="card-text">Kast (Singles)</p>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h6 class="text-primary mb-1">${throwData.statistics.total_throws || 0}</h6>
+                                    <small class="card-text">Kast</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <div class="card text-center bg-light">
-                                <div class="card-body">
-                                    <h4 class="text-success">${throwData.statistics.average_score || 0}</h4>
-                                    <p class="card-text">Snitt/kast (Singles)</p>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h6 class="text-success mb-1">${throwData.statistics.average_score || 0}</h6>
+                                    <small class="card-text">Snitt/kast</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <div class="card text-center bg-light">
-                                <div class="card-body">
-                                    <h4 class="text-warning">${throwData.statistics.max_score || 0}</h4>
-                                    <p class="card-text">Högsta kast</p>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h6 class="text-warning mb-1">${throwData.statistics.max_score || 0}</h6>
+                                    <small class="card-text">Högsta kast</small>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-2">
-                            <div class="card text-center bg-light">
-                                <div class="card-body">
-                                    <h4 class="text-info">${throwData.statistics.total_checkouts || 0}</h4>
-                                    <p class="card-text">Checkouts</p>
+                        <div class="col-6 col-md-3">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h6 class="text-info mb-1">${throwData.statistics.total_checkouts || 0}</h6>
+                                    <small class="card-text">Checkouts</small>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="row">
-                        <div class="col-md-8">
+                    <div class="row g-2">
+                        <div class="col-12 col-md-8 mb-2">
                             <div class="card">
                                 <div class="card-body">
-                                    <canvas id="throwDistributionChart" style="height: 400px;"></canvas>
+                                    <canvas id="throwDistributionChart" style="height: 300px;"></canvas>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-12 col-md-4 mb-2">
                             <div class="card">
                                 <div class="card-body">
-                                    <canvas id="checkoutChart" style="height: 400px;"></canvas>
+                                    <canvas id="checkoutChart" style="height: 300px;"></canvas>
                                 </div>
                             </div>
                         </div>
@@ -378,43 +265,84 @@ async function showPlayerStats(stats) {
             
             <!-- Matches Tab -->
             <div class="tab-pane fade" id="matches" role="tabpanel">
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Datum</th>
-                                <th>Motstånd</th>
-                                <th>Typ</th>
-                                <th>Resultat</th>
-                                <th>Average</th>
-                                <th>Resultat</th>
-                                <th>Kastomgångar</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${stats.recent_matches.map(match => `
+                <div class="d-none d-md-block">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead>
                                 <tr>
-                                    <td>${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</td>
-                                    <td>${match.opponent || match.team1_name + ' vs ' + match.team2_name}</td>
-                                    <td><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_type}</span></td>
-                                    <td>${match.team1_legs} - ${match.team2_legs}</td>
-                                    <td>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</td>
-                                    <td>
-                                        ${match.won ? 
-                                            '<span class="badge bg-success">Vinst</span>' : 
-                                            '<span class="badge bg-danger">Förlust</span>'
-                                        }
-                                    </td>
-                                    <td>
-                                        ${match.sub_match_id ? 
-                                            '<a href="/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '" class="btn btn-sm btn-outline-primary" target="_blank">🎯 Visa</a>' : 
-                                            '<span class="text-muted">-</span>'
-                                        }
-                                    </td>
+                                    <th>Datum</th>
+                                    <th>Motstånd</th>
+                                    <th>Typ</th>
+                                    <th>Resultat</th>
+                                    <th>Average</th>
+                                    <th>Resultat</th>
+                                    <th>Kastomgångar</th>
                                 </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                ${stats.recent_matches.map(match => `
+                                    <tr>
+                                        <td><small>${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
+                                        <td><small>${match.opponent || match.team1_name + ' vs ' + match.team2_name}</small></td>
+                                        <td><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_type}</span></td>
+                                        <td><small>${match.team1_legs} - ${match.team2_legs}</small></td>
+                                        <td><small>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></td>
+                                        <td>
+                                            ${match.won ? 
+                                                '<span class="badge bg-success badge-sm">Vinst</span>' : 
+                                                '<span class="badge bg-danger badge-sm">Förlust</span>'
+                                            }
+                                        </td>
+                                        <td>
+                                            ${match.sub_match_id ? 
+                                                '<a href="/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '" class="btn btn-sm btn-outline-primary btn-sm" target="_blank">🎯</a>' : 
+                                                '<span class="text-muted">-</span>'
+                                            }
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Mobile view -->
+                <div class="d-md-none">
+                    ${stats.recent_matches.map(match => `
+                        <div class="card mb-2">
+                            <div class="card-body py-2">
+                                <div class="row">
+                                    <div class="col-8">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <small class="text-muted">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
+                                                <div><strong>${match.opponent || match.team1_name + ' vs ' + match.team2_name}</strong></div>
+                                                <div>
+                                                    <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_type}</span>
+                                                    <span class="ms-1">${match.team1_legs} - ${match.team2_legs}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4 text-end">
+                                        <div>
+                                            ${match.won ? 
+                                                '<span class="badge bg-success">Vinst</span>' : 
+                                                '<span class="badge bg-danger">Förlust</span>'
+                                            }
+                                        </div>
+                                        <div><small class="text-muted">Avg: ${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></div>
+                                        <div>
+                                            ${match.sub_match_id ? 
+                                                '<a href="/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '" class="btn btn-sm btn-outline-primary" target="_blank">🎯</a>' : 
+                                                ''
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
         </div>
