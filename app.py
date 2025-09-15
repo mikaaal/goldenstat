@@ -30,15 +30,14 @@ def get_players():
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get players with their teams to identify potential duplicates
+            # Get players grouped by name and team - treat different teams as different players
             cursor.execute("""
-                WITH player_teams AS (
+                WITH player_team_stats AS (
                     SELECT 
                         p.id,
                         p.name,
                         CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
-                        COUNT(*) as match_count,
-                        ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY COUNT(*) DESC) as rn
+                        COUNT(*) as match_count
                     FROM players p
                     JOIN sub_match_participants smp ON p.id = smp.player_id
                     JOIN sub_matches sm ON smp.sub_match_id = sm.id
@@ -46,42 +45,31 @@ def get_players():
                     JOIN teams t1 ON m.team1_id = t1.id
                     JOIN teams t2 ON m.team2_id = t2.id
                     GROUP BY p.id, p.name, team_name
+                    HAVING COUNT(*) >= 3  -- Only show teams with 3+ matches to filter noise
                 ),
-                primary_teams AS (
-                    SELECT id, name, team_name, match_count
-                    FROM player_teams 
-                    WHERE rn = 1
-                ),
-                name_groups AS (
-                    SELECT name, COUNT(*) as player_count, 
-                           GROUP_CONCAT(team_name) as all_teams
-                    FROM primary_teams
+                name_team_counts AS (
+                    SELECT name, COUNT(DISTINCT team_name) as team_count
+                    FROM player_team_stats
                     GROUP BY name
                 )
                 SELECT 
-                    pt.name,
-                    pt.team_name,
-                    ng.player_count,
+                    pts.name,
+                    pts.team_name,
+                    pts.match_count,
+                    ntc.team_count,
                     CASE 
-                        WHEN ng.player_count > 1 THEN pt.name || ' (' || pt.team_name || ')'
-                        ELSE pt.name 
+                        WHEN ntc.team_count > 1 THEN pts.name || ' (' || pts.team_name || ')'
+                        ELSE pts.name 
                     END as display_name
-                FROM primary_teams pt
-                JOIN name_groups ng ON pt.name = ng.name
-                ORDER BY pt.name, pt.team_name
+                FROM player_team_stats pts
+                JOIN name_team_counts ntc ON pts.name = ntc.name
+                ORDER BY pts.name, pts.team_name
             """)
             
             players = []
-            current_name = None
-            name_variants = []
             
             for row in cursor.fetchall():
-                if row['player_count'] > 1:
-                    # Multiple players with same name - add team suffix
-                    players.append(row['display_name'])
-                else:
-                    # Unique name
-                    players.append(row['name'])
+                players.append(row['display_name'])
                     
             return jsonify(players)
     except Exception as e:
