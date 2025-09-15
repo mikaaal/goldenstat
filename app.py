@@ -412,34 +412,31 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get player ID
-            cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
-            player_result = cursor.fetchone()
-            if not player_result:
-                return jsonify({'error': 'Player not found'}), 404
-            
-            player_id = player_result['id']
-            
-            # Get sub-match info and verify player participated
+            # Get sub-match info and find the specific player who participated
+            # This handles the case where multiple players have the same name
             cursor.execute("""
                 SELECT 
                     sm.*,
                     smp.team_number,
                     smp.player_avg,
+                    smp.player_id,
                     m.match_date,
                     t1.name as team1_name,
                     t2.name as team2_name
                 FROM sub_matches sm
                 JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                JOIN players p ON smp.player_id = p.id
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id
-                WHERE sm.id = ? AND smp.player_id = ?
-            """, (sub_match_id, player_id))
+                WHERE sm.id = ? AND p.name = ?
+            """, (sub_match_id, player_name))
             
             sub_match_info = cursor.fetchone()
             if not sub_match_info:
                 return jsonify({'error': 'Player did not participate in this sub-match'}), 404
+                
+            player_id = sub_match_info['player_id']
             
             # Get opponent info and averages
             opposing_team_number = 2 if sub_match_info['team_number'] == 1 else 1
@@ -453,7 +450,7 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             
             opponent_data = cursor.fetchall()
             opponents = [row[0] for row in opponent_data]
-            opponent_names = ' + '.join(opponents) if len(opponents) > 1 else (opponents[0] if opponents else 'Okänd')
+            opponent_names = ' / '.join(opponents) if len(opponents) > 1 else (opponents[0] if opponents else 'Okänd')
             opponent_avg = sum(row[1] or 0 for row in opponent_data) / len(opponent_data) if opponent_data else 0
             
             # Get teammate info (other players on the same team)
@@ -467,7 +464,7 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             
             teammate_data = cursor.fetchall()
             teammates = [row[0] for row in teammate_data]
-            teammate_names = ' + '.join(teammates) if teammates else None
+            teammate_names = ' / '.join(teammates) if teammates else None
 
             # Get all throws for both players in this sub-match
             # Filter out starting throw (score=0, remaining_score=501)
@@ -624,17 +621,11 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                         
                         for throw in leg_throws:
                             if throw['score'] < 0:
-                                # Winning throw - add the darts used to win
+                                # Winning throw - the negative score indicates darts used to finish
                                 total_darts_in_leg += abs(throw['score'])
-                                # Get the checkout score (what they finished on)
-                                checkout_score = throw['remaining_score'] + abs(throw['score']) * (501 - throw['remaining_score']) // 501
-                                # Actually, get the score before this throw
-                                for prev_throw in leg_throws:
-                                    if prev_throw['round_number'] == throw['round_number'] - 1:
-                                        checkout_score = prev_throw['remaining_score']
-                                        break
                             else:
-                                total_darts_in_leg += 3  # Normal throw uses 3 darts
+                                # Normal throw uses 3 darts
+                                total_darts_in_leg += 3
                         
                         # Check for short leg (18 darts or fewer)
                         if total_darts_in_leg <= 18:
@@ -680,8 +671,21 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             player_stats = calculate_player_stats(player_throws, sub_match_info['team_number'])
             opponent_stats = calculate_player_stats(opponent_throws, opposing_team_number)
             
+            # Determine correct team names based on which team the player is on
+            if sub_match_info['team_number'] == 1:
+                player_team_name = sub_match_info['team1_name']
+                opponent_team_name = sub_match_info['team2_name']
+            else:
+                player_team_name = sub_match_info['team2_name']
+                opponent_team_name = sub_match_info['team1_name']
+
+            # Create corrected sub_match_info with proper team order
+            corrected_sub_match_info = dict(sub_match_info)
+            corrected_sub_match_info['team1_name'] = player_team_name
+            corrected_sub_match_info['team2_name'] = opponent_team_name
+            
             return jsonify({
-                'sub_match_info': dict(sub_match_info),
+                'sub_match_info': corrected_sub_match_info,
                 'player_name': player_name,
                 'opponent_names': opponent_names,
                 'teammate_names': teammate_names,
