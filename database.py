@@ -155,7 +155,7 @@ class DartDatabase:
                 throw_data.get('darts_used')
             ))
     
-    def get_player_stats(self, player_name: str, season: str = None, division: str = None) -> Dict[str, Any]:
+    def get_player_stats(self, player_name: str, season: str = None, division: str = None, team_filter: str = None) -> Dict[str, Any]:
         """Get comprehensive stats for a player with optional filtering"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -180,6 +180,10 @@ class DartDatabase:
             if division:
                 where_conditions.append("m.division = ?")
                 params.append(division)
+            
+            if team_filter:
+                where_conditions.append("(CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?")
+                params.append(team_filter)
             
             where_clause = " AND ".join(where_conditions)
             

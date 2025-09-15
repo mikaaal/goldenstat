@@ -23,14 +23,67 @@ def index():
 
 @app.route('/api/players')
 def get_players():
-    """API endpoint to get all player names for autocomplete"""
+    """API endpoint to get all player names for autocomplete with team disambiguation"""
     try:
         import sqlite3
         with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            cursor.execute("SELECT DISTINCT name FROM players ORDER BY name")
-            players = [row[0] for row in cursor.fetchall()]
-        return jsonify(players)
+            
+            # Get players with their teams to identify potential duplicates
+            cursor.execute("""
+                WITH player_teams AS (
+                    SELECT 
+                        p.id,
+                        p.name,
+                        CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
+                        COUNT(*) as match_count,
+                        ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY COUNT(*) DESC) as rn
+                    FROM players p
+                    JOIN sub_match_participants smp ON p.id = smp.player_id
+                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                    JOIN matches m ON sm.match_id = m.id
+                    JOIN teams t1 ON m.team1_id = t1.id
+                    JOIN teams t2 ON m.team2_id = t2.id
+                    GROUP BY p.id, p.name, team_name
+                ),
+                primary_teams AS (
+                    SELECT id, name, team_name, match_count
+                    FROM player_teams 
+                    WHERE rn = 1
+                ),
+                name_groups AS (
+                    SELECT name, COUNT(*) as player_count, 
+                           GROUP_CONCAT(team_name) as all_teams
+                    FROM primary_teams
+                    GROUP BY name
+                )
+                SELECT 
+                    pt.name,
+                    pt.team_name,
+                    ng.player_count,
+                    CASE 
+                        WHEN ng.player_count > 1 THEN pt.name || ' (' || pt.team_name || ')'
+                        ELSE pt.name 
+                    END as display_name
+                FROM primary_teams pt
+                JOIN name_groups ng ON pt.name = ng.name
+                ORDER BY pt.name, pt.team_name
+            """)
+            
+            players = []
+            current_name = None
+            name_variants = []
+            
+            for row in cursor.fetchall():
+                if row['player_count'] > 1:
+                    # Multiple players with same name - add team suffix
+                    players.append(row['display_name'])
+                else:
+                    # Unique name
+                    players.append(row['name'])
+                    
+            return jsonify(players)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -43,7 +96,16 @@ def get_player_stats(player_name):
         season = request.args.get('season')
         division = request.args.get('division')
         
-        stats = db.get_player_stats(player_name, season=season, division=division)
+        # Check if player name includes team disambiguation like "Name (Team)"
+        team_filter = None
+        if '(' in player_name and player_name.endswith(')'):
+            # Extract team from player name like "Mats Andersson (SpikKastarna (SL6))"
+            base_name = player_name.split(' (')[0]
+            team_part = player_name.split(' (', 1)[1][:-1]  # Remove last )
+            team_filter = team_part
+            player_name = base_name
+        
+        stats = db.get_player_stats(player_name, season=season, division=division, team_filter=team_filter)
         if not stats:
             return jsonify({'error': 'Player not found'}), 404
         
@@ -60,7 +122,8 @@ def get_player_stats(player_name):
         # Add filter information to response
         stats['filters'] = {
             'season': season,
-            'division': division
+            'division': division,
+            'team': team_filter
         }
         
         return jsonify(stats)
