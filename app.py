@@ -360,6 +360,17 @@ def get_player_throws(player_name):
             season = request.args.get('season')
             division = request.args.get('division')
             
+            # Check if player name includes team disambiguation like "Name (Team)"
+            team_filter = None
+            original_player_name = player_name
+            if '(' in player_name and player_name.endswith(')'):
+                # Extract team from player name like "Mats Andersson (SpikKastarna (SL6))"
+                base_name = player_name.split(' (')[0]
+                team_part = player_name.split(' (', 1)[1][:-1]  # Remove last )
+                team_filter = team_part
+                player_name = base_name
+                print(f"DEBUG: Original: '{original_player_name}' -> Base: '{player_name}', Team: '{team_filter}'", flush=True)
+            
             # Get player ID
             cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
             player_result = cursor.fetchone()
@@ -380,6 +391,10 @@ def get_player_throws(player_name):
                 where_conditions.append("m.division = ?")
                 params.append(division)
             
+            if team_filter:
+                where_conditions.append("(CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?")
+                params.append(team_filter)
+            
             where_clause = " AND ".join(where_conditions)
             
             # Get detailed throw data - ONLY from Singles matches with filtering
@@ -393,6 +408,7 @@ def get_player_throws(player_name):
                     sm.match_type,
                     sm.match_name,
                     m.match_date,
+                    smp.player_avg,
                     CASE 
                         WHEN (smp.team_number = 1 AND sm.team1_legs > sm.team2_legs) 
                           OR (smp.team_number = 2 AND sm.team2_legs > sm.team1_legs) 
@@ -403,6 +419,8 @@ def get_player_throws(player_name):
                 JOIN sub_matches sm ON l.sub_match_id = sm.id
                 JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
                 JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
                 WHERE {where_clause}
                 ORDER BY m.match_date DESC, l.leg_number, t.round_number
             """, params)
@@ -411,8 +429,19 @@ def get_player_throws(player_name):
             
             # Calculate throw statistics
             if throws:
-                scores = [t['score'] for t in throws if t['score'] > 0]
-                avg_score = sum(scores) / len(scores) if scores else 0
+                scores = [t['score'] for t in throws if t['score'] > 0]  # For max and ranges
+                
+                # Use player_avg from database to match main stats exactly
+                # Get unique matches and their player_avg values
+                unique_matches = {}
+                for throw in throws:
+                    match_key = f"{throw['match_date']}_{throw['match_name']}"
+                    if match_key not in unique_matches and throw['player_avg'] is not None:
+                        unique_matches[match_key] = throw['player_avg']
+                
+                # Calculate average of player_avg values (same as main stats)
+                match_averages = list(unique_matches.values())
+                avg_score = sum(match_averages) / len(match_averages) if match_averages else 0
                 max_score = max(scores) if scores else 0
                 
                 # Count different score ranges
@@ -431,9 +460,29 @@ def get_player_throws(player_name):
                 # Advanced statistics
                 throws_over_100 = len([s for s in scores if s >= 100])
                 throws_180 = len([s for s in scores if s == 180])
-                throws_over_140 = len([s for s in scores if s > 140])
+                throws_over_140 = len([s for s in scores if s >= 140])
                 throws_26 = len([s for s in scores if s == 26])
                 throws_under_20 = len([s for s in scores if s < 20])
+                
+                # High finishes (checkouts 100+)
+                high_finishes = len([t['score'] for t in throws if t['remaining_score'] == 0 and t['score'] >= 100])
+                
+                # Short sets (legs won in 18 darts or fewer)
+                # Count legs where player won and used <= 18 darts
+                from collections import defaultdict
+                leg_darts = defaultdict(int)
+                leg_winners = {}
+                
+                for throw in throws:
+                    leg_id = f"{throw['match_date']}_{throw['match_name']}_{throw['leg_number']}"
+                    leg_darts[leg_id] += throw['darts_used'] or 3
+                    
+                    # If this is a finishing throw (remaining_score becomes 0), mark as won
+                    if throw['remaining_score'] == 0:
+                        leg_winners[leg_id] = True
+                
+                # Count legs won in 18 darts or fewer
+                short_sets = sum(1 for leg_id in leg_winners.keys() if leg_darts[leg_id] <= 18)
                 
                 # Most common scores
                 from collections import Counter
@@ -452,8 +501,11 @@ def get_player_throws(player_name):
                     'throws_over_140': throws_over_140,
                     'throws_26': throws_26,
                     'throws_under_20': throws_under_20,
+                    'high_finishes': high_finishes,
+                    'short_sets': short_sets,
                     'most_common_scores': [{'score': score, 'count': count} for score, count in most_common_scores]
                 }
+                print(f"DEBUG: Total throws for '{original_player_name}': {len(throws)}, Team filter: {team_filter}", flush=True)
             else:
                 statistics = {}
             
@@ -688,12 +740,8 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                         checkout_score = 0
                         
                         for throw in leg_throws:
-                            if throw['score'] < 0:
-                                # Winning throw - the negative score indicates darts used to finish
-                                total_darts_in_leg += abs(throw['score'])
-                            else:
-                                # Normal throw uses 3 darts
-                                total_darts_in_leg += 3
+                            # Use darts_used field if available, otherwise default to 3
+                            total_darts_in_leg += throw.get('darts_used', 3)
                         
                         # Check for short leg (18 darts or fewer)
                         if total_darts_in_leg <= 18:

@@ -267,6 +267,16 @@ class GoldenStat {
         const labels = Object.keys(scoreRanges);
         const data = Object.values(scoreRanges);
 
+        // Modern gradient colors from low to high scores
+        const colors = [
+            '#EF4444',  // Red - 0-20
+            '#F97316',  // Orange - 21-40  
+            '#F59E0B',  // Amber - 41-60
+            '#84CC16',  // Lime - 61-80
+            '#10B981',  // Emerald - 81-99
+            '#059669'   // Dark emerald - 100+
+        ];
+
         const config = {
             type: 'bar',
             data: {
@@ -274,23 +284,11 @@ class GoldenStat {
                 datasets: [{
                     label: 'Antal kast',
                     data: data,
-                    backgroundColor: [
-                        'rgba(220, 53, 69, 0.7)',   // 0-20
-                        'rgba(255, 193, 7, 0.7)',   // 21-40
-                        'rgba(0, 123, 255, 0.7)',   // 41-60
-                        'rgba(40, 167, 69, 0.7)',   // 61-80
-                        'rgba(102, 16, 242, 0.7)',  // 81-100
-                        'rgba(255, 87, 34, 0.7)'    // 100+
-                    ],
-                    borderColor: [
-                        '#dc3545',
-                        '#ffc107',
-                        '#007bff',
-                        '#28a745',
-                        '#6610f2',
-                        '#ff5722'
-                    ],
-                    borderWidth: 1
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderColor: colors.slice(0, labels.length),
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
                 }]
             },
             options: {
@@ -299,21 +297,43 @@ class GoldenStat {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Kastpoängfördelning'
+                        text: 'Kastpoängfördelning',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        }
                     },
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                            lineWidth: 1
+                        },
                         title: {
                             display: true,
                             text: 'Antal kast'
                         }
                     },
                     x: {
+                        grid: {
+                            display: false
+                        },
                         title: {
                             display: true,
                             text: 'Poängintervall'
@@ -380,38 +400,40 @@ class GoldenStat {
         matches.forEach(match => {
             let position = 'Unknown';
             
-            // Extract position from match_name (e.g., "...Division 1FA Singles1" -> "Singles1")
+            // Extract position from match_name (e.g., "...Division 1FA Singles1" -> "S1")
             if (match.match_name) {
                 const matchName = match.match_name;
                 
-                // Check for specific patterns
+                // Check for specific patterns and convert to short format
                 if (matchName.includes(' AD')) {
                     position = 'AD';
                 } else if (matchName.includes(' Singles1')) {
-                    position = 'Singles1';
+                    position = 'S1';
                 } else if (matchName.includes(' Singles2')) {
-                    position = 'Singles2';
+                    position = 'S2';
                 } else if (matchName.includes(' Singles3')) {
-                    position = 'Singles3';
+                    position = 'S3';
                 } else if (matchName.includes(' Singles4')) {
-                    position = 'Singles4';
+                    position = 'S4';
                 } else if (matchName.includes(' Singles5')) {
-                    position = 'Singles5';
+                    position = 'S5';
                 } else if (matchName.includes(' Singles6')) {
-                    position = 'Singles6';
+                    position = 'S6';
                 } else if (matchName.includes(' Doubles1')) {
-                    position = 'Doubles1';
+                    position = 'D1';
                 } else if (matchName.includes(' Doubles2')) {
-                    position = 'Doubles2';
+                    position = 'D2';
                 } else if (matchName.includes(' Doubles3')) {
-                    position = 'Doubles3';
+                    position = 'D3';
                 } else {
                     // Fallback to match type if no specific position found
-                    position = match.match_type || 'Unknown';
+                    position = match.match_type === 'Singles' ? 'S' : 
+                              match.match_type === 'Doubles' ? 'D' : 'Unknown';
                 }
             } else if (match.match_type) {
-                // Fallback to just match type
-                position = match.match_type;
+                // Fallback to just match type with short format
+                position = match.match_type === 'Singles' ? 'S' : 
+                          match.match_type === 'Doubles' ? 'D' : 'Unknown';
             }
             
             positionCounts[position] = (positionCounts[position] || 0) + 1;
@@ -427,31 +449,40 @@ class GoldenStat {
         const labels = Object.keys(positionStats);
         const data = Object.values(positionStats);
 
-        // Color scheme for different positions
-        const colors = [
-            'rgba(255, 99, 132, 0.8)',   // Singles1 - Red
-            'rgba(54, 162, 235, 0.8)',   // Singles2 - Blue  
-            'rgba(255, 205, 86, 0.8)',   // Singles3 - Yellow
-            'rgba(75, 192, 192, 0.8)',   // Singles4 - Teal
-            'rgba(153, 102, 255, 0.8)',  // Singles5 - Purple
-            'rgba(255, 159, 64, 0.8)',   // Singles6 - Orange
-            'rgba(199, 199, 199, 0.8)',  // Doubles1 - Grey
-            'rgba(83, 102, 255, 0.8)',   // Doubles2 - Indigo
-            'rgba(255, 99, 255, 0.8)',   // Doubles3 - Magenta
-            'rgba(99, 255, 132, 0.8)'    // AD - Green
-        ];
+        // Modern, clean color scheme - sorted to match typical positions
+        const getPositionColor = (position) => {
+            const colorMap = {
+                'S1': '#3B82F6',  // Blue
+                'S2': '#06B6D4',  // Cyan
+                'S3': '#10B981',  // Emerald
+                'S4': '#84CC16',  // Lime
+                'S5': '#F59E0B',  // Amber
+                'S6': '#F97316',  // Orange
+                'D1': '#8B5CF6',  // Violet
+                'D2': '#A855F7',  // Purple
+                'D3': '#EC4899',  // Pink
+                'AD': '#EF4444',  // Red
+                'S': '#64748B',   // Slate (fallback)
+                'D': '#64748B'    // Slate (fallback)
+            };
+            return colorMap[position] || '#64748B';
+        };
 
-        const borderColors = colors.map(color => color.replace('0.8', '1'));
+        const backgroundColor = labels.map(label => getPositionColor(label));
+        const borderColor = backgroundColor.map(color => color.replace('1)', '0.8)'));
 
         const config = {
-            type: 'doughnut',
+            type: 'bar',
             data: {
                 labels: labels,
                 datasets: [{
+                    label: 'Antal matcher',
                     data: data,
-                    backgroundColor: colors.slice(0, labels.length),
-                    borderColor: borderColors.slice(0, labels.length),
-                    borderWidth: 2
+                    backgroundColor: backgroundColor,
+                    borderColor: borderColor,
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false,
                 }]
             },
             options: {
@@ -460,22 +491,53 @@ class GoldenStat {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Spelade positioner'
-                    },
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 15,
-                            usePointStyle: true
+                        text: 'Spelade positioner',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
                         }
                     },
+                    legend: {
+                        display: false
+                    },
                     tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        borderWidth: 1,
+                        cornerRadius: 8,
                         callbacks: {
                             label: function(context) {
                                 const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((context.parsed * 100) / total).toFixed(1);
-                                return `${context.label}: ${context.parsed} matcher (${percentage}%)`;
+                                const percentage = ((context.parsed.y * 100) / total).toFixed(1);
+                                return `${context.parsed.y} matcher (${percentage}%)`;
                             }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.1)',
+                            lineWidth: 1
+                        },
+                        title: {
+                            display: true,
+                            text: 'Antal matcher'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Matchposition'
                         }
                     }
                 }
@@ -491,7 +553,6 @@ class GoldenStat {
             // Build query parameters with filters
             const params = new URLSearchParams();
             if (filters.season) params.append('season', filters.season);
-            if (filters.division) params.append('division', filters.division);
             
             const queryString = params.toString();
             const url = `/api/player/${encodeURIComponent(playerName)}/throws${queryString ? '?' + queryString : ''}`;

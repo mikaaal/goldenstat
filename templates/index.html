@@ -7,20 +7,14 @@
         <div class="card">
             <div class="card-body py-2">
                 <div class="row align-items-center">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label for="seasonFilter" class="form-label small mb-1">Säsong</label>
                         <select id="seasonFilter" class="form-select form-select-sm">
                             <option value="">Alla säsonger</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label for="divisionFilter" class="form-label small mb-1">Liga</label>
-                        <select id="divisionFilter" class="form-select form-select-sm">
-                            <option value="">Alla ligor</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6 text-end">
-                        <small class="text-muted" id="filterInfo">Visar data för alla säsonger och ligor</small>
+                    <div class="col-md-8 text-end">
+                        <small class="text-muted" id="filterInfo">Visar data för alla säsonger</small>
                     </div>
                 </div>
             </div>
@@ -73,8 +67,7 @@
 
 // Globala variabler
 let currentFilters = {
-    season: '',
-    division: ''
+    season: ''
 };
 
 // Load player list on page load
@@ -84,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup filter change handlers
     document.getElementById('seasonFilter').addEventListener('change', updateFilters);
-    document.getElementById('divisionFilter').addEventListener('change', updateFilters);
     
     // Check for URL parameter for automatic player search
     const urlParams = new URLSearchParams(window.location.search);
@@ -111,16 +103,6 @@ async function loadFilters() {
             }
         });
         
-        // Populate division filter  
-        const divisionSelect = document.getElementById('divisionFilter');
-        data.divisions.forEach(division => {
-            if (division && division !== 'Unknown') {
-                const option = document.createElement('option');
-                option.value = division;
-                option.textContent = division;
-                divisionSelect.appendChild(option);
-            }
-        });
         
     } catch (error) {
         console.error('Kunde inte ladda filter:', error);
@@ -129,20 +111,15 @@ async function loadFilters() {
 
 function updateFilters() {
     currentFilters.season = document.getElementById('seasonFilter').value;
-    currentFilters.division = document.getElementById('divisionFilter').value;
     
     // Update filter info text
     const filterInfo = document.getElementById('filterInfo');
     let infoText = 'Visar data för ';
     
-    if (currentFilters.season && currentFilters.division) {
-        infoText += `${currentFilters.season}, ${currentFilters.division}`;
-    } else if (currentFilters.season) {
-        infoText += `säsong ${currentFilters.season}, alla ligor`;
-    } else if (currentFilters.division) {
-        infoText += `alla säsonger, liga ${currentFilters.division}`;
+    if (currentFilters.season) {
+        infoText += `säsong ${currentFilters.season}`;
     } else {
-        infoText += 'alla säsonger och ligor';
+        infoText += 'alla säsonger';
     }
     
     filterInfo.textContent = infoText;
@@ -202,7 +179,6 @@ async function searchPlayer() {
         // Build query parameters with filters
         const params = new URLSearchParams();
         if (currentFilters.season) params.append('season', currentFilters.season);
-        if (currentFilters.division) params.append('division', currentFilters.division);
         
         const queryString = params.toString();
         const url = `/api/player/${encodeURIComponent(playerName)}${queryString ? '?' + queryString : ''}`;
@@ -222,6 +198,9 @@ async function searchPlayer() {
 }
 
 async function showPlayerStats(stats) {
+    // Get the original searched player name (with team if applicable)
+    const searchedPlayerName = document.getElementById('playerSearch').value.trim();
+    
     // Uppdatera titel och visa laddning
     document.getElementById('playerResultsTitle').textContent = `${stats.player_name} - Spelarstatistik`;
     document.getElementById('playerResultsBody').innerHTML = `
@@ -242,8 +221,8 @@ async function showPlayerStats(stats) {
         block: 'start' 
     });
     
-    // Ladda sedan kastanalys i bakgrunden
-    const throwData = await goldenStat.fetchThrowAnalysis(stats.player_name, currentFilters);
+    // Ladda sedan kastanalys i bakgrunden - use original searched name for team filtering
+    const throwData = await goldenStat.fetchThrowAnalysis(searchedPlayerName, currentFilters);
     
     console.log('Mottagen throwData:', throwData); // Debug
     
@@ -300,6 +279,46 @@ async function showPlayerStats(stats) {
                         </div>
                     </div>
                 </div>
+                
+                ${throwData && throwData.statistics && Object.keys(throwData.statistics).length > 0 ? `
+                    <!-- Kaststatistikrad -->
+                    <div class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-6 col-lg-3">
+                                <div class="card text-center bg-light h-100">
+                                    <div class="card-body py-2">
+                                        <h6 class="text-warning mb-1">${throwData.statistics.throws_over_100 || 0}</h6>
+                                        <small class="card-text">100+ kast</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <div class="card text-center bg-light h-100">
+                                    <div class="card-body py-2">
+                                        <h6 class="text-primary mb-1">${throwData.statistics.throws_over_140 || 0}</h6>
+                                        <small class="card-text">140+ kast</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <div class="card text-center bg-light h-100">
+                                    <div class="card-body py-2">
+                                        <h6 class="text-danger mb-1">${throwData.statistics.throws_180 || 0}</h6>
+                                        <small class="card-text">180-kast</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6 col-lg-3">
+                                <div class="card text-center bg-light h-100">
+                                    <div class="card-body py-2">
+                                        <h6 class="text-success mb-1">${throwData.statistics.high_finishes || 0}</h6>
+                                        <small class="card-text">Höga utgångar</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
                 
                 <!-- Dubblarstatistik -->
                 <div class="mb-4">
@@ -373,43 +392,6 @@ async function showPlayerStats(stats) {
                     </div>
                 </div>
                 
-                ${throwData && throwData.statistics && Object.keys(throwData.statistics).length > 0 ? `
-                    <!-- Kaststatistikrad -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-6 col-md-3">
-                            <div class="card text-center bg-light h-100">
-                                <div class="card-body py-2">
-                                    <h6 class="text-primary mb-1">${throwData.statistics.total_throws || 0}</h6>
-                                    <small class="card-text">Totala kast</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card text-center bg-light h-100">
-                                <div class="card-body py-2">
-                                    <h6 class="text-success mb-1">${throwData.statistics.average_score || 0}</h6>
-                                    <small class="card-text">Snitt per kast</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card text-center bg-light h-100">
-                                <div class="card-body py-2">
-                                    <h6 class="text-warning mb-1">${throwData.statistics.throws_over_100 || 0}</h6>
-                                    <small class="card-text">100+ kast</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card text-center bg-light h-100">
-                                <div class="card-body py-2">
-                                    <h6 class="text-info mb-1">${throwData.statistics.throws_180 || 0}</h6>
-                                    <small class="card-text">180-kast</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ` : ''}
             </div>
             <!-- Matcherflik -->
             <div class="tab-pane fade" id="matches" role="tabpanel">
