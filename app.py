@@ -356,6 +356,10 @@ def get_player_throws(player_name):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
+            # Get filter parameters
+            season = request.args.get('season')
+            division = request.args.get('division')
+            
             # Get player ID
             cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
             player_result = cursor.fetchone()
@@ -364,8 +368,22 @@ def get_player_throws(player_name):
             
             player_id = player_result['id']
             
-            # Get detailed throw data - ONLY from Singles matches
-            cursor.execute("""
+            # Build WHERE clause for filtering
+            where_conditions = ["smp.player_id = ? AND t.team_number = smp.team_number AND sm.match_type = 'Singles'"]
+            params = [player_id]
+            
+            if season:
+                where_conditions.append("m.season = ?")
+                params.append(season)
+            
+            if division:
+                where_conditions.append("m.division = ?")
+                params.append(division)
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            # Get detailed throw data - ONLY from Singles matches with filtering
+            cursor.execute(f"""
                 SELECT 
                     t.score,
                     t.remaining_score,
@@ -385,10 +403,9 @@ def get_player_throws(player_name):
                 JOIN sub_matches sm ON l.sub_match_id = sm.id
                 JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
                 JOIN matches m ON sm.match_id = m.id
-                WHERE smp.player_id = ? AND t.team_number = smp.team_number 
-                  AND sm.match_type = 'Singles'
+                WHERE {where_clause}
                 ORDER BY m.match_date DESC, l.leg_number, t.round_number
-            """, (player_id,))
+            """, params)
             
             throws = [dict(row) for row in cursor.fetchall()]
             
@@ -404,15 +421,15 @@ def get_player_throws(player_name):
                     '21-40': len([s for s in scores if 21 <= s <= 40]),
                     '41-60': len([s for s in scores if 41 <= s <= 60]),
                     '61-80': len([s for s in scores if 61 <= s <= 80]),
-                    '81-100': len([s for s in scores if 81 <= s <= 100]),
-                    '100+': len([s for s in scores if s > 100])
+                    '81-99': len([s for s in scores if 81 <= s <= 99]),
+                    '100+': len([s for s in scores if s >= 100])
                 }
                 
                 # Calculate checkouts (scores when remaining_score became 0)
                 checkouts = [t['score'] for t in throws if t['remaining_score'] == 0 and t['score'] > 0]
                 
                 # Advanced statistics
-                throws_over_100 = len([s for s in scores if s > 100])
+                throws_over_100 = len([s for s in scores if s >= 100])
                 throws_180 = len([s for s in scores if s == 180])
                 throws_over_140 = len([s for s in scores if s > 140])
                 throws_26 = len([s for s in scores if s == 26])

@@ -13,14 +13,26 @@
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <span class="fw-bold text-warning">🎯 GoldenStat</span>
-            </a>
-        </div>
-    </nav>
+    <!-- Header -->
+    <header class="header-modern">
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container">
+                <a class="navbar-brand d-flex align-items-center" href="/">
+                    <div class="logo-icon me-3">
+                        <img src="{{ url_for('static', filename='images/gr.png') }}" alt="EasyStat Logo" class="logo-image">
+                    </div>
+                    <div class="brand-text">
+                        <h1 class="brand-title mb-0">EasyStat</h1>
+                        <small class="brand-subtitle">Dartstatistik & Analys</small>
+                    </div>
+                </a>
+                
+               
+                
+                
+            </div>
+        </nav>
+    </header>
 
     <!-- Main Content -->
     <div class="container mt-4">
@@ -28,9 +40,13 @@
     </div>
 
     <!-- Footer -->
-    <footer class="bg-dark text-light text-center py-3 mt-5">
+    <footer class="footer-minimal">
         <div class="container">
-            <p>&copy; 2024 GoldenStat - Dart Statistics Tracker</p>
+            <div class="d-flex align-items-center justify-content-center">
+                <div class="footer-gif-container">
+                    <img src="{{ url_for('static', filename='images/gr2.gif') }}" alt="Dart Animation" class="footer-gif-minimal">
+                </div>
+            </div>
         </div>
     </footer>
 

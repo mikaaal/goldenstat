@@ -9,11 +9,21 @@
     --info-color: #17a2b8;
     --dark-color: #343a40;
     --light-color: #f8f9fa;
+    --header-bg: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    --footer-bg: linear-gradient(135deg, #232526 0%, #414345 100%);
+    --accent-gold: #ffd700;
 }
 
 body {
     background-color: #f5f6fa;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container.mt-4 {
+    flex: 1;
 }
 
 .navbar-brand {
@@ -324,4 +334,315 @@ body {
     border-color: #007bff;
     text-decoration: none;
     transform: translateY(-1px);
+}
+
+/* ========== MODERN HEADER STYLES ========== */
+.header-modern {
+    background: var(--header-bg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-modern .navbar {
+    padding: 1rem 0;
+    min-height: 80px;
+}
+
+.logo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: var(--accent-gold);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.logo-icon:hover {
+    transform: scale(1.05) rotate(5deg);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+.dart-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.logo-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.logo-icon:hover .logo-image {
+    transform: scale(1.1);
+    filter: brightness(1.1);
+}
+
+.brand-text {
+    line-height: 1.2;
+}
+
+.brand-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    letter-spacing: -0.5px;
+}
+
+.brand-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: -2px;
+    display: block;
+}
+
+.header-modern .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500;
+    padding: 0.75rem 1.25rem !important;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+    position: relative;
+    margin: 0 0.25rem;
+}
+
+.header-modern .nav-link:hover {
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+}
+
+.header-modern .nav-link.active {
+    color: var(--accent-gold) !important;
+    background-color: rgba(255, 215, 0, 0.15);
+}
+
+.navbar-toggler {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    padding: 0.5rem;
+}
+
+.navbar-toggler:focus {
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+}
+
+/* ========== MODERN FOOTER STYLES ========== */
+.footer-modern {
+    background: var(--footer-bg);
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+}
+
+.footer-modern::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.6), transparent);
+}
+
+.footer-brand .logo-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--accent-gold);
+    border-radius: 8px;
+    padding: 4px;
+}
+
+.footer-brand .dart-icon {
+    font-size: 20px;
+}
+
+.footer-brand .logo-image {
+    border-radius: 4px;
+}
+
+.footer-desc {
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+    margin-bottom: 0;
+}
+
+.footer-title {
+    color: var(--accent-gold);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+}
+
+.footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.footer-links li {
+    margin-bottom: 0.5rem;
+}
+
+.footer-links a {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    position: relative;
+    padding-left: 15px;
+}
+
+.footer-links a::before {
+    content: '▶';
+    position: absolute;
+    left: 0;
+    color: var(--accent-gold);
+    font-size: 0.7rem;
+    transition: transform 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: white;
+    padding-left: 20px;
+}
+
+.footer-links a:hover::before {
+    transform: translateX(5px);
+}
+
+.footer-contact p {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+
+.contact-icon {
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+.footer-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    margin: 2rem 0 1rem 0;
+}
+
+.footer-copyright {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+}
+
+.footer-version {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+/* ========== MINIMAL FOOTER (HEADER SIZE) ========== */
+.footer-minimal {
+    background: var(--header-bg);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    min-height: 80px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+.footer-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.6), transparent);
+}
+
+.footer-gif-container {
+    position: relative;
+}
+
+.footer-gif-minimal {
+    max-height: 50px;
+    width: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.footer-gif-minimal:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    filter: brightness(1.1);
+}
+
+/* ========== RESPONSIVE HEADER & FOOTER ========== */
+@media (max-width: 992px) {
+    .header-modern .navbar {
+        padding: 0.75rem 0;
+        min-height: 70px;
+    }
+    
+    .brand-title {
+        font-size: 1.5rem;
+    }
+    
+    .logo-icon {
+        width: 45px;
+        height: 45px;
+    }
+    
+    .dart-icon {
+        font-size: 20px;
+    }
+    
+    /* Footer responsive */
+    .footer-minimal {
+        min-height: 70px;
+    }
+    
+    .footer-gif-minimal {
+        max-height: 45px;
+    }
+}
+
+@media (max-width: 768px) {
+    .header-modern .navbar-nav {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .header-modern .nav-link {
+        text-align: center;
+        margin: 0.25rem 0;
+    }
+    
+    /* Footer mobile adjustments */
+    .footer-minimal {
+        min-height: 60px;
+    }
+    
+    .footer-gif-minimal {
+        max-height: 40px;
+    }
 }

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Filter Section -->
+<!-- Filtreringssektion -->
 <div class="row justify-content-center mb-4">
     <div class="col-12">
         <div class="card">
@@ -28,7 +28,7 @@
     </div>
 </div>
 
-<!-- Search Section -->
+<!-- Söksektion -->
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="card shadow-lg">
@@ -50,15 +50,17 @@
     </div>
 </div>
 
-<!-- Player Results Modal -->
-<div class="modal fade" id="playerModal" tabindex="-1">
-    <div class="modal-dialog modal-fullscreen-sm-down modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="playerModalTitle">Spelarstatistik</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+<!-- Spelarresultatsektion -->
+<div id="playerResultsSection" class="row justify-content-center mt-4" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" id="playerResultsTitle">Spelarstatistik</h5>
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearPlayerResults()">
+                    <i class="bi bi-x-lg"></i> Stäng
+                </button>
             </div>
-            <div class="modal-body" id="playerModalBody">
+            <div class="card-body" id="playerResultsBody">
                 <!-- Player stats will be loaded here -->
             </div>
         </div>
@@ -69,7 +71,7 @@
 {% block scripts %}
 <script>
 
-// Global state
+// Globala variabler
 let currentFilters = {
     season: '',
     division: ''
@@ -121,7 +123,7 @@ async function loadFilters() {
         });
         
     } catch (error) {
-        console.error('Failed to load filters:', error);
+        console.error('Kunde inte ladda filter:', error);
     }
 }
 
@@ -159,11 +161,11 @@ async function loadPlayerList() {
         const response = await fetch('/api/players');
         allPlayers = await response.json();
     } catch (error) {
-        console.error('Failed to load players:', error);
+        console.error('Kunde inte ladda spelare:', error);
     }
 }
 
-// Search functionality
+// Sökfunktionalitet
 document.getElementById('playerSearch').addEventListener('input', function(e) {
     const query = e.target.value.toLowerCase();
     if (query.length < 2) {
@@ -214,19 +216,15 @@ async function searchPlayer() {
             alert(`Spelare hittades inte: ${data.error}`);
         }
     } catch (error) {
-        console.error('Search failed:', error);
+        console.error('Sökning misslyckades:', error);
         alert('Sökfel');
     }
 }
 
 async function showPlayerStats(stats) {
-    const modal = new bootstrap.Modal(document.getElementById('playerModal'));
-    document.getElementById('playerModalTitle').textContent = `${stats.player_name} - Spelarstatistik`;
-    
-    const winPercentage = stats.total_matches > 0 ? ((stats.wins / stats.total_matches) * 100).toFixed(1) : 0;
-    
-    // First show modal with basic stats
-    document.getElementById('playerModalBody').innerHTML = `
+    // Uppdatera titel och visa laddning
+    document.getElementById('playerResultsTitle').textContent = `${stats.player_name} - Spelarstatistik`;
+    document.getElementById('playerResultsBody').innerHTML = `
         <div class="text-center">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Laddar kast-analys...</span>
@@ -235,14 +233,21 @@ async function showPlayerStats(stats) {
         </div>
     `;
     
-    modal.show();
+    // Show the results section
+    document.getElementById('playerResultsSection').style.display = 'block';
     
-    // Then load throw analysis in background
+    // Scroll to the results section
+    document.getElementById('playerResultsSection').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+    
+    // Ladda sedan kastanalys i bakgrunden
     const throwData = await goldenStat.fetchThrowAnalysis(stats.player_name, currentFilters);
     
-    console.log('Received throwData:', throwData); // Debug
+    console.log('Mottagen throwData:', throwData); // Debug
     
-    document.getElementById('playerModalBody').innerHTML = `
+    document.getElementById('playerResultsBody').innerHTML = `
         <!-- Navigation tabs -->
         <ul class="nav nav-tabs nav-fill" id="playerTabs" role="tablist">
             <li class="nav-item" role="presentation">
@@ -253,11 +258,11 @@ async function showPlayerStats(stats) {
             </li>
         </ul>
         
-        <!-- Tab content -->
+        <!-- Flikinnehåll -->
         <div class="tab-content mt-3" id="playerTabsContent">
-            <!-- Overview Tab -->
+            <!-- Översiktsflik -->
             <div class="tab-pane fade show active" id="overview" role="tabpanel">
-                <!-- Singles Statistics -->
+                <!-- Singlarstatistik -->
                 <div class="mb-3">
                     <h6 class="text-muted mb-2">🎯 Singlar</h6>
                     <div class="row g-2">
@@ -296,7 +301,7 @@ async function showPlayerStats(stats) {
                     </div>
                 </div>
                 
-                <!-- Doubles Statistics -->
+                <!-- Dubblarstatistik -->
                 <div class="mb-4">
                     <h6 class="text-muted mb-2">👥 Dubblar</h6>
                     <div class="row g-2">
@@ -335,16 +340,20 @@ async function showPlayerStats(stats) {
                     </div>
                 </div>
                 
-                <!-- Charts row -->
-                <div class="row g-2">
-                    <div class="col-12 col-md-8 mb-2">
+                <!-- Progress Chart -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
                         <div class="card">
                             <div class="card-body">
                                 <canvas id="progressChart" style="height: 300px;"></canvas>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-md-4 mb-2">
+                </div>
+                
+                <!-- Throw Distribution Chart -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
                         <div class="card">
                             <div class="card-body">
                                 <canvas id="throwDistributionChart" style="height: 300px;"></canvas>
@@ -353,8 +362,19 @@ async function showPlayerStats(stats) {
                     </div>
                 </div>
                 
+                <!-- Match Position Chart -->
+                <div class="row g-2 mb-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <canvas id="matchPositionChart" style="height: 300px;"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 ${throwData && throwData.statistics && Object.keys(throwData.statistics).length > 0 ? `
-                    <!-- Throw statistics row -->
+                    <!-- Kaststatistikrad -->
                     <div class="row g-2 mb-3">
                         <div class="col-6 col-md-3">
                             <div class="card text-center bg-light h-100">
@@ -391,7 +411,7 @@ async function showPlayerStats(stats) {
                     </div>
                 ` : ''}
             </div>
-            <!-- Matches Tab -->
+            <!-- Matcherflik -->
             <div class="tab-pane fade" id="matches" role="tabpanel">
                 <div class="d-none d-md-block">
                     <div class="table-responsive">
@@ -401,7 +421,7 @@ async function showPlayerStats(stats) {
                                     <th>Datum</th>
                                     <th>Motstånd</th>
                                     <th>Resultat</th>
-                                    <th>Average</th>
+                                    <th>Snitt</th>
                                     <th>Resultat</th>
                                 </tr>
                             </thead>
@@ -425,7 +445,7 @@ async function showPlayerStats(stats) {
                     </div>
                 </div>
                 
-                <!-- Mobile view -->
+                <!-- Mobilvy -->
                 <div class="d-md-none">
                     ${stats.recent_matches.map(match => `
                         <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''}>
@@ -449,7 +469,7 @@ async function showPlayerStats(stats) {
                                                 `<span class="badge bg-danger">Förlust</span>`
                                             }
                                         </div>
-                                        <div><small class="text-muted">Average: ${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></div>
+                                        <div><small class="text-muted">Snitt: ${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></div>
                                         ${match.sub_match_id ? '<div><small class="text-primary">🎯 Visa kast</small></div>' : ''}
                                     </div>
                                 </div>
@@ -461,26 +481,34 @@ async function showPlayerStats(stats) {
         </div>
     `;
     
-    modal.show();
-    
-    // Create charts after modal is shown
+    // Skapa diagram efter att innehåll har laddats
     setTimeout(() => {
-        // Overview charts
+        // Översiktsdiagram
         goldenStat.createProgressChart('progressChart', stats.recent_matches);
         
-        // Throw distribution chart in overview
+        // Kastfördelningsdiagram i översikt
         if (throwData && throwData.statistics && throwData.statistics.score_ranges) {
             goldenStat.createThrowDistributionChart('throwDistributionChart', throwData.statistics.score_ranges);
         }
+        
+        // Matchpositionsdiagram
+        const positionStats = goldenStat.calculateMatchPositions(stats.recent_matches);
+        goldenStat.createMatchPositionChart('matchPositionChart', positionStats);
     }, 100);
 }
 
-// Handle Enter key in search
+// Hantera Enter-tangent i sökning
 document.getElementById('playerSearch').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         document.getElementById('searchSuggestions').style.display = 'none';
         searchPlayer();
     }
 });
+
+// Funktion för att rensa spelarresultat
+function clearPlayerResults() {
+    document.getElementById('playerResultsSection').style.display = 'none';
+    document.getElementById('playerResultsBody').innerHTML = '';
+}
 </script>
 {% endblock %}

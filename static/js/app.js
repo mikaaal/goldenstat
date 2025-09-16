@@ -104,10 +104,10 @@ class GoldenStat {
         const labels = sortedMatches.map(match => this.formatDate(match.match_date));
         const averages = sortedMatches.map(match => match.player_avg);
         
-        // Calculate moving average (3-match for better responsiveness)
+        // Beräkna glidande medel (3 matcher för bättre responsivitet)
         const movingAvg = [];
         for (let i = 0; i < averages.length; i++) {
-            const start = Math.max(0, i - 2); // 3-match moving average
+            const start = Math.max(0, i - 2); // 3-matchers glidande medel
             const slice = averages.slice(start, i + 1);
             const avg = slice.reduce((sum, val) => sum + val, 0) / slice.length;
             movingAvg.push(Math.round(avg * 100) / 100); // Round to 2 decimals
@@ -118,7 +118,7 @@ class GoldenStat {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Average per singles match',
+                    label: 'Snitt per singelmatch',
                     data: averages,
                     borderColor: '#007bff',
                     backgroundColor: 'rgba(0, 123, 255, 0.1)',
@@ -126,7 +126,7 @@ class GoldenStat {
                     fill: false,
                     tension: 0.1
                 }, {
-                    label: '3-match moving average',
+                    label: '3-matchers glidande medel',
                     data: movingAvg,
                     borderColor: '#28a745',
                     backgroundColor: 'rgba(40, 167, 69, 0.1)',
@@ -153,13 +153,13 @@ class GoldenStat {
                         beginAtZero: false,
                         title: {
                             display: true,
-                            text: 'Average Score'
+                            text: 'Snittpoäng'
                         }
                     },
                     x: {
                         title: {
                             display: true,
-                            text: 'Match Date'
+                            text: 'Matchdatum'
                         }
                     }
                 }
@@ -183,13 +183,13 @@ class GoldenStat {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Total Matches',
+                    label: 'Totala matcher',
                     data: matches,
                     backgroundColor: 'rgba(0, 123, 255, 0.7)',
                     borderColor: '#007bff',
                     borderWidth: 1
                 }, {
-                    label: 'Wins',
+                    label: 'Vinster',
                     data: wins,
                     backgroundColor: 'rgba(40, 167, 69, 0.7)',
                     borderColor: '#28a745',
@@ -202,7 +202,7 @@ class GoldenStat {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Performance by Match Type'
+                        text: 'Prestanda per matchtyp'
                     }
                 },
                 scales: {
@@ -210,7 +210,7 @@ class GoldenStat {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Number of Matches'
+                            text: 'Antal matcher'
                         }
                     }
                 }
@@ -228,7 +228,7 @@ class GoldenStat {
         const config = {
             type: 'doughnut',
             data: {
-                labels: ['Wins', 'Losses'],
+                labels: ['Vinster', 'Förluster'],
                 datasets: [{
                     data: [wins, losses],
                     backgroundColor: [
@@ -248,7 +248,7 @@ class GoldenStat {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Win/Loss Distribution'
+                        text: 'Vinst/Förlust-fördelning'
                     },
                     legend: {
                         position: 'bottom'
@@ -272,7 +272,7 @@ class GoldenStat {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Number of Throws',
+                    label: 'Antal kast',
                     data: data,
                     backgroundColor: [
                         'rgba(220, 53, 69, 0.7)',   // 0-20
@@ -299,7 +299,7 @@ class GoldenStat {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Throw Score Distribution'
+                        text: 'Kastpoängfördelning'
                     },
                     legend: {
                         display: false
@@ -310,13 +310,13 @@ class GoldenStat {
                         beginAtZero: true,
                         title: {
                             display: true,
-                            text: 'Number of Throws'
+                            text: 'Antal kast'
                         }
                     },
                     x: {
                         title: {
                             display: true,
-                            text: 'Score Range'
+                            text: 'Poängintervall'
                         }
                     }
                 }
@@ -361,10 +361,122 @@ class GoldenStat {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Checkout Distribution'
+                        text: 'Utcheckning-fördelning'
                     },
                     legend: {
                         position: 'bottom'
+                    }
+                }
+            }
+        };
+
+        return this.createChart(canvasId, config);
+    }
+
+    // Calculate match positions from match data
+    calculateMatchPositions(matches) {
+        const positionCounts = {};
+        
+        matches.forEach(match => {
+            let position = 'Unknown';
+            
+            // Extract position from match_name (e.g., "...Division 1FA Singles1" -> "Singles1")
+            if (match.match_name) {
+                const matchName = match.match_name;
+                
+                // Check for specific patterns
+                if (matchName.includes(' AD')) {
+                    position = 'AD';
+                } else if (matchName.includes(' Singles1')) {
+                    position = 'Singles1';
+                } else if (matchName.includes(' Singles2')) {
+                    position = 'Singles2';
+                } else if (matchName.includes(' Singles3')) {
+                    position = 'Singles3';
+                } else if (matchName.includes(' Singles4')) {
+                    position = 'Singles4';
+                } else if (matchName.includes(' Singles5')) {
+                    position = 'Singles5';
+                } else if (matchName.includes(' Singles6')) {
+                    position = 'Singles6';
+                } else if (matchName.includes(' Doubles1')) {
+                    position = 'Doubles1';
+                } else if (matchName.includes(' Doubles2')) {
+                    position = 'Doubles2';
+                } else if (matchName.includes(' Doubles3')) {
+                    position = 'Doubles3';
+                } else {
+                    // Fallback to match type if no specific position found
+                    position = match.match_type || 'Unknown';
+                }
+            } else if (match.match_type) {
+                // Fallback to just match type
+                position = match.match_type;
+            }
+            
+            positionCounts[position] = (positionCounts[position] || 0) + 1;
+        });
+        
+        return positionCounts;
+    }
+
+    // Create match position distribution chart
+    createMatchPositionChart(canvasId, positionStats) {
+        if (!positionStats || Object.keys(positionStats).length === 0) return;
+
+        const labels = Object.keys(positionStats);
+        const data = Object.values(positionStats);
+
+        // Color scheme for different positions
+        const colors = [
+            'rgba(255, 99, 132, 0.8)',   // Singles1 - Red
+            'rgba(54, 162, 235, 0.8)',   // Singles2 - Blue  
+            'rgba(255, 205, 86, 0.8)',   // Singles3 - Yellow
+            'rgba(75, 192, 192, 0.8)',   // Singles4 - Teal
+            'rgba(153, 102, 255, 0.8)',  // Singles5 - Purple
+            'rgba(255, 159, 64, 0.8)',   // Singles6 - Orange
+            'rgba(199, 199, 199, 0.8)',  // Doubles1 - Grey
+            'rgba(83, 102, 255, 0.8)',   // Doubles2 - Indigo
+            'rgba(255, 99, 255, 0.8)',   // Doubles3 - Magenta
+            'rgba(99, 255, 132, 0.8)'    // AD - Green
+        ];
+
+        const borderColors = colors.map(color => color.replace('0.8', '1'));
+
+        const config = {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: colors.slice(0, labels.length),
+                    borderColor: borderColors.slice(0, labels.length),
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Spelade positioner'
+                    },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed * 100) / total).toFixed(1);
+                                return `${context.label}: ${context.parsed} matcher (${percentage}%)`;
+                            }
+                        }
                     }
                 }
             }
@@ -386,14 +498,14 @@ class GoldenStat {
             
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error('Failed to fetch throw data');
+                throw new Error('Kunde inte hämta kastdata');
             }
             
             const data = await response.json();
             console.log('Throw analysis data:', data); // Debug log
             return data;
         } catch (error) {
-            console.error('Error fetching throw analysis:', error);
+            console.error('Fel vid hämtning av kastanalys:', error);
             this.showNotification('Kunde inte ladda kast-analys', 'error');
             return null;
         }
