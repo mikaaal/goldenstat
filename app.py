@@ -21,6 +21,29 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/teams')
+def get_teams():
+    """API endpoint to get all team names for autocomplete"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get all team names that have played matches
+            cursor.execute("""
+                SELECT DISTINCT t.name 
+                FROM teams t 
+                JOIN matches m ON (t.id = m.team1_id OR t.id = m.team2_id)
+                ORDER BY t.name
+            """)
+            
+            teams = [row['name'] for row in cursor.fetchall()]
+            return jsonify(teams)
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/players')
 def get_players():
     """API endpoint to get all player names for autocomplete with team disambiguation"""
@@ -817,6 +840,142 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                     **opponent_stats,
                     'legs_total': len(legs_with_throws)
                 }
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/team/<team_name>/lineup')
+def get_team_lineup(team_name):
+    """Get team lineup prediction based on historical position data"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get filter parameters
+            season = request.args.get('season')
+            
+            # Check if team exists
+            cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
+            team_result = cursor.fetchone()
+            if not team_result:
+                return jsonify({'error': 'Team not found'}), 404
+            
+            team_id = team_result['id']
+            
+            # Build WHERE clause for filtering
+            where_conditions = ["(m.team1_id = ? OR m.team2_id = ?)"]
+            params = [team_id, team_id]
+            
+            if season:
+                where_conditions.append("m.season = ?")
+                params.append(season)
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            # Get position analysis for this team
+            cursor.execute(f"""
+                WITH position_data AS (
+                    SELECT 
+                        p.name as player_name,
+                        sm.match_name,
+                        sm.match_type,
+                        smp.team_number,
+                        CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as player_team,
+                        COUNT(*) as matches_in_position
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                    JOIN matches m ON sm.match_id = m.id
+                    JOIN teams t1 ON m.team1_id = t1.id
+                    JOIN teams t2 ON m.team2_id = t2.id
+                    WHERE {where_clause}
+                      AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
+                    GROUP BY p.name, sm.match_name, sm.match_type
+                ),
+                position_stats AS (
+                    SELECT 
+                        player_name,
+                        CASE 
+                            WHEN match_name LIKE '% AD%' OR match_name LIKE '%AD' THEN 'AD'
+                            WHEN match_name LIKE '% Singles1%' THEN 'S1'
+                            WHEN match_name LIKE '% Singles2%' THEN 'S2' 
+                            WHEN match_name LIKE '% Singles3%' THEN 'S3'
+                            WHEN match_name LIKE '% Singles4%' THEN 'S4'
+                            WHEN match_name LIKE '% Singles5%' THEN 'S5'
+                            WHEN match_name LIKE '% Singles6%' THEN 'S6'
+                            WHEN match_name LIKE '% Doubles1%' THEN 'D1'
+                            WHEN match_name LIKE '% Doubles2%' THEN 'D2'
+                            WHEN match_name LIKE '% Doubles3%' THEN 'D3'
+                            ELSE 'Unknown'
+                        END as position,
+                        SUM(matches_in_position) as total_matches
+                    FROM position_data
+                    GROUP BY player_name, position
+                    HAVING position != 'Unknown'
+                )
+                SELECT 
+                    position,
+                    player_name,
+                    total_matches,
+                    ROW_NUMBER() OVER (PARTITION BY position ORDER BY total_matches DESC) as rank
+                FROM position_stats
+                ORDER BY position, total_matches DESC
+            """, params + [team_name])
+            
+            position_data = cursor.fetchall()
+            
+            # Get total team matches for percentage calculation
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT m.id) as total_team_matches
+                FROM matches m
+                WHERE {where_clause}
+            """, params)
+            
+            total_matches = cursor.fetchone()['total_team_matches']
+            
+            # Organize data by position
+            positions = {}
+            for row in position_data:
+                position = row['position']
+                if position not in positions:
+                    positions[position] = {'players': [], 'total_position_matches': 0}
+                
+                # Calculate percentage for this position
+                percentage = round((row['total_matches'] / total_matches) * 100, 1) if total_matches > 0 else 0
+                
+                player_data = {
+                    'name': row['player_name'],
+                    'matches': row['total_matches'],
+                    'percentage': percentage,
+                    'rank': row['rank']
+                }
+                
+                positions[position]['players'].append(player_data)
+                positions[position]['total_position_matches'] += row['total_matches']
+            
+            # Format response for frontend
+            formatted_positions = {}
+            for pos, data in positions.items():
+                if pos.startswith('S'):  # Singles positions
+                    formatted_positions[pos] = {
+                        'top_player': data['players'][0] if data['players'] else None,
+                        'all_players': data['players']
+                    }
+                else:  # Doubles positions (including AD)
+                    # For doubles, we might want to show partnerships
+                    formatted_positions[pos] = {
+                        'players': data['players'][:3],  # Top 3 players for this position
+                        'total_matches': data['total_position_matches']
+                    }
+            
+            return jsonify({
+                'team_name': team_name,
+                'total_matches': total_matches,
+                'season': season,
+                'positions': formatted_positions
             })
             
     except Exception as e:
