@@ -8,11 +8,11 @@ import json
 import sqlite3
 from datetime import datetime
 from typing import Dict, List, Optional, Any
-from database import DartsDatabase
+from database import DartDatabase
 
 class NewFormatImporter:
     def __init__(self, db_path: str = "goldenstat.db"):
-        self.db = DartsDatabase(db_path)
+        self.db = DartDatabase(db_path)
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',

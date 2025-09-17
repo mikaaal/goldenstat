@@ -126,7 +126,7 @@ class GoldenStat {
                     fill: false,
                     tension: 0.1
                 }, {
-                    label: '3-matchers glidande medel',
+                    label: '3-matchers pilsnitt över tid',
                     data: movingAvg,
                     borderColor: '#28a745',
                     backgroundColor: 'rgba(40, 167, 69, 0.1)',
@@ -141,7 +141,7 @@ class GoldenStat {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Singlar - Average utveckling över tid'
+                        text: 'Singlar - Pilsnitt utveckling över tid'
                     },
                     legend: {
                         display: true,
