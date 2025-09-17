@@ -43,6 +43,16 @@ body {
     box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
+.card-clickable:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 123, 255, 0.3);
+    border: 2px solid #007bff;
+}
+
+.card-clickable {
+    transition: all 0.2s ease-in-out;
+}
+
 .display-4 {
     font-weight: 700;
     background: linear-gradient(45deg, #007bff, #28a745);

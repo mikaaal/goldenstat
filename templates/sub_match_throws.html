@@ -7,7 +7,7 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0">🎲 Kastomgångar</h1>
+                <h1 class="h3 mb-0">Kastomgångar</h1>
                 <button onclick="window.history.back()" class="btn btn-primary">← Tillbaka</button>
             </div>
             <div class="card-body">
@@ -26,6 +26,14 @@
                     <!-- Match info -->
                     <div id="match-info" class="card mb-4">
                         <div class="card-body bg-light">
+                        </div>
+                    </div>
+                    
+                    <!-- Tips för scrollning -->
+                    <div class="alert alert-info alert-sm mb-4" role="alert">
+                        <div class="d-flex align-items-center">
+                            <span class="me-2">💡</span>
+                            <small><strong>Tips:</strong> Scrolla ner för att se detaljerade leg-för-leg statistik och alla kastomgångar för denna match.</small>
                         </div>
                     </div>
                     
@@ -117,6 +125,11 @@ function displayThrowData(data) {
     function formatMatchName(matchName, matchType) {
         if (!matchName) return 'N/A';
         
+        // Check for AD first (before other doubles)
+        if (matchName.includes(' AD')) {
+            return 'AD';
+        }
+        
         // Extract Singles1, Doubles3 etc from match name
         if (matchName.includes('Singles')) {
             const match = matchName.match(/Singles(\d+)/);
@@ -131,7 +144,10 @@ function displayThrowData(data) {
     }
 
     const matchInfoHtml = `
-        <h5 class="card-title mb-3">📊 ${formatMatchName(matchInfo.match_name, matchInfo.match_type)}</h5>
+        <div class="text-center mb-3">
+            <div class="badge bg-secondary fs-6 px-3 py-2">${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okänt datum'}</div>
+        </div>
+        <h5 class="card-title mb-3 text-center">📊 ${formatMatchName(matchInfo.match_name, matchInfo.match_type)}</h5>
         <div class="row g-3">
             <div class="col-md-6">
                 <div class="text-center">
@@ -145,8 +161,7 @@ function displayThrowData(data) {
                     <div>${makePlayerNameClickable(data.opponent_names, true)}</div>
                 </div>
             </div>
-            <div class="col-md-4 col-6"><strong>Datum:</strong> ${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okänt'}</div>
-            <div class="col-md-4 col-6"><strong>Resultat:</strong> ${matchInfo.team1_legs}-${matchInfo.team2_legs}</div>
+            <div class="col-12 text-center"><strong>Resultat:</strong> ${matchInfo.team1_legs}-${matchInfo.team2_legs}</div>
         </div>
     `;
     document.getElementById('match-info').querySelector('.card-body').innerHTML = matchInfoHtml;

@@ -54,9 +54,16 @@ class DartDatabase:
             return cursor.lastrowid
     
     def insert_match(self, match_data: Dict[str, Any]) -> int:
-        """Insert a new match and return its ID"""
+        """Insert a new match and return its ID. Returns existing ID if match already exists."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            
+            # Check if match already exists based on match_url
+            if 'match_url' in match_data and match_data['match_url']:
+                cursor.execute("SELECT id FROM matches WHERE match_url = ?", (match_data['match_url'],))
+                result = cursor.fetchone()
+                if result:
+                    return result[0]  # Return existing match ID
             
             cursor.execute("""
                 INSERT INTO matches 
@@ -64,7 +71,7 @@ class DartDatabase:
                  team1_avg, team2_avg, division, season, match_date)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                match_data['match_url'],
+                match_data.get('match_url'),
                 match_data['team1_id'],
                 match_data['team2_id'],
                 match_data['team1_score'],

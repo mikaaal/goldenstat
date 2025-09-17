@@ -749,13 +749,16 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                             short_legs_detail.append(total_darts_in_leg)
                         
                         # Check for high finish (100+)
-                        # Get actual checkout scores from the database for this leg and team
+                        # Get actual checkout score from the previous throw (remaining_score before checkout)
                         cursor.execute("""
-                            SELECT t.score, t.remaining_score
-                            FROM throws t
-                            JOIN legs l ON t.leg_id = l.id
+                            SELECT t_prev.remaining_score as checkout_score
+                            FROM throws t_checkout
+                            JOIN legs l ON t_checkout.leg_id = l.id
+                            JOIN throws t_prev ON t_prev.leg_id = l.id 
+                              AND t_prev.team_number = t_checkout.team_number 
+                              AND t_prev.round_number = t_checkout.round_number - 1
                             WHERE l.sub_match_id = ? AND l.leg_number = ? 
-                              AND t.team_number = ? AND t.remaining_score = 0 AND t.score > 0
+                              AND t_checkout.team_number = ? AND t_checkout.remaining_score = 0
                         """, (sub_match_id, leg['leg_number'], team_number))
                         
                         checkout_result = cursor.fetchone()

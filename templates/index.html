@@ -22,6 +22,23 @@
     </div>
 </div>
 
+<!-- Informationssektion -->
+<div class="row justify-content-center mb-4">
+    <div class="col-md-10 col-lg-8">
+        <div class="alert alert-primary" role="alert">
+            <div class="d-flex align-items-start">
+                <div>
+                    <h6 class="alert-heading mb-2">Dartstatistik från Nakka (n01darts.com)</h6>
+                    <p class="mb-1"> <strong>Observera:</strong> Spelarna visas med det namn som registrerades när matchen spelades.</p>
+                    <small class="text-muted">
+                        Om ditt namn har ändrats eller stavats olika mellan matcher kan det visas som separata spelare.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Söksektion -->
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
@@ -34,11 +51,17 @@
                            class="form-control" 
                            placeholder="Skriv spelarens namn..."
                            autocomplete="off">
-                    <button class="btn btn-primary" type="button" onclick="searchPlayer()">
+                    <button class="btn btn-primary" type="button" onclick="searchByText()">
                         <i class="bi bi-search">🔍</i> Sök
                     </button>
                 </div>
-                <div id="searchSuggestions" class="list-group mt-2" style="display: none;"></div>
+                <div id="searchSuggestions" class="list-group mt-2" style="display: none; position: relative; z-index: 1050;"></div>
+                
+                <!-- Search Results List (for text search) -->
+                <div id="searchResultsList" class="mt-3" style="display: none;">
+                    <h6 class="text-muted mb-2">Sökresultat:</h6>
+                    <div id="searchResultsContent" class="list-group"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -145,6 +168,10 @@ async function loadPlayerList() {
 // Sökfunktionalitet
 document.getElementById('playerSearch').addEventListener('input', function(e) {
     const query = e.target.value.toLowerCase();
+    
+    // Hide search results list when typing
+    document.getElementById('searchResultsList').style.display = 'none';
+    
     if (query.length < 2) {
         document.getElementById('searchSuggestions').style.display = 'none';
         return;
@@ -165,9 +192,55 @@ document.getElementById('playerSearch').addEventListener('input', function(e) {
     }
 });
 
+// New search function for text-based search
+function searchByText() {
+    const query = document.getElementById('playerSearch').value.trim().toLowerCase();
+    if (query.length < 2) {
+        alert('Skriv minst 2 tecken för att söka');
+        return;
+    }
+    
+    // Hide autocomplete suggestions
+    document.getElementById('searchSuggestions').style.display = 'none';
+    
+    // Find all matching players
+    const matchingPlayers = allPlayers.filter(player => 
+        player.toLowerCase().includes(query)
+    );
+    
+    if (matchingPlayers.length === 0) {
+        alert('Inga spelare hittades som matchar din sökning');
+        return;
+    }
+    
+    if (matchingPlayers.length === 1) {
+        // Only one match, select it directly
+        selectPlayer(matchingPlayers[0]);
+        return;
+    }
+    
+    // Multiple matches, show list
+    const resultsContainer = document.getElementById('searchResultsContent');
+    resultsContainer.innerHTML = matchingPlayers.map(player => 
+        `<button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" onclick="selectPlayer('${player}')">
+            <span>${player}</span>
+            <small class="text-primary">Visa statistik →</small>
+        </button>`
+    ).join('');
+    
+    document.getElementById('searchResultsList').style.display = 'block';
+    
+    // Scroll to results
+    document.getElementById('searchResultsList').scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+    });
+};
+
 function selectPlayer(playerName) {
     document.getElementById('playerSearch').value = playerName;
     document.getElementById('searchSuggestions').style.display = 'none';
+    document.getElementById('searchResultsList').style.display = 'none';
     searchPlayer();
 }
 
@@ -198,6 +271,9 @@ async function searchPlayer() {
 }
 
 async function showPlayerStats(stats) {
+    // Store matches data for filtering/sorting
+    storeMatchesData(stats.recent_matches);
+    
     // Get the original searched player name (with team if applicable)
     const searchedPlayerName = document.getElementById('playerSearch').value.trim();
     
@@ -228,12 +304,16 @@ async function showPlayerStats(stats) {
     
     document.getElementById('playerResultsBody').innerHTML = `
         <!-- Navigation tabs -->
-        <ul class="nav nav-tabs nav-fill" id="playerTabs" role="tablist">
+        <ul class="nav nav-tabs nav-fill mb-3" id="playerTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active small" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">Översikt</button>
+                <button class="nav-link active fw-bold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">
+                    📊 Översikt
+                </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link small" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button">Matcher</button>
+                <button class="nav-link fw-bold" id="matches-tab" data-bs-toggle="tab" data-bs-target="#matches" type="button">
+                    🎯 Matcher (${stats.recent_matches.length})
+                </button>
             </li>
         </ul>
         
@@ -241,15 +321,24 @@ async function showPlayerStats(stats) {
         <div class="tab-content mt-3" id="playerTabsContent">
             <!-- Översiktsflik -->
             <div class="tab-pane fade show active" id="overview" role="tabpanel">
+                <!-- Tips för matchinteraktion -->
+                <div class="alert alert-info alert-sm mb-3" role="alert">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2">💡</span>
+                        <small><strong>Tips:</strong> Klicka på "Matcher"-korten nedan eller växla till fliken "Matcher" för att se alla spelade matcher. Klicka sedan på en matchrad för detaljerade kastomgångar.</small>
+                    </div>
+                </div>
+                
                 <!-- Singlarstatistik -->
                 <div class="mb-3">
                     <h6 class="text-muted mb-2">🎯 Singlar</h6>
                     <div class="row g-2">
                         <div class="col-6 col-md-3">
-                            <div class="card text-center bg-light h-100">
+                            <div class="card text-center bg-light h-100 card-clickable" onclick="switchToMatchesTab()" style="cursor: pointer;" title="Klicka för att se alla matcher">
                                 <div class="card-body py-2">
                                     <h5 class="text-primary mb-1">${stats.singles.total_matches}</h5>
                                     <small class="card-text">Matcher</small>
+                                    <div><small class="text-muted">📋 Visa alla</small></div>
                                 </div>
                             </div>
                         </div>
@@ -325,10 +414,11 @@ async function showPlayerStats(stats) {
                     <h6 class="text-muted mb-2">👥 Dubblar</h6>
                     <div class="row g-2">
                         <div class="col-6 col-md-3">
-                            <div class="card text-center bg-light h-100">
+                            <div class="card text-center bg-light h-100 card-clickable" onclick="switchToMatchesTab()" style="cursor: pointer;" title="Klicka för att se alla matcher">
                                 <div class="card-body py-2">
                                     <h5 class="text-primary mb-1">${stats.doubles.total_matches}</h5>
                                     <small class="card-text">Matcher</small>
+                                    <div><small class="text-muted">📋 Visa alla</small></div>
                                 </div>
                             </div>
                         </div>
@@ -395,22 +485,46 @@ async function showPlayerStats(stats) {
             </div>
             <!-- Matcherflik -->
             <div class="tab-pane fade" id="matches" role="tabpanel">
+                
+                <!-- Match filter controls -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="matchTypeFilter" class="form-label small">Visa matchtyp</label>
+                        <select id="matchTypeFilter" class="form-select form-select-sm" onchange="filterMatches()">
+                            <option value="all">Alla matcher</option>
+                            <option value="Singles">Endast singlar</option>
+                            <option value="Doubles">Endast dubblar</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="matchSortOrder" class="form-label small">Sortering</label>
+                        <select id="matchSortOrder" class="form-select form-select-sm" onchange="sortMatches()">
+                            <option value="date-desc">Senaste först</option>
+                            <option value="date-asc">Äldsta först</option>
+                            <option value="average-desc">Högsta snitt först</option>
+                            <option value="average-asc">Lägsta snitt först</option>
+                        </select>
+                    </div>
+                </div>
+                
                 <div class="d-none d-md-block">
                     <div class="table-responsive">
-                        <table class="table table-striped table-sm">
+                        <table class="table table-striped table-sm" id="matchesTable">
                             <thead>
                                 <tr>
                                     <th>Datum</th>
-                                    <th>Motstånd</th>
+                                    <th>Typ</th>
+                                    <th>Motståndare</th>
                                     <th>Resultat</th>
                                     <th>Snitt</th>
                                     <th>Resultat</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="matchesTableBody">
                                 ${stats.recent_matches.map(match => `
-                                    <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'" title="Klicka för att se kastomgångar"' : ''}>
+                                    <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                                         <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
+                                        <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_type === 'Singles' ? 'S' : 'D'}</span></small></td>
                                         <td><small>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))} <span class="text-muted">(${match.opponent_team || match.match_type})</span></small></td>
                                         <td><small>${match.team1_legs} - ${match.team2_legs}</small></td>
                                         <td><small>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></td>
@@ -429,14 +543,19 @@ async function showPlayerStats(stats) {
                 
                 <!-- Mobilvy -->
                 <div class="d-md-none">
+                    
+                    <div id="mobileMatchesList">
                     ${stats.recent_matches.map(match => `
-                        <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''}>
+                        <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                             <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'"' : ''}>
                                 <div class="row">
                                     <div class="col-8">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div>
-                                                <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
+                                                    <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_type === 'Singles' ? 'S' : 'D'}</span>
+                                                </div>
                                                 <div><strong>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
                                                 <div>
                                                     <span class="fw-bold">${match.team1_legs} - ${match.team2_legs}</span>
@@ -458,6 +577,7 @@ async function showPlayerStats(stats) {
                             </div>
                         </div>
                     `).join('')}
+                    </div>
                 </div>
             </div>
         </div>
@@ -483,14 +603,168 @@ async function showPlayerStats(stats) {
 document.getElementById('playerSearch').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
         document.getElementById('searchSuggestions').style.display = 'none';
-        searchPlayer();
+        
+        // Check if there are visible suggestions, select first one
+        const suggestions = document.querySelectorAll('#searchSuggestions .list-group-item');
+        if (suggestions.length > 0 && document.getElementById('searchSuggestions').style.display !== 'none') {
+            const firstSuggestion = suggestions[0].textContent;
+            selectPlayer(firstSuggestion);
+        } else {
+            // No suggestions visible, do text search
+            searchByText();
+        }
     }
 });
+
+// Funktion för att växla till Matcher-fliken
+function switchToMatchesTab() {
+    const matchesTab = document.getElementById('matches-tab');
+    if (matchesTab) {
+        matchesTab.click();
+        
+        // Scroll to top of matches section
+        setTimeout(() => {
+            document.getElementById('playerTabs').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }, 100);
+    }
+}
+
+// Global variable to store original matches data
+let originalMatchesData = [];
+
+// Store matches data when player stats are loaded
+function storeMatchesData(matches) {
+    originalMatchesData = matches.slice(); // Create a copy
+}
+
+// Filter matches by type
+function filterMatches() {
+    const filterValue = document.getElementById('matchTypeFilter').value;
+    
+    // Apply filter and then current sort
+    let filteredMatches = originalMatchesData.slice();
+    
+    if (filterValue !== 'all') {
+        filteredMatches = filteredMatches.filter(match => match.match_type === filterValue);
+    }
+    
+    // Apply current sort order
+    const sortOrder = document.getElementById('matchSortOrder').value;
+    filteredMatches = applySortToMatches(filteredMatches, sortOrder);
+    
+    // Update both desktop and mobile views
+    updateMatchesDisplay(filteredMatches);
+}
+
+// Sort matches
+function sortMatches() {
+    const sortOrder = document.getElementById('matchSortOrder').value;
+    const filterValue = document.getElementById('matchTypeFilter').value;
+    
+    // Apply current filter first
+    let filteredMatches = originalMatchesData.slice();
+    
+    if (filterValue !== 'all') {
+        filteredMatches = filteredMatches.filter(match => match.match_type === filterValue);
+    }
+    
+    // Apply sort
+    filteredMatches = applySortToMatches(filteredMatches, sortOrder);
+    
+    // Update display
+    updateMatchesDisplay(filteredMatches);
+}
+
+// Apply sorting logic
+function applySortToMatches(matches, sortOrder) {
+    return matches.sort((a, b) => {
+        switch (sortOrder) {
+            case 'date-desc':
+                return new Date(b.match_date || 0) - new Date(a.match_date || 0);
+            case 'date-asc':
+                return new Date(a.match_date || 0) - new Date(b.match_date || 0);
+            case 'average-desc':
+                return (b.player_avg || 0) - (a.player_avg || 0);
+            case 'average-asc':
+                return (a.player_avg || 0) - (b.player_avg || 0);
+            default:
+                return 0;
+        }
+    });
+}
+
+// Update matches display with filtered/sorted data
+function updateMatchesDisplay(matches) {
+    const currentPlayerName = document.getElementById('playerSearch').value.trim();
+    
+    // Update desktop table
+    const tableBody = document.getElementById('matchesTableBody');
+    if (tableBody) {
+        tableBody.innerHTML = matches.map(match => `
+            <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(currentPlayerName) + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
+                <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
+                <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_type === 'Singles' ? 'S' : 'D'}</span></small></td>
+                <td><small>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))} <span class="text-muted">(${match.opponent_team || match.match_type})</span></small></td>
+                <td><small>${match.team1_legs} - ${match.team2_legs}</small></td>
+                <td><small>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></td>
+                <td>
+                    ${match.won ? 
+                        '<span class="badge bg-success badge-sm">Vinst</span>' : 
+                        '<span class="badge bg-danger badge-sm">Förlust</span>'
+                    }
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // Update mobile list
+    const mobileList = document.getElementById('mobileMatchesList');
+    if (mobileList) {
+        mobileList.innerHTML = matches.map(match => `
+            <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
+                <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(currentPlayerName) + '\'"' : ''}>
+                    <div class="row">
+                        <div class="col-8">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
+                                        <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_type === 'Singles' ? 'S' : 'D'}</span>
+                                    </div>
+                                    <div><strong>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
+                                    <div>
+                                        <span class="fw-bold">${match.team1_legs} - ${match.team2_legs}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div>
+                                ${match.won ? 
+                                    '<span class="badge bg-success">Vinst</span>' : 
+                                    '<span class="badge bg-danger">Förlust</span>'
+                                }
+                            </div>
+                            <div><small class="text-muted">Snitt: ${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></div>
+                            ${match.sub_match_id ? '<div><small class="text-primary">🎯 Visa kast</small></div>' : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
 
 // Funktion för att rensa spelarresultat
 function clearPlayerResults() {
     document.getElementById('playerResultsSection').style.display = 'none';
     document.getElementById('playerResultsBody').innerHTML = '';
+    document.getElementById('searchResultsList').style.display = 'none';
+    document.getElementById('playerSearch').value = '';
+    originalMatchesData = []; // Clear stored data
 }
 </script>
 {% endblock %}
