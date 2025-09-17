@@ -383,7 +383,7 @@ async function showPlayerStats(stats) {
                         <thead>
                             <tr>
                                 <th>Datum</th>
-                                <th>Motstånd</th>
+                                <th>Motståndare</th>
                                 <th>Typ</th>
                                 <th>Resultat</th>
                                 <th>Average</th>

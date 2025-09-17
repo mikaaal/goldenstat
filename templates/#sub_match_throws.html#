@@ -7,7 +7,7 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0">🎲 Kastomgångar</h1>
+                <h1 class="h3 mb-0"> Kastomgångar</h1>
                 <a href="/" class="btn btn-primary">← Tillbaka</a>
             </div>
             <div class="card-body">
@@ -86,7 +86,7 @@ function displayThrowData(data) {
         <h5 class="card-title mb-3">📊 Delmatch Information</h5>
         <div class="row g-3">
             <div class="col-md-3 col-6"><strong>Spelare:</strong> ${data.player_name}${data.teammate_names ? '/' + data.teammate_names : ''}</div>
-            <div class="col-md-3 col-6"><strong>Motstånd:</strong> ${data.opponent_names}</div>
+            <div class="col-md-3 col-6"><strong>Motståndare:</strong> ${data.opponent_names}</div>
             <div class="col-md-3 col-6"><strong>Typ:</strong> ${matchInfo.match_type}</div>
             <div class="col-md-3 col-6"><strong>Match:</strong> ${matchInfo.match_name}</div>
             <div class="col-md-3 col-6"><strong>Datum:</strong> ${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okänt'}</div>
