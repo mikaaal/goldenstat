@@ -86,9 +86,37 @@ class DartDatabase:
             return cursor.lastrowid
     
     def insert_sub_match(self, sub_match_data: Dict[str, Any]) -> int:
-        """Insert a sub-match and return its ID"""
+        """Insert a sub-match and return its ID. Returns existing ID if sub-match already exists."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            
+            # Check if sub-match already exists based on unique combination
+            # First check by mid (source match ID) if available
+            if sub_match_data.get('mid'):
+                cursor.execute("""
+                    SELECT id FROM sub_matches 
+                    WHERE match_id = ? AND mid = ?
+                """, (
+                    sub_match_data['match_id'],
+                    sub_match_data['mid']
+                ))
+                result = cursor.fetchone()
+                if result:
+                    return result[0]  # Return existing sub-match ID
+            
+            # Fallback to old method for matches without mid
+            cursor.execute("""
+                SELECT id FROM sub_matches 
+                WHERE match_id = ? AND match_number = ? AND match_type = ? AND match_name = ?
+            """, (
+                sub_match_data['match_id'],
+                sub_match_data['match_number'],
+                sub_match_data['match_type'],
+                sub_match_data['match_name']
+            ))
+            result = cursor.fetchone()
+            if result:
+                return result[0]  # Return existing sub-match ID
             
             cursor.execute("""
                 INSERT INTO sub_matches 
@@ -110,9 +138,22 @@ class DartDatabase:
             return cursor.lastrowid
     
     def insert_sub_match_participant(self, participant_data: Dict[str, Any]):
-        """Insert a sub-match participant"""
+        """Insert a sub-match participant. Skips if participant already exists."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            
+            # Check if participant already exists
+            cursor.execute("""
+                SELECT id FROM sub_match_participants 
+                WHERE sub_match_id = ? AND player_id = ? AND team_number = ?
+            """, (
+                participant_data['sub_match_id'],
+                participant_data['player_id'],
+                participant_data['team_number']
+            ))
+            result = cursor.fetchone()
+            if result:
+                return  # Participant already exists, skip
             
             cursor.execute("""
                 INSERT INTO sub_match_participants 

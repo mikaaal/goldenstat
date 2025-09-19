@@ -247,7 +247,7 @@ document.getElementById('playerSearch').addEventListener('input', function(e) {
     
     const suggestions = allPlayers.filter(player => 
         player.toLowerCase().includes(query)
-    ).slice(0, 5);
+    ).slice(0, 10);
     
     const suggestionsContainer = document.getElementById('searchSuggestions');
     if (suggestions.length > 0) {
@@ -592,7 +592,7 @@ async function showPlayerStats(stats) {
                                 ${stats.recent_matches.map(match => `
                                     <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                                         <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
-                                        <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_type === 'Singles' ? 'S' : 'D'}</span></small></td>
+                                        <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                                         <td><small>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))} <span class="text-muted">(${match.opponent_team || match.match_type})</span></small></td>
                                         <td><small>${match.team1_legs} - ${match.team2_legs}</small></td>
                                         <td><small>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></td>
@@ -622,7 +622,7 @@ async function showPlayerStats(stats) {
                                             <div>
                                                 <div class="d-flex align-items-center gap-2 mb-1">
                                                     <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
-                                                    <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_type === 'Singles' ? 'S' : 'D'}</span>
+                                                    <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span>
                                                 </div>
                                                 <div><strong>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
                                                 <div>
@@ -774,7 +774,7 @@ function updateMatchesDisplay(matches) {
         tableBody.innerHTML = matches.map(match => `
             <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(currentPlayerName) + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                 <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
-                <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_type === 'Singles' ? 'S' : 'D'}</span></small></td>
+                <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                 <td><small>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))} <span class="text-muted">(${match.opponent_team || match.match_type})</span></small></td>
                 <td><small>${match.team1_legs} - ${match.team2_legs}</small></td>
                 <td><small>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></td>
@@ -800,7 +800,7 @@ function updateMatchesDisplay(matches) {
                                 <div>
                                     <div class="d-flex align-items-center gap-2 mb-1">
                                         <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
-                                        <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_type === 'Singles' ? 'S' : 'D'}</span>
+                                        <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span>
                                     </div>
                                     <div><strong>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
                                     <div>
@@ -857,7 +857,7 @@ document.getElementById('teamSearch').addEventListener('input', function(e) {
     
     const suggestions = allTeams.filter(team => 
         team.toLowerCase().includes(query)
-    ).slice(0, 5);
+    ).slice(0, 10);
     
     const suggestionsContainer = document.getElementById('teamSearchSuggestions');
     if (suggestions.length > 0) {
