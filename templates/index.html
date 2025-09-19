@@ -958,7 +958,7 @@ function showTeamLineup(data) {
     
     document.getElementById('teamResultsBody').innerHTML = `
         <div class="text-center mb-4">
-            <h6 class="text-muted">Baserat på ${data.total_matches} matcher i ${data.season || 'alla säsonger'}</h6>
+            <h6 class="text-muted">Baserat på ${data.total_matches} matcher${data.season ? ` i ${data.season}` : ''}${data.division ? ` (${data.division})` : ''}${!data.season && !data.division ? ' från alla säsonger' : ''}</h6>
         </div>
         
         <!-- Doubles positions -->

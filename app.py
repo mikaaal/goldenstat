@@ -23,22 +23,59 @@ def index():
 
 @app.route('/api/teams')
 def get_teams():
-    """API endpoint to get all team names for autocomplete"""
+    """API endpoint to get all team names with season info for autocomplete"""
     try:
         import sqlite3
         with sqlite3.connect(db.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get all team names that have played matches
+            # Get all team names with their seasons and divisions
             cursor.execute("""
-                SELECT DISTINCT t.name 
-                FROM teams t 
-                JOIN matches m ON (t.id = m.team1_id OR t.id = m.team2_id)
-                ORDER BY t.name
+                WITH team_seasons AS (
+                    SELECT DISTINCT 
+                        t.name as team_name,
+                        m.season,
+                        m.division,
+                        COUNT(m.id) as matches_count
+                    FROM teams t 
+                    JOIN matches m ON (t.id = m.team1_id OR t.id = m.team2_id)
+                    WHERE m.season IS NOT NULL AND m.division IS NOT NULL
+                    GROUP BY t.name, m.season, m.division
+                ),
+                team_total_matches AS (
+                    SELECT 
+                        team_name,
+                        SUM(matches_count) as total_matches
+                    FROM team_seasons
+                    GROUP BY team_name
+                    HAVING SUM(matches_count) >= 1  -- Show all teams with at least 1 match
+                ),
+                team_display AS (
+                    SELECT 
+                        ts.team_name,
+                        COUNT(DISTINCT ts.season) as season_count
+                    FROM team_seasons ts
+                    JOIN team_total_matches ttm ON ts.team_name = ttm.team_name
+                    GROUP BY ts.team_name
+                )
+                SELECT 
+                    ts.team_name,
+                    ts.season,
+                    ts.division,
+                    ts.matches_count,
+                    td.season_count,
+                    ts.team_name || ' (' || REPLACE(ts.season, '/', '-') || ')' as display_name
+                FROM team_seasons ts
+                JOIN team_display td ON ts.team_name = td.team_name
+                JOIN team_total_matches ttm ON ts.team_name = ttm.team_name
+                ORDER BY ts.team_name, ts.season DESC, ts.division
             """)
             
-            teams = [row['name'] for row in cursor.fetchall()]
+            teams = []
+            for row in cursor.fetchall():
+                teams.append(row['display_name'])
+            
             return jsonify(teams)
             
     except Exception as e:
@@ -53,46 +90,23 @@ def get_players():
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get players grouped by name and team - treat different teams as different players
+            # Get all players - one entry per unique player name
             cursor.execute("""
-                WITH player_team_stats AS (
-                    SELECT 
-                        p.id,
-                        p.name,
-                        CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
-                        COUNT(*) as match_count
-                    FROM players p
-                    JOIN sub_match_participants smp ON p.id = smp.player_id
-                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
-                    JOIN matches m ON sm.match_id = m.id
-                    JOIN teams t1 ON m.team1_id = t1.id
-                    JOIN teams t2 ON m.team2_id = t2.id
-                    GROUP BY p.id, p.name, team_name
-                    HAVING COUNT(*) >= 3  -- Only show teams with 3+ matches to filter noise
-                ),
-                name_team_counts AS (
-                    SELECT name, COUNT(DISTINCT team_name) as team_count
-                    FROM player_team_stats
-                    GROUP BY name
-                )
-                SELECT 
-                    pts.name,
-                    pts.team_name,
-                    pts.match_count,
-                    ntc.team_count,
-                    CASE 
-                        WHEN ntc.team_count > 1 THEN pts.name || ' (' || pts.team_name || ')'
-                        ELSE pts.name 
-                    END as display_name
-                FROM player_team_stats pts
-                JOIN name_team_counts ntc ON pts.name = ntc.name
-                ORDER BY pts.name, pts.team_name
+                SELECT DISTINCT
+                    p.name,
+                    COUNT(DISTINCT smp.sub_match_id) as total_matches
+                FROM players p
+                JOIN sub_match_participants smp ON p.id = smp.player_id
+                JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                JOIN matches m ON sm.match_id = m.id
+                GROUP BY p.name
+                HAVING COUNT(DISTINCT smp.sub_match_id) >= 3  -- Only show players with 3+ matches
             """)
             
             players = []
             
             for row in cursor.fetchall():
-                players.append(row['display_name'])
+                players.append(row['name'])
                     
             return jsonify(players)
     except Exception as e:
@@ -109,14 +123,16 @@ def get_player_stats(player_name):
         
         # Check if player name includes team disambiguation like "Name (Team)"
         team_filter = None
+        selected_team = None
         if '(' in player_name and player_name.endswith(')'):
             # Extract team from player name like "Mats Andersson (SpikKastarna (SL6))"
             base_name = player_name.split(' (')[0]
             team_part = player_name.split(' (', 1)[1][:-1]  # Remove last )
-            team_filter = team_part
+            selected_team = team_part  # Store for display purposes
             player_name = base_name
+            # Don't set team_filter - we want ALL matches for the player
         
-        stats = db.get_player_stats(player_name, season=season, division=division, team_filter=team_filter)
+        stats = db.get_player_stats(player_name, season=season, division=division, team_filter=None)
         if not stats:
             return jsonify({'error': 'Player not found'}), 404
         
@@ -134,7 +150,8 @@ def get_player_stats(player_name):
         stats['filters'] = {
             'season': season,
             'division': division,
-            'team': team_filter
+            'team': None,  # No team filter applied
+            'selected_team': selected_team  # Which team was selected (for display)
         }
         
         return jsonify(stats)
@@ -384,15 +401,14 @@ def get_player_throws(player_name):
             division = request.args.get('division')
             
             # Check if player name includes team disambiguation like "Name (Team)"
-            team_filter = None
             original_player_name = player_name
             if '(' in player_name and player_name.endswith(')'):
                 # Extract team from player name like "Mats Andersson (SpikKastarna (SL6))"
                 base_name = player_name.split(' (')[0]
                 team_part = player_name.split(' (', 1)[1][:-1]  # Remove last )
-                team_filter = team_part
                 player_name = base_name
-                print(f"DEBUG: Original: '{original_player_name}' -> Base: '{player_name}', Team: '{team_filter}'", flush=True)
+                # Don't use team filter - we want ALL throws for the player
+                print(f"DEBUG: Original: '{original_player_name}' -> Base: '{player_name}', No team filter", flush=True)
             
             # Get player ID
             cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
@@ -414,9 +430,7 @@ def get_player_throws(player_name):
                 where_conditions.append("m.division = ?")
                 params.append(division)
             
-            if team_filter:
-                where_conditions.append("(CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?")
-                params.append(team_filter)
+            # No team filter - show throws from all teams
             
             where_clause = " AND ".join(where_conditions)
             
@@ -528,7 +542,7 @@ def get_player_throws(player_name):
                     'short_sets': short_sets,
                     'most_common_scores': [{'score': score, 'count': count} for score, count in most_common_scores]
                 }
-                print(f"DEBUG: Total throws for '{original_player_name}': {len(throws)}, Team filter: {team_filter}", flush=True)
+                print(f"DEBUG: Total throws for '{original_player_name}': {len(throws)}, No team filter", flush=True)
             else:
                 statistics = {}
             
@@ -856,6 +870,21 @@ def get_team_lineup(team_name):
             
             # Get filter parameters
             season = request.args.get('season')
+            division = None
+            
+            # Check if team name includes season info like "Team Name (2024-2025)"
+            # Look for pattern: team name ending with (season) where season contains dash
+            import re
+            season_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
+            if season_match:
+                # Extract team and season from team name
+                team_name = season_match.group(1)
+                season = season_match.group(2).replace('-', '/')  # Convert back to 2024/2025 format
+                # Division is already in the team name (e.g., "Dartanjang (SL4)")
+                division = None
+            else:
+                # No season in team name, this shouldn't happen with new format
+                season = request.args.get('season')
             
             # Check if team exists
             cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
@@ -872,6 +901,10 @@ def get_team_lineup(team_name):
             if season:
                 where_conditions.append("m.season = ?")
                 params.append(season)
+            
+            if division:
+                where_conditions.append("m.division = ?")
+                params.append(division)
             
             where_clause = " AND ".join(where_conditions)
             
@@ -975,6 +1008,7 @@ def get_team_lineup(team_name):
                 'team_name': team_name,
                 'total_matches': total_matches,
                 'season': season,
+                'division': division,
                 'positions': formatted_positions
             })
             

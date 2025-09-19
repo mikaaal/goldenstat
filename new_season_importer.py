@@ -146,7 +146,7 @@ class NewSeasonImporter:
             print(f"❌ Error fetching {match_url}: {e}")
             return None
     
-    def extract_match_info(self, match_data: List[Dict]) -> Dict[str, Any]:
+    def extract_match_info(self, match_data: List[Dict], season: str = "2025/2026") -> Dict[str, Any]:
         """Extract match information from API response"""
         if not match_data:
             return {}
@@ -170,7 +170,7 @@ class NewSeasonImporter:
         
         # Extract season and division from title
         title = first_submatch.get('title', '')
-        season = "2025/2026"  # Default for new season
+        # Season is passed as parameter
         division = "Unknown"
         
         if 'Division' in title:
@@ -406,7 +406,7 @@ class NewSeasonImporter:
             print(f"❌ Error loading URLs from file: {e}")
             return []
 
-    def import_division(self, tdid: str, url_file: str = None) -> Dict[str, int]:
+    def import_division(self, tdid: str, url_file: str = None, season: str = "2025/2026") -> Dict[str, int]:
         """Import all matches from a division"""
         print(f"\n🎯 Starting import for division {tdid}")
         
@@ -431,7 +431,7 @@ class NewSeasonImporter:
                 
                 if match_data:
                     # Extract match info
-                    match_info = self.extract_match_info(match_data)
+                    match_info = self.extract_match_info(match_data, season)
                     
                     if match_info:
                         # Import to database
@@ -465,16 +465,18 @@ class NewSeasonImporter:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python3 new_season_importer.py <division_id> [url_file]")
+        print("Usage: python3 new_season_importer.py <division_id> [url_file] [season]")
         print("Example: python3 new_season_importer.py t_jM8s_0341")
         print("Example: python3 new_season_importer.py t_jM8s_0341 t_jM8s_0341_match_urls.txt")
+        print("Example: python3 new_season_importer.py t_jM8s_0341 t_jM8s_0341_match_urls.txt 2023/2024")
         return 1
     
     division_id = sys.argv[1]
     url_file = sys.argv[2] if len(sys.argv) > 2 else None
+    season = sys.argv[3] if len(sys.argv) > 3 else "2025/2026"
     
     importer = NewSeasonImporter()
-    result = importer.import_division(division_id, url_file)
+    result = importer.import_division(division_id, url_file, season)
     
     print(f"\n🎯 Final Result:")
     print(f"   ✅ Successful imports: {result['success']}")

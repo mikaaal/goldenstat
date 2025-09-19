@@ -92,8 +92,8 @@ class GoldenStat {
 
         // Sort in chronological order (oldest first) for proper time series
         const sortedMatches = singlesMatches
-            .sort((a, b) => new Date(a.match_date) - new Date(b.match_date))
-            .slice(-20); // Last 20 chronological matches
+            .sort((a, b) => new Date(a.match_date) - new Date(b.match_date));
+            // No limit - show all matches
 
         // Return early if no valid matches
         if (sortedMatches.length === 0) {
