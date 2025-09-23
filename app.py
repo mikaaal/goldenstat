@@ -6,8 +6,55 @@ A Flask web app for viewing dart player statistics
 
 from flask import Flask, render_template, request, jsonify
 import json
+import sqlite3
 from datetime import datetime
 from database import DartDatabase
+
+def get_effective_sub_match_query(player_name):
+    """
+    Get SQL query fragments for including sub-matches with mappings applied.
+    Returns a WHERE clause that includes both direct matches and mapped sub-matches.
+    """
+    # Get player ID for exclusion logic
+    with sqlite3.connect("goldenstat.db") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+        result = cursor.fetchone()
+        player_id = result[0] if result else None
+    
+    if not player_id:
+        return "p.name = ?", [player_name]
+    
+    # Base condition - exclude mapped-away sub-matches from base player
+    base_condition = f"""(p.name = ? AND smp.sub_match_id NOT IN (
+        SELECT smpm.sub_match_id 
+        FROM sub_match_player_mappings smpm 
+        WHERE smpm.original_player_id = {player_id}
+    ))"""
+    
+    # Add condition for mapped sub-matches where this player should get credit
+    mapped_condition = """
+        OR (smp.sub_match_id IN (
+            SELECT smpm.sub_match_id 
+            FROM sub_match_player_mappings smpm 
+            WHERE smpm.correct_player_name = ?
+        ) AND smp.player_id IN (
+            SELECT DISTINCT smpm2.original_player_id 
+            FROM sub_match_player_mappings smpm2 
+            WHERE smpm2.correct_player_name = ?
+        ))
+    """
+    
+    return f"({base_condition} {mapped_condition})", [player_name, player_name, player_name]
+
+def get_effective_player_ids(cursor, player_name):
+    """
+    Get player ID for the given player name.
+    Sub-match mappings are handled in the SQL queries, not here.
+    """
+    cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+    result = cursor.fetchone()
+    return [result['id']] if result else []
 
 app = Flask(__name__)
 app.secret_key = 'goldenstat-secret-key'
@@ -65,7 +112,14 @@ def get_teams():
                     ts.division,
                     ts.matches_count,
                     td.season_count,
-                    ts.team_name || ' (' || REPLACE(ts.season, '/', '-') || ')' as display_name
+                    CASE 
+                        WHEN ts.team_name LIKE '%(%' THEN 
+                            -- Team name already contains division, just add season
+                            ts.team_name || ' (' || REPLACE(ts.season, '/', '-') || ')'
+                        ELSE 
+                            -- Team name doesn't contain division, add both division and season
+                            ts.team_name || ' (' || ts.division || ') (' || REPLACE(ts.season, '/', '-') || ')'
+                    END as display_name
                 FROM team_seasons ts
                 JOIN team_display td ON ts.team_name = td.team_name
                 JOIN team_total_matches ttm ON ts.team_name = ttm.team_name
@@ -83,30 +137,39 @@ def get_teams():
 
 @app.route('/api/players')
 def get_players():
-    """API endpoint to get all player names for autocomplete with team disambiguation"""
+    """API endpoint to get all player names for autocomplete"""
     try:
         import sqlite3
         with sqlite3.connect(db.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get all players - one entry per unique player name
+            # Get all players with their match counts, including contextual players from mappings
             cursor.execute("""
-                SELECT DISTINCT
+                SELECT 
                     p.name,
                     COUNT(DISTINCT smp.sub_match_id) as total_matches
                 FROM players p
                 JOIN sub_match_participants smp ON p.id = smp.player_id
                 JOIN sub_matches sm ON smp.sub_match_id = sm.id
                 JOIN matches m ON sm.match_id = m.id
-                GROUP BY p.name
-                HAVING COUNT(DISTINCT smp.sub_match_id) >= 3  -- Only show players with 3+ matches
+                GROUP BY p.id, p.name
+                HAVING COUNT(DISTINCT smp.sub_match_id) >= 3
+                
+                UNION
+                
+                -- Include contextual players that exist only through mappings
+                SELECT 
+                    smpm.correct_player_name as name,
+                    COUNT(DISTINCT smpm.sub_match_id) as total_matches
+                FROM sub_match_player_mappings smpm
+                GROUP BY smpm.correct_player_name
+                HAVING COUNT(DISTINCT smpm.sub_match_id) >= 3
+                
+                ORDER BY name
             """)
             
-            players = []
-            
-            for row in cursor.fetchall():
-                players.append(row['name'])
+            players = [row['name'] for row in cursor.fetchall()]
                     
             return jsonify(players)
     except Exception as e:
@@ -122,9 +185,19 @@ def get_player_stats(player_name):
         division = request.args.get('division')
         
         # Check if player name includes team disambiguation like "Name (Team)"
+        # BUT don't split if it's one of our contextual players like "Johan (Rockhangers)"
         team_filter = None
         selected_team = None
-        if '(' in player_name and player_name.endswith(')'):
+        
+        # Check if this is a contextual player (exists as exact name in database)
+        is_contextual_player = False
+        with sqlite3.connect("goldenstat.db") as temp_conn:
+            temp_cursor = temp_conn.cursor()
+            temp_cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+            if temp_cursor.fetchone():
+                is_contextual_player = True
+        
+        if '(' in player_name and player_name.endswith(')') and not is_contextual_player:
             # Extract team from player name like "Mats Andersson (SpikKastarna (SL6))"
             base_name = player_name.split(' (')[0]
             team_part = player_name.split(' (', 1)[1][:-1]  # Remove last )
@@ -167,13 +240,10 @@ def get_player_detailed_stats(player_name):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get player ID
-            cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
-            player_result = cursor.fetchone()
-            if not player_result:
+            # Get all effective player IDs (including mapped ones)
+            all_player_ids = get_effective_player_ids(cursor, player_name)
+            if not all_player_ids:
                 return jsonify({'error': 'Player not found'}), 404
-            
-            player_id = player_result['id']
             
             # Get detailed match history with averages over time
             cursor.execute("""
@@ -199,9 +269,9 @@ def get_player_detailed_stats(player_name):
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id
-                WHERE smp.player_id = ?
+                WHERE smp.player_id IN ({})
                 ORDER BY m.match_date DESC, sm.match_number
-            """, (player_id,))
+            """.format(','.join(['?' for _ in all_player_ids])), all_player_ids)
             
             matches = [dict(row) for row in cursor.fetchall()]
             
@@ -218,9 +288,9 @@ def get_player_detailed_stats(player_name):
                     AVG(smp.player_avg) as avg_score
                 FROM sub_match_participants smp
                 JOIN sub_matches sm ON smp.sub_match_id = sm.id
-                WHERE smp.player_id = ?
+                WHERE smp.player_id IN ({})
                 GROUP BY sm.match_type
-            """, (player_id,))
+            """.format(','.join(['?' for _ in all_player_ids])), all_player_ids)
             
             match_type_stats = [dict(row) for row in cursor.fetchall()]
             
@@ -410,17 +480,39 @@ def get_player_throws(player_name):
                 # Don't use team filter - we want ALL throws for the player
                 print(f"DEBUG: Original: '{original_player_name}' -> Base: '{player_name}', No team filter", flush=True)
             
-            # Get player ID
-            cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
-            player_result = cursor.fetchone()
-            if not player_result:
+            # Get player ID and build query with sub-match mappings
+            player_ids = get_effective_player_ids(cursor, player_name)
+            
+            if not player_ids:
                 return jsonify({'error': 'Player not found'}), 404
+                
+            print(f"DEBUG: Found player ID for '{player_name}': {player_ids[0]}", flush=True)
             
-            player_id = player_result['id']
-            
-            # Build WHERE clause for filtering
-            where_conditions = ["smp.player_id = ? AND t.team_number = smp.team_number AND sm.match_type = 'Singles'"]
-            params = [player_id]
+            # Build WHERE clause that handles sub-match mappings correctly
+            where_conditions = [
+                """(
+                    -- Include direct matches for this player, but exclude mapped-away sub-matches
+                    (smp.player_id = ? AND p.name = ? 
+                     AND smp.sub_match_id NOT IN (
+                         SELECT smpm.sub_match_id 
+                         FROM sub_match_player_mappings smpm 
+                         WHERE smpm.original_player_id = ?
+                     )
+                    ) 
+                    OR 
+                    -- Include sub-matches that are mapped TO this player
+                    (smp.sub_match_id IN (
+                        SELECT smpm.sub_match_id 
+                        FROM sub_match_player_mappings smpm 
+                        WHERE smpm.correct_player_name = ?
+                    ) AND smp.player_id IN (
+                        SELECT DISTINCT smpm2.original_player_id 
+                        FROM sub_match_player_mappings smpm2 
+                        WHERE smpm2.correct_player_name = ?
+                    ))
+                ) AND t.team_number = smp.team_number AND sm.match_type = 'Singles'"""
+            ]
+            params = [player_ids[0], player_name, player_ids[0], player_name, player_name]
             
             if season:
                 where_conditions.append("m.season = ?")
@@ -455,6 +547,7 @@ def get_player_throws(player_name):
                 JOIN legs l ON t.leg_id = l.id
                 JOIN sub_matches sm ON l.sub_match_id = sm.id
                 JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                JOIN players p ON smp.player_id = p.id
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id
@@ -560,6 +653,84 @@ def get_player_throws(player_name):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/sub_match/<int:sub_match_id>')
+def get_sub_match_info(sub_match_id):
+    """Get basic sub-match information with corrected player names"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get sub-match info with teams and players
+            cursor.execute("""
+                SELECT 
+                    sm.*,
+                    m.match_date,
+                    t1.name as team1_name,
+                    t2.name as team2_name
+                FROM sub_matches sm
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE sm.id = ?
+            """, (sub_match_id,))
+            
+            sub_match = cursor.fetchone()
+            if not sub_match:
+                return jsonify({'error': 'Sub-match not found'}), 404
+            
+            # Get players for each team
+            team_players = {}
+            
+            for team_num in [1, 2]:
+                cursor.execute("""
+                    SELECT 
+                        p.name as original_name, 
+                        smp.player_avg,
+                        smp.player_id
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    WHERE smp.sub_match_id = ? AND smp.team_number = ?
+                    ORDER BY p.name
+                """, (sub_match_id, team_num))
+                
+                players = cursor.fetchall()
+                canonical_players = []
+                
+                for player in players:
+                    # Check if this player is mapped to a different name for this sub-match
+                    cursor.execute("""
+                        SELECT correct_player_name
+                        FROM sub_match_player_mappings
+                        WHERE sub_match_id = ? AND original_player_id = ?
+                    """, (sub_match_id, player['player_id']))
+                    
+                    mapping_result = cursor.fetchone()
+                    
+                    if mapping_result:
+                        # Use the mapped name
+                        display_name = mapping_result['correct_player_name']
+                        print(f"DEBUG: Mapped {player['original_name']} -> {display_name} for sub-match {sub_match_id}")
+                    else:
+                        # Use the original name
+                        display_name = player['original_name']
+                    
+                    canonical_players.append({
+                        'name': display_name,
+                        'average': player['player_avg']
+                    })
+                
+                team_players[f'team{team_num}_players'] = canonical_players
+            
+            return jsonify({
+                'sub_match_info': dict(sub_match),
+                **team_players
+            })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/sub_match/<int:sub_match_id>/throws/<player_name>')
 def get_sub_match_player_throws(sub_match_id, player_name):
     """Get detailed throw data for a specific player in a specific sub-match"""
@@ -569,8 +740,41 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get sub-match info and find the specific player who participated
-            # This handles the case where multiple players have the same name
+            # Handle both direct players and mapped players
+            final_canonical_name = player_name
+            
+            # First check if this is a mapped player for this specific sub-match
+            cursor.execute("""
+                SELECT 
+                    smpm.original_player_id,
+                    smpm.correct_player_id,
+                    smpm.correct_player_name
+                FROM sub_match_player_mappings smpm
+                WHERE smpm.sub_match_id = ? AND smpm.correct_player_name = ?
+            """, (sub_match_id, player_name))
+            
+            mapping_result = cursor.fetchone()
+            
+            if mapping_result:
+                # This is a mapped player - use the original player who actually participated
+                actual_player_id = mapping_result['original_player_id']
+                print(f"DEBUG: Found mapping for {player_name} -> original player ID {actual_player_id}")
+            else:
+                # Direct player - get their ID
+                cursor.execute("""
+                    SELECT id as player_id, name
+                    FROM players
+                    WHERE name = ?
+                """, (final_canonical_name,))
+                
+                player_result = cursor.fetchone()
+                if not player_result:
+                    return jsonify({'error': 'Player not found'}), 404
+                
+                actual_player_id = player_result['player_id']
+                print(f"DEBUG: Direct player {player_name} -> player ID {actual_player_id}")
+            
+            # Get sub-match info using the actual player who participated
             cursor.execute("""
                 SELECT 
                     sm.*,
@@ -586,8 +790,8 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id
-                WHERE sm.id = ? AND p.name = ?
-            """, (sub_match_id, player_name))
+                WHERE sm.id = ? AND smp.player_id = ?
+            """, (sub_match_id, actual_player_id))
             
             sub_match_info = cursor.fetchone()
             if not sub_match_info:
@@ -595,10 +799,10 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                 
             player_id = sub_match_info['player_id']
             
-            # Get opponent info and averages
+            # Get opponent info and averages with correct mapped names
             opposing_team_number = 2 if sub_match_info['team_number'] == 1 else 1
             cursor.execute("""
-                SELECT p.name, smp.player_avg 
+                SELECT p.name as original_name, smp.player_avg, smp.player_id
                 FROM sub_match_participants smp
                 JOIN players p ON smp.player_id = p.id
                 WHERE smp.sub_match_id = ? AND smp.team_number = ?
@@ -606,13 +810,29 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             """, (sub_match_id, opposing_team_number))
             
             opponent_data = cursor.fetchall()
-            opponents = [row[0] for row in opponent_data]
-            opponent_names = ' / '.join(opponents) if len(opponents) > 1 else (opponents[0] if opponents else 'Okänd')
-            opponent_avg = sum(row[1] or 0 for row in opponent_data) / len(opponent_data) if opponent_data else 0
+            opponents = []
+            opponent_avgs = []
             
-            # Get teammate info (other players on the same team)
+            for opponent in opponent_data:
+                # Check for mapping
+                cursor.execute("""
+                    SELECT correct_player_name
+                    FROM sub_match_player_mappings
+                    WHERE sub_match_id = ? AND original_player_id = ?
+                """, (sub_match_id, opponent['player_id']))
+                
+                mapping_result = cursor.fetchone()
+                display_name = mapping_result['correct_player_name'] if mapping_result else opponent['original_name']
+                
+                opponents.append(display_name)
+                opponent_avgs.append(opponent['player_avg'] or 0)
+            
+            opponent_names = ' / '.join(opponents) if len(opponents) > 1 else (opponents[0] if opponents else 'Okänd')
+            opponent_avg = sum(opponent_avgs) / len(opponent_avgs) if opponent_avgs else 0
+            
+            # Get teammate info (other players on the same team) with correct mapped names
             cursor.execute("""
-                SELECT p.name, smp.player_avg 
+                SELECT p.name as original_name, smp.player_avg, smp.player_id
                 FROM sub_match_participants smp
                 JOIN players p ON smp.player_id = p.id
                 WHERE smp.sub_match_id = ? AND smp.team_number = ? AND smp.player_id != ?
@@ -620,7 +840,20 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             """, (sub_match_id, sub_match_info['team_number'], player_id))
             
             teammate_data = cursor.fetchall()
-            teammates = [row[0] for row in teammate_data]
+            teammates = []
+            
+            for teammate in teammate_data:
+                # Check for mapping
+                cursor.execute("""
+                    SELECT correct_player_name
+                    FROM sub_match_player_mappings
+                    WHERE sub_match_id = ? AND original_player_id = ?
+                """, (sub_match_id, teammate['player_id']))
+                
+                mapping_result = cursor.fetchone()
+                display_name = mapping_result['correct_player_name'] if mapping_result else teammate['original_name']
+                teammates.append(display_name)
+            
             teammate_names = ' / '.join(teammates) if teammates else None
 
             # Get all throws for both players in this sub-match
@@ -842,7 +1075,7 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             
             return jsonify({
                 'sub_match_info': corrected_sub_match_info,
-                'player_name': player_name,
+                'player_name': final_canonical_name,
                 'opponent_names': opponent_names,
                 'teammate_names': teammate_names,
                 'legs': list(legs_with_throws.values()),
@@ -872,23 +1105,44 @@ def get_team_lineup(team_name):
             season = request.args.get('season')
             division = None
             
-            # Check if team name includes season info like "Team Name (2024-2025)"
-            # Look for pattern: team name ending with (season) where season contains dash
+            # Handle new team name format: "Team (Division) (Season)" or "Team Name (Season)"
             import re
-            season_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
-            if season_match:
-                # Extract team and season from team name
-                team_name = season_match.group(1)
-                season = season_match.group(2).replace('-', '/')  # Convert back to 2024/2025 format
-                # Division is already in the team name (e.g., "Dartanjang (SL4)")
-                division = None
-            else:
-                # No season in team name, this shouldn't happen with new format
-                season = request.args.get('season')
             
-            # Check if team exists
-            cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
-            team_result = cursor.fetchone()
+            # Try new format first: "Team (Division) (YYYY-YYYY)"
+            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}-\d{4})\)$', team_name)
+            if new_format_match:
+                # Extract team, division, and season from new format
+                base_team_name = new_format_match.group(1)
+                division_from_name = new_format_match.group(2)
+                season = new_format_match.group(3).replace('-', '/')  # Convert back to 2024/2025 format
+                
+                # Check if team exists with division in name
+                team_name_with_division = f"{base_team_name} ({division_from_name})"
+                cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name_with_division,))
+                team_result = cursor.fetchone()
+                
+                if team_result:
+                    team_name = team_name_with_division
+                else:
+                    # Fallback to base team name
+                    team_name = base_team_name
+                
+                division = division_from_name
+            else:
+                # Try old format: "Team Name (YYYY-YYYY)"
+                old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
+                if old_format_match:
+                    team_name = old_format_match.group(1)
+                    season = old_format_match.group(2).replace('-', '/')
+                    division = None
+                else:
+                    # No season in team name
+                    season = request.args.get('season')
+            
+            # Final check if team exists (if not already done above)
+            if 'team_result' not in locals():
+                cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
+                team_result = cursor.fetchone()
             if not team_result:
                 return jsonify({'error': 'Team not found'}), 404
             
@@ -926,7 +1180,7 @@ def get_team_lineup(team_name):
                     JOIN teams t2 ON m.team2_id = t2.id
                     WHERE {where_clause}
                       AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
-                    GROUP BY p.name, sm.match_name, sm.match_type
+                    GROUP BY ep.effective_name, sm.match_name, sm.match_type
                 ),
                 position_stats AS (
                     SELECT 

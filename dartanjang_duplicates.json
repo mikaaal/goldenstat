@@ -1,0 +1,436 @@
+{
+  "generated_at": "2025-09-19T22:28:05.863354",
+  "team_filter": "Dartanjang",
+  "summary": {
+    "total_teams_analyzed": 8,
+    "total_potential_duplicates": 20,
+    "teams_with_duplicates": 5
+  },
+  "duplicates_by_type": {
+    "case_difference": 5,
+    "high_similarity": 3,
+    "substring_match": 12
+  },
+  "duplicates": [
+    {
+      "team_name": "Dartanjang",
+      "player1": {
+        "player_id": 271,
+        "player_name": "David Ledan",
+        "team_name": "Dartanjang",
+        "match_count": 12,
+        "first_match": "2023-11-22 18:59:15",
+        "last_match": "2024-04-03 19:00:55"
+      },
+      "player2": {
+        "player_id": 1721,
+        "player_name": "David ledan",
+        "team_name": "Dartanjang",
+        "match_count": 6,
+        "first_match": "2023-10-10 19:05:34",
+        "last_match": "2023-11-14 18:52:52"
+      },
+      "similarity": 1.0,
+      "match_type": "case_difference"
+    },
+    {
+      "team_name": "Dartanjang",
+      "player1": {
+        "player_id": 1734,
+        "player_name": "Hans Nilsson",
+        "team_name": "Dartanjang",
+        "match_count": 2,
+        "first_match": "2023-11-23 18:53:55",
+        "last_match": "2023-11-23 18:53:55"
+      },
+      "player2": {
+        "player_id": 1761,
+        "player_name": "Hasse nilsson",
+        "team_name": "Dartanjang",
+        "match_count": 20,
+        "first_match": "2023-09-27 18:46:40",
+        "last_match": "2024-04-03 19:00:55"
+      },
+      "similarity": 0.88,
+      "match_type": "high_similarity"
+    },
+    {
+      "team_name": "Dartanjang",
+      "player1": {
+        "player_id": 310,
+        "player_name": "Hugo",
+        "team_name": "Dartanjang",
+        "match_count": 4,
+        "first_match": "2023-10-12 18:59:38",
+        "last_match": "2024-02-22 18:55:50"
+      },
+      "player2": {
+        "player_id": 1859,
+        "player_name": "Hugo Ryckert",
+        "team_name": "Dartanjang",
+        "match_count": 28,
+        "first_match": "2023-10-17 18:58:29",
+        "last_match": "2024-03-19 18:46:10"
+      },
+      "similarity": 0.5,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang",
+      "player1": {
+        "player_id": 550,
+        "player_name": "Lars Andersson",
+        "team_name": "Dartanjang",
+        "match_count": 2,
+        "first_match": "2023-10-03 18:46:01",
+        "last_match": "2023-10-03 18:46:01"
+      },
+      "player2": {
+        "player_id": 185,
+        "player_name": "Mats Andersson",
+        "team_name": "Dartanjang",
+        "match_count": 21,
+        "first_match": "2023-09-28 18:50:48",
+        "last_match": "2024-03-14 18:52:11"
+      },
+      "similarity": 0.8571428571428571,
+      "match_type": "high_similarity"
+    },
+    {
+      "team_name": "Dartanjang",
+      "player1": {
+        "player_id": 278,
+        "player_name": "Marcus Gavander",
+        "team_name": "Dartanjang",
+        "match_count": 2,
+        "first_match": "2023-10-25 18:46:35",
+        "last_match": "2023-10-25 18:46:35"
+      },
+      "player2": {
+        "player_id": 1720,
+        "player_name": "Marcus gavander",
+        "team_name": "Dartanjang",
+        "match_count": 20,
+        "first_match": "2023-10-10 19:05:34",
+        "last_match": "2024-03-21 19:02:13"
+      },
+      "similarity": 1.0,
+      "match_type": "case_difference"
+    },
+    {
+      "team_name": "Dartanjang",
+      "player1": {
+        "player_id": 382,
+        "player_name": "Niklas Wall",
+        "team_name": "Dartanjang",
+        "match_count": 14,
+        "first_match": "2023-09-27 18:46:40",
+        "last_match": "2024-04-03 19:00:55"
+      },
+      "player2": {
+        "player_id": 1747,
+        "player_name": "Niklas wall",
+        "team_name": "Dartanjang",
+        "match_count": 8,
+        "first_match": "2023-11-28 19:02:39",
+        "last_match": "2024-02-22 18:55:50"
+      },
+      "similarity": 1.0,
+      "match_type": "case_difference"
+    },
+    {
+      "team_name": "Dartanjang",
+      "player1": {
+        "player_id": 884,
+        "player_name": "Peter Aland",
+        "team_name": "Dartanjang",
+        "match_count": 26,
+        "first_match": "2023-10-04 18:57:18",
+        "last_match": "2024-03-06 18:35:01"
+      },
+      "player2": {
+        "player_id": 790,
+        "player_name": "Peter aland",
+        "team_name": "Dartanjang",
+        "match_count": 2,
+        "first_match": "2024-01-25 18:18:25",
+        "last_match": "2024-01-25 18:18:25"
+      },
+      "similarity": 1.0,
+      "match_type": "case_difference"
+    },
+    {
+      "team_name": "Dartanjang",
+      "player1": {
+        "player_id": 926,
+        "player_name": "Thomas Westin",
+        "team_name": "Dartanjang",
+        "match_count": 32,
+        "first_match": "2023-10-18 18:41:39",
+        "last_match": "2024-04-03 19:00:55"
+      },
+      "player2": {
+        "player_id": 1739,
+        "player_name": "Thomas westin",
+        "team_name": "Dartanjang",
+        "match_count": 2,
+        "first_match": "2023-12-07 18:31:52",
+        "last_match": "2023-12-07 18:31:52"
+      },
+      "similarity": 1.0,
+      "match_type": "case_difference"
+    },
+    {
+      "team_name": "Dartanjang (2FB)",
+      "player1": {
+        "player_id": 309,
+        "player_name": "Freddie",
+        "team_name": "Dartanjang (2FB)",
+        "match_count": 27,
+        "first_match": "2024-09-24 18:41:42",
+        "last_match": "2025-02-11 18:53:49"
+      },
+      "player2": {
+        "player_id": 605,
+        "player_name": "Freddie Rastehed",
+        "team_name": "Dartanjang (2FB)",
+        "match_count": 2,
+        "first_match": "2025-09-16 19:01:44",
+        "last_match": "2025-09-16 19:01:44"
+      },
+      "similarity": 0.6086956521739131,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (2FB)",
+      "player1": {
+        "player_id": 306,
+        "player_name": "Jonas",
+        "team_name": "Dartanjang (2FB)",
+        "match_count": 40,
+        "first_match": "2024-09-24 18:41:42",
+        "last_match": "2025-04-01 18:34:14"
+      },
+      "player2": {
+        "player_id": 1297,
+        "player_name": "Jonas Tiger",
+        "team_name": "Dartanjang (2FB)",
+        "match_count": 2,
+        "first_match": "2025-09-16 19:01:44",
+        "last_match": "2025-09-16 19:01:44"
+      },
+      "similarity": 0.625,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (2FB)",
+      "player1": {
+        "player_id": 354,
+        "player_name": "Karl",
+        "team_name": "Dartanjang (2FB)",
+        "match_count": 30,
+        "first_match": "2024-10-01 19:04:00",
+        "last_match": "2025-04-01 18:34:14"
+      },
+      "player2": {
+        "player_id": 1296,
+        "player_name": "Karl Olsson",
+        "team_name": "Dartanjang (2FB)",
+        "match_count": 2,
+        "first_match": "2025-09-16 19:01:44",
+        "last_match": "2025-09-16 19:01:44"
+      },
+      "similarity": 0.5333333333333333,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (SL4)",
+      "player1": {
+        "player_id": 921,
+        "player_name": "Aland",
+        "team_name": "Dartanjang (SL4)",
+        "match_count": 2,
+        "first_match": "2024-10-09 18:51:34",
+        "last_match": "2024-10-09 18:51:34"
+      },
+      "player2": {
+        "player_id": 884,
+        "player_name": "Peter Aland",
+        "team_name": "Dartanjang (SL4)",
+        "match_count": 7,
+        "first_match": "2024-09-25 18:54:31",
+        "last_match": "2024-11-13 18:58:33"
+      },
+      "similarity": 0.625,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (SL6)",
+      "player1": {
+        "player_id": 1337,
+        "player_name": "Johnny Phil",
+        "team_name": "Dartanjang (SL6)",
+        "match_count": 2,
+        "first_match": "2025-09-17 18:59:34",
+        "last_match": "2025-09-17 18:59:34"
+      },
+      "player2": {
+        "player_id": 377,
+        "player_name": "Johnny pihl",
+        "team_name": "Dartanjang (SL6)",
+        "match_count": 14,
+        "first_match": "2025-02-04 18:59:38",
+        "last_match": "2025-03-25 18:57:41"
+      },
+      "similarity": 0.9090909090909091,
+      "match_type": "high_similarity"
+    },
+    {
+      "team_name": "Dartanjang (Superligan)",
+      "player1": {
+        "player_id": 1541,
+        "player_name": "Joachim",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 4,
+        "first_match": "2023-10-03 19:00:07",
+        "last_match": "2023-10-10 18:54:35"
+      },
+      "player2": {
+        "player_id": 1551,
+        "player_name": "Joachim Tholf",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 30,
+        "first_match": "2023-10-17 18:49:35",
+        "last_match": "2024-03-12 18:48:41"
+      },
+      "similarity": 0.7,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (Superligan)",
+      "player1": {
+        "player_id": 1548,
+        "player_name": "Jocke O",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 2,
+        "first_match": "2023-10-10 18:54:35",
+        "last_match": "2023-10-10 18:54:35"
+      },
+      "player2": {
+        "player_id": 239,
+        "player_name": "Jocke Olsson",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 10,
+        "first_match": "2023-10-17 18:49:35",
+        "last_match": "2024-03-12 18:48:41"
+      },
+      "similarity": 0.7368421052631579,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (Superligan)",
+      "player1": {
+        "player_id": 1112,
+        "player_name": "Joel",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 4,
+        "first_match": "2023-10-03 19:00:07",
+        "last_match": "2023-10-10 18:54:35"
+      },
+      "player2": {
+        "player_id": 234,
+        "player_name": "Joel Tiger",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 23,
+        "first_match": "2023-10-17 18:49:35",
+        "last_match": "2024-03-12 18:48:41"
+      },
+      "similarity": 0.5714285714285714,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (Superligan)",
+      "player1": {
+        "player_id": 1543,
+        "player_name": "Mathias",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 2,
+        "first_match": "2023-10-03 19:00:07",
+        "last_match": "2023-10-03 19:00:07"
+      },
+      "player2": {
+        "player_id": 1553,
+        "player_name": "Mathias Westin",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 27,
+        "first_match": "2023-10-17 18:49:35",
+        "last_match": "2024-03-12 18:48:41"
+      },
+      "similarity": 0.6666666666666666,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (Superligan)",
+      "player1": {
+        "player_id": 1540,
+        "player_name": "Nils",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 4,
+        "first_match": "2023-10-03 19:00:07",
+        "last_match": "2023-10-10 18:54:35"
+      },
+      "player2": {
+        "player_id": 1552,
+        "player_name": "Nils Rudwall",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 25,
+        "first_match": "2023-10-17 18:49:35",
+        "last_match": "2024-02-20 18:37:50"
+      },
+      "similarity": 0.5,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (Superligan)",
+      "player1": {
+        "player_id": 386,
+        "player_name": "Peter",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 4,
+        "first_match": "2023-10-03 19:00:07",
+        "last_match": "2023-10-10 18:54:35"
+      },
+      "player2": {
+        "player_id": 388,
+        "player_name": "Peter Sajwani",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 3,
+        "first_match": "2023-10-10 18:54:35",
+        "last_match": "2023-10-24 18:47:18"
+      },
+      "similarity": 0.5555555555555556,
+      "match_type": "substring_match"
+    },
+    {
+      "team_name": "Dartanjang (Superligan)",
+      "player1": {
+        "player_id": 1544,
+        "player_name": "Yannick",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 4,
+        "first_match": "2023-10-03 19:00:07",
+        "last_match": "2023-10-10 18:54:35"
+      },
+      "player2": {
+        "player_id": 1549,
+        "player_name": "Yannick le Pauvre",
+        "team_name": "Dartanjang (Superligan)",
+        "match_count": 32,
+        "first_match": "2023-10-10 18:54:35",
+        "last_match": "2024-03-12 18:48:41"
+      },
+      "similarity": 0.5833333333333334,
+      "match_type": "substring_match"
+    }
+  ]
+}
