@@ -2,6 +2,15 @@ import sqlite3
 import os
 from typing import Optional, List, Dict, Any
 
+def get_effective_player_ids_for_database(cursor, player_name):
+    """
+    Get player ID for the given player name.
+    Sub-match mappings are handled in the SQL queries, not here.
+    """
+    cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+    result = cursor.fetchone()
+    return [result['id']] if result else []
+
 class DartDatabase:
     def __init__(self, db_path: str = "goldenstat.db"):
         self.db_path = db_path
@@ -203,23 +212,65 @@ class DartDatabase:
                 throw_data.get('darts_used')
             ))
     
-    def get_player_stats(self, player_name: str, season: str = None, division: str = None, team_filter: str = None) -> Dict[str, Any]:
-        """Get comprehensive stats for a player with optional filtering"""
+    def get_effective_player_name(self, player_name: str) -> str:
+        """Get the effective (canonical) name for a player - simplified for clean database"""
+        # In clean database without mappings, just return the original name
+        return player_name
+    
+    def get_all_player_ids_for_canonical_name(self, canonical_name: str) -> List[int]:
+        """Get all player IDs that map to the same canonical name - simplified for clean database"""
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get player ID
-            cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
-            player_result = cursor.fetchone()
-            if not player_result:
+            # In clean database, just get the single player ID
+            cursor.execute("""
+                SELECT id
+                FROM players 
+                WHERE name = ?
+            """, (canonical_name,))
+            
+            result = cursor.fetchone()
+            return [result['id']] if result else []
+
+    def get_player_stats(self, player_name: str, season: str = None, division: str = None, team_filter: str = None) -> Dict[str, Any]:
+        """Get comprehensive stats for a player with optional filtering, using mappings"""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Get all effective player IDs (including mapped ones)
+            all_player_ids = get_effective_player_ids_for_database(cursor, player_name)
+            
+            if not all_player_ids:
                 return {}
             
-            player_id = player_result['id']
-            
-            # Build WHERE clause for filtering
-            where_conditions = ["smp.player_id = ?"]
-            params = [player_id]
+            # Build WHERE clause that handles sub-match mappings
+            player_id = all_player_ids[0]  # Use the first (and should be only) player ID
+            where_conditions = [
+                """(
+                    -- Include direct matches for this player, but exclude mapped-away sub-matches
+                    (smp.player_id = ? AND p.name = ? 
+                     AND smp.sub_match_id NOT IN (
+                         SELECT smpm.sub_match_id 
+                         FROM sub_match_player_mappings smpm 
+                         WHERE smpm.original_player_id = ?
+                     )
+                    ) 
+                    OR 
+                    -- Include sub-matches that are mapped TO this player
+                    (smp.sub_match_id IN (
+                        SELECT smpm.sub_match_id 
+                        FROM sub_match_player_mappings smpm 
+                        WHERE smpm.correct_player_name = ?
+                    ) AND smp.player_id IN (
+                        SELECT DISTINCT smpm2.original_player_id 
+                        FROM sub_match_player_mappings smpm2 
+                        WHERE smpm2.correct_player_name = ?
+                    ))
+                )"""
+            ]
+            params = [player_id, player_name, player_id, player_name, player_name]
             
             if season:
                 where_conditions.append("m.season = ?")
@@ -258,6 +309,7 @@ class DartDatabase:
                     END as won,
                     sm.id as sub_match_id
                 FROM sub_match_participants smp
+                JOIN players p ON smp.player_id = p.id
                 JOIN sub_matches sm ON smp.sub_match_id = sm.id
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams t1 ON m.team1_id = t1.id
@@ -270,17 +322,30 @@ class DartDatabase:
             
             # Add opponent information for each match
             for match in matches:
-                # Get opponents for this sub-match (only from the opposing team)
+                # Get opponents for this sub-match (only from the opposing team) with correct mapped names
                 opposing_team = 2 if match['team_number'] == 1 else 1
                 cursor.execute("""
-                    SELECT p.name 
+                    SELECT p.name as original_name, smp2.player_id
                     FROM sub_match_participants smp2
                     JOIN players p ON smp2.player_id = p.id
                     WHERE smp2.sub_match_id = ? AND smp2.team_number = ?
                     ORDER BY p.name
                 """, (match['sub_match_id'], opposing_team))
                 
-                opponents = [row[0] for row in cursor.fetchall()]
+                opponent_data = cursor.fetchall()
+                opponents = []
+                
+                for opponent in opponent_data:
+                    # Check for mapping
+                    cursor.execute("""
+                        SELECT correct_player_name
+                        FROM sub_match_player_mappings
+                        WHERE sub_match_id = ? AND original_player_id = ?
+                    """, (match['sub_match_id'], opponent['player_id']))
+                    
+                    mapping_result = cursor.fetchone()
+                    display_name = mapping_result['correct_player_name'] if mapping_result else opponent['original_name']
+                    opponents.append(display_name)
                 
                 if match['match_type'] == 'Singles':
                     match['opponent'] = opponents[0] if opponents else 'Unknown'

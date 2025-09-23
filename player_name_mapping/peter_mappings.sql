@@ -1,0 +1,133 @@
+-- Generated Peter mappings\n-- This will map generic 'Peter' matches to specific Peter players\n\nINSERT OR REPLACE INTO player_name_mappings (
+    source_player_id, 
+    target_player_id, 
+    canonical_name, 
+    specific_context,
+    confidence, 
+    mapping_type, 
+    validation_status,
+    club_uniqueness_validated,
+    temporal_uniqueness_validated,
+    notes
+) VALUES (
+    386, 
+    552, 
+    'Peter Book',
+    'Oilers (3FC) 2023/2024',
+    105, 
+    'first_name_only', 
+    'validated',
+    1,
+    1,
+    'Auto-mapped from Peter based on: same_club, same_season, similar_club (confidence: 105)'
+);\n\nINSERT OR REPLACE INTO player_name_mappings (
+    source_player_id, 
+    target_player_id, 
+    canonical_name, 
+    specific_context,
+    confidence, 
+    mapping_type, 
+    validation_status,
+    club_uniqueness_validated,
+    temporal_uniqueness_validated,
+    notes
+) VALUES (
+    386, 
+    838, 
+    'Peter Söron',
+    'Oasen (3FD) 2023/2024',
+    105, 
+    'first_name_only', 
+    'validated',
+    1,
+    1,
+    'Auto-mapped from Peter based on: same_club, same_season, similar_club (confidence: 105)'
+);\n\nINSERT OR REPLACE INTO player_name_mappings (
+    source_player_id, 
+    target_player_id, 
+    canonical_name, 
+    specific_context,
+    confidence, 
+    mapping_type, 
+    validation_status,
+    club_uniqueness_validated,
+    temporal_uniqueness_validated,
+    notes
+) VALUES (
+    386, 
+    1967, 
+    'Peter Palm',
+    'Lärkan (2FA) 2023/2024',
+    100, 
+    'first_name_only', 
+    'validated',
+    1,
+    1,
+    'Auto-mapped from Peter based on: same_club, same_season, same_division (confidence: 100)'
+);\n\nINSERT OR REPLACE INTO player_name_mappings (
+    source_player_id, 
+    target_player_id, 
+    canonical_name, 
+    specific_context,
+    confidence, 
+    mapping_type, 
+    validation_status,
+    club_uniqueness_validated,
+    temporal_uniqueness_validated,
+    notes
+) VALUES (
+    386, 
+    884, 
+    'Peter Aland',
+    'Dartanjang (Superligan) (Superligan) 2023/2024',
+    105, 
+    'first_name_only', 
+    'validated',
+    1,
+    1,
+    'Auto-mapped from Peter based on: same_club, same_season, similar_club (confidence: 105)'
+);\n\nINSERT OR REPLACE INTO player_name_mappings (
+    source_player_id, 
+    target_player_id, 
+    canonical_name, 
+    specific_context,
+    confidence, 
+    mapping_type, 
+    validation_status,
+    club_uniqueness_validated,
+    temporal_uniqueness_validated,
+    notes
+) VALUES (
+    386, 
+    19, 
+    'Peter Vahlner',
+    'Sweden Capital (3A) 2023/2024',
+    50, 
+    'first_name_only', 
+    'validated',
+    1,
+    1,
+    'Auto-mapped from Peter based on: same_season, same_division (confidence: 50)'
+);\n\nINSERT OR REPLACE INTO player_name_mappings (
+    source_player_id, 
+    target_player_id, 
+    canonical_name, 
+    specific_context,
+    confidence, 
+    mapping_type, 
+    validation_status,
+    club_uniqueness_validated,
+    temporal_uniqueness_validated,
+    notes
+) VALUES (
+    386, 
+    766, 
+    'Peter Ekman',
+    'Bålsta (SL6) (SL6) 2024/2025',
+    105, 
+    'first_name_only', 
+    'validated',
+    1,
+    1,
+    'Auto-mapped from Peter based on: same_club, same_season, similar_club (confidence: 105)'
+);\n\n
