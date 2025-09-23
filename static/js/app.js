@@ -602,10 +602,10 @@ class GoldenStat {
             const players = playerName.split(separator);
             const newSeparator = ' / ';
             return players.map(player => 
-                `<span class="player-link" onclick="goldenStat.navigateToPlayer('${player.trim().replace(/'/g, "\\'")}'); event.stopPropagation();" title="Klicka för att se ${player.trim()}">${player.trim()}</span>`
+                `<span ${player.trim()}">${player.trim()}</span>`
             ).join(newSeparator);
         } else {
-            return `<span class="player-link" onclick="goldenStat.navigateToPlayer('${escapedName}'); event.stopPropagation();" title="Klicka för att se ${playerName}">${playerName}</span>`;
+            return `<span ${playerName}">${playerName}</span>`;
         }
     }
 

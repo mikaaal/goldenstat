@@ -144,28 +144,39 @@ def get_players():
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
-            # Get all players with their match counts, including contextual players from mappings
+            # Get all effective player names with combined match counts
+            # This handles both direct players and mapped players without duplicates
             cursor.execute("""
-                SELECT 
-                    p.name,
-                    COUNT(DISTINCT smp.sub_match_id) as total_matches
-                FROM players p
-                JOIN sub_match_participants smp ON p.id = smp.player_id
-                JOIN sub_matches sm ON smp.sub_match_id = sm.id
-                JOIN matches m ON sm.match_id = m.id
-                GROUP BY p.id, p.name
-                HAVING COUNT(DISTINCT smp.sub_match_id) >= 3
-                
-                UNION
-                
-                -- Include contextual players that exist only through mappings
-                SELECT 
-                    smpm.correct_player_name as name,
-                    COUNT(DISTINCT smpm.sub_match_id) as total_matches
-                FROM sub_match_player_mappings smpm
-                GROUP BY smpm.correct_player_name
-                HAVING COUNT(DISTINCT smpm.sub_match_id) >= 3
-                
+                WITH all_players AS (
+                    -- Direct players (not mapped away)
+                    SELECT
+                        p.name,
+                        COUNT(DISTINCT smp.sub_match_id) as total_matches
+                    FROM players p
+                    JOIN sub_match_participants smp ON p.id = smp.player_id
+                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                    JOIN matches m ON sm.match_id = m.id
+                    WHERE p.id NOT IN (
+                        SELECT DISTINCT original_player_id
+                        FROM sub_match_player_mappings
+                    )
+                    GROUP BY p.id, p.name
+
+                    UNION ALL
+
+                    -- Mapped players (from mappings table)
+                    SELECT
+                        smpm.correct_player_name as name,
+                        COUNT(DISTINCT smpm.sub_match_id) as total_matches
+                    FROM sub_match_player_mappings smpm
+                    GROUP BY smpm.correct_player_name
+                )
+                SELECT
+                    name,
+                    SUM(total_matches) as combined_matches
+                FROM all_players
+                GROUP BY name
+                HAVING SUM(total_matches) >= 1
                 ORDER BY name
             """)
             
@@ -179,16 +190,20 @@ def get_players():
 def get_player_stats(player_name):
     """API endpoint to get detailed player statistics"""
     try:
+        # URL decode the player name first
+        from urllib.parse import unquote
+        player_name = unquote(player_name)
+
         # Get parameters
         limit = request.args.get('limit', type=int)
         season = request.args.get('season')
         division = request.args.get('division')
-        
+
         # Check if player name includes team disambiguation like "Name (Team)"
         # BUT don't split if it's one of our contextual players like "Johan (Rockhangers)"
         team_filter = None
         selected_team = None
-        
+
         # Check if this is a contextual player (exists as exact name in database)
         is_contextual_player = False
         with sqlite3.connect("goldenstat.db") as temp_conn:
@@ -235,6 +250,10 @@ def get_player_stats(player_name):
 def get_player_detailed_stats(player_name):
     """Get detailed player statistics including match history and trends"""
     try:
+        # URL decode the player name first
+        from urllib.parse import unquote
+        player_name = unquote(player_name)
+
         import sqlite3
         with sqlite3.connect(db.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -461,6 +480,10 @@ def get_overview():
 def get_player_throws(player_name):
     """Get detailed throw analysis for a player"""
     try:
+        # URL decode the player name first
+        from urllib.parse import unquote
+        player_name = unquote(player_name)
+
         import sqlite3
         with sqlite3.connect(db.db_path) as conn:
             conn.row_factory = sqlite3.Row
@@ -471,8 +494,16 @@ def get_player_throws(player_name):
             division = request.args.get('division')
             
             # Check if player name includes team disambiguation like "Name (Team)"
+            # BUT don't split if it's one of our contextual players like "Johan (Rockhangers)"
             original_player_name = player_name
-            if '(' in player_name and player_name.endswith(')'):
+
+            # Check if this is a contextual player (exists as exact name in database)
+            is_contextual_player = False
+            cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+            if cursor.fetchone():
+                is_contextual_player = True
+
+            if '(' in player_name and player_name.endswith(')') and not is_contextual_player:
                 # Extract team from player name like "Mats Andersson (SpikKastarna (SL6))"
                 base_name = player_name.split(' (')[0]
                 team_part = player_name.split(' (', 1)[1][:-1]  # Remove last )
@@ -559,12 +590,22 @@ def get_player_throws(player_name):
             
             # Calculate throw statistics
             if throws:
-                scores = [t['score'] for t in throws if t['score'] > 0]  # For max and ranges
+                # Remove duplicates by creating unique identifier for each throw
+                unique_throws = {}
+                for t in throws:
+                    # Create unique key from match_date, leg_number, round_number, and score
+                    key = f"{t['match_date']}_{t['leg_number']}_{t['round_number']}_{t['score']}"
+                    if key not in unique_throws:
+                        unique_throws[key] = t
+
+                # Use deduplicated throws for calculations
+                dedup_throws = list(unique_throws.values())
+                scores = [t['score'] for t in dedup_throws if t['score'] > 0]  # For max and ranges
                 
                 # Use player_avg from database to match main stats exactly
                 # Get unique matches and their player_avg values
                 unique_matches = {}
-                for throw in throws:
+                for throw in dedup_throws:
                     match_key = f"{throw['match_date']}_{throw['match_name']}"
                     if match_key not in unique_matches and throw['player_avg'] is not None:
                         unique_matches[match_key] = throw['player_avg']
@@ -585,28 +626,28 @@ def get_player_throws(player_name):
                 }
                 
                 # Calculate checkouts (scores when remaining_score became 0)
-                checkouts = [t['score'] for t in throws if t['remaining_score'] == 0 and t['score'] > 0]
-                
+                checkouts = [t['score'] for t in dedup_throws if t['remaining_score'] == 0 and t['score'] > 0]
+
                 # Advanced statistics
                 throws_over_100 = len([s for s in scores if s >= 100])
                 throws_180 = len([s for s in scores if s == 180])
                 throws_over_140 = len([s for s in scores if s >= 140])
                 throws_26 = len([s for s in scores if s == 26])
                 throws_under_20 = len([s for s in scores if s < 20])
-                
+
                 # High finishes (checkouts 100+)
-                high_finishes = len([t['score'] for t in throws if t['remaining_score'] == 0 and t['score'] >= 100])
+                high_finishes = len([t['score'] for t in dedup_throws if t['remaining_score'] == 0 and t['score'] >= 100])
                 
                 # Short sets (legs won in 18 darts or fewer)
                 # Count legs where player won and used <= 18 darts
                 from collections import defaultdict
                 leg_darts = defaultdict(int)
                 leg_winners = {}
-                
-                for throw in throws:
+
+                for throw in dedup_throws:
                     leg_id = f"{throw['match_date']}_{throw['match_name']}_{throw['leg_number']}"
                     leg_darts[leg_id] += throw['darts_used'] or 3
-                    
+
                     # If this is a finishing throw (remaining_score becomes 0), mark as won
                     if throw['remaining_score'] == 0:
                         leg_winners[leg_id] = True
@@ -620,7 +661,7 @@ def get_player_throws(player_name):
                 most_common_scores = score_frequency.most_common(5)
                 
                 statistics = {
-                    'total_throws': len(throws),
+                    'total_throws': len(dedup_throws),
                     'average_score': round(avg_score, 2),
                     'max_score': max_score,
                     'score_ranges': score_ranges,
@@ -635,7 +676,7 @@ def get_player_throws(player_name):
                     'short_sets': short_sets,
                     'most_common_scores': [{'score': score, 'count': count} for score, count in most_common_scores]
                 }
-                print(f"DEBUG: Total throws for '{original_player_name}': {len(throws)}, No team filter", flush=True)
+                print(f"DEBUG: Total throws for '{original_player_name}': {len(dedup_throws)} (deduplicated from {len(throws)}), No team filter", flush=True)
             else:
                 statistics = {}
             
@@ -1120,12 +1161,21 @@ def get_team_lineup(team_name):
                 team_name_with_division = f"{base_team_name} ({division_from_name})"
                 cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name_with_division,))
                 team_result = cursor.fetchone()
-                
+
                 if team_result:
                     team_name = team_name_with_division
                 else:
-                    # Fallback to base team name
-                    team_name = base_team_name
+                    # Fallback: try to find teams that end with the same pattern
+                    cursor.execute("SELECT name FROM teams WHERE name LIKE ? AND name LIKE ?",
+                                 (f"{base_team_name}%", f"%({division_from_name})"))
+                    potential_matches = cursor.fetchall()
+                    if potential_matches:
+                        team_name = potential_matches[0][0]  # Use first match
+                        cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
+                        team_result = cursor.fetchone()
+                    else:
+                        # Final fallback to base team name
+                        team_name = base_team_name
                 
                 division = division_from_name
             else:
@@ -1141,10 +1191,16 @@ def get_team_lineup(team_name):
             
             # Final check if team exists (if not already done above)
             if 'team_result' not in locals():
+                print(f"DEBUG: Looking for team: '{team_name}'", flush=True)
                 cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
                 team_result = cursor.fetchone()
+                if not team_result:
+                    # Debug: show similar team names
+                    cursor.execute("SELECT name FROM teams WHERE name LIKE ? LIMIT 10", (f"%{team_name.split()[0]}%",))
+                    similar_teams = cursor.fetchall()
+                    print(f"DEBUG: Similar teams found: {[t[0] for t in similar_teams]}", flush=True)
             if not team_result:
-                return jsonify({'error': 'Team not found'}), 404
+                return jsonify({'error': f'Lag hittades inte: {team_name}'}), 404
             
             team_id = team_result['id']
             
@@ -1180,7 +1236,7 @@ def get_team_lineup(team_name):
                     JOIN teams t2 ON m.team2_id = t2.id
                     WHERE {where_clause}
                       AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
-                    GROUP BY ep.effective_name, sm.match_name, sm.match_type
+                    GROUP BY p.name, sm.match_name, sm.match_type
                 ),
                 position_stats AS (
                     SELECT 
@@ -1341,6 +1397,6 @@ def get_match_legs(match_id):
 
 
 if __name__ == '__main__':
-    print("🎯 Starting GoldenStat Web Application...")
-    print("📊 Open your browser to: http://localhost:3000")
+    print("Starting GoldenStat Web Application...")
+    print("Open your browser to: http://localhost:3000")
     app.run(debug=True, host='0.0.0.0', port=3000)
