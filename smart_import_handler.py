@@ -101,6 +101,12 @@ class SmartPlayerMatcher:
 
         return name
 
+    def extract_club_name(self, team_name):
+        """Extract club name from 'Club (Division)' format"""
+        if '(' in team_name:
+            return team_name.split('(')[0].strip()
+        return team_name.strip()
+
     def find_player_match(self, incoming_name, team_name=None):
         """
         Hitta matchning för inkommande spelare
@@ -129,25 +135,245 @@ class SmartPlayerMatcher:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            # 1. Exakt matchning
-            cursor.execute("SELECT id, name FROM players WHERE name = ?", (incoming_name,))
-            exact_match = cursor.fetchone()
-            if exact_match:
+            # 1. FÖRST: Case-variation detection (högsta prioritet)
+            # Hitta alla spelare med samma namn case-insensitive
+            cursor.execute("""
+                SELECT id, name,
+                       (SELECT COUNT(*) FROM sub_match_participants WHERE player_id = players.id) as match_count
+                FROM players
+                WHERE LOWER(name) = LOWER(?)
+                ORDER BY match_count DESC
+            """, (incoming_name,))
+
+            case_variants = cursor.fetchall()
+
+            if len(case_variants) > 1:
+                # Multiple case variants found - prioritera den med flest matcher
+                primary_variant = case_variants[0]  # Den med flest matcher
+
+                # Kolla om inkommande namn är exakt samma som primär variant
+                if incoming_name == primary_variant['name']:
+                    return {
+                        'action': 'exact_match',
+                        'player_id': primary_variant['id'],
+                        'player_name': primary_variant['name'],
+                        'confidence': 100,
+                        'notes': f'Primary variant with {primary_variant["match_count"]} matches'
+                    }
+                else:
+                    # Inkommande namn är case-variant - ska mappas till primär
+                    return {
+                        'action': 'case_variation_mapping_needed',
+                        'player_id': primary_variant['id'],
+                        'player_name': primary_variant['name'],
+                        'confidence': 95,
+                        'notes': f'Case variant -> primary with {primary_variant["match_count"]} matches',
+                        'target_variant': primary_variant['name'],
+                        'incoming_variant': incoming_name
+                    }
+
+            elif len(case_variants) == 1:
+                # Single exact match - MEN först kolla om det är ett förnamn med etablerade mappningar
+                exact_match = case_variants[0]
+
+                # Om det är bara ett förnamn (utan mellanslag) och har etablerade mappningar, prioritera dem
+                if ' ' not in incoming_name and len(incoming_name) >= 3 and len(incoming_name) <= 15:
+                    # Kolla om detta namn har etablerade förnamn-mappningar
+                    cursor.execute("""
+                        SELECT DISTINCT smpm.correct_player_name,
+                               COUNT(*) as mapping_count,
+                               -- Kolla om mappningen är för samma klubb-kontext
+                               GROUP_CONCAT(DISTINCT
+                                   CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END
+                               ) as mapped_teams
+                        FROM sub_match_player_mappings smpm
+                        JOIN players p ON smpm.original_player_id = p.id
+                        JOIN sub_matches sm ON smpm.sub_match_id = sm.id
+                        JOIN matches m ON sm.match_id = m.id
+                        JOIN teams t1 ON m.team1_id = t1.id
+                        JOIN teams t2 ON m.team2_id = t2.id
+                        JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                        WHERE p.name = ? AND smp.player_id = p.id
+                        GROUP BY smpm.correct_player_name
+                        ORDER BY mapping_count DESC
+                    """, (incoming_name,))
+
+                    first_name_mappings = cursor.fetchall()
+
+                    if first_name_mappings:
+                        # KRITISKT: Endast använd förnamn-mappningar för SAMMA LAG-KONTEXT
+                        best_mapping = None
+                        if team_name:
+                            # Extrahera klubb från team_name
+                            club_name = self.extract_club_name(team_name)
+
+                            for mapping in first_name_mappings:
+                                mapped_teams = mapping['mapped_teams'] or ''
+                                # STRIKT matchning - klubben MÅSTE finnas i mapped_teams
+                                if club_name.lower() in mapped_teams.lower():
+                                    # EXTRA KONTROLL: Target-spelaren ska också vara logisk för detta lag
+                                    target_name = mapping['correct_player_name']
+
+                                    # Om target-spelaren har lag-kontext i namnet, ska den matcha vårt lag
+                                    if '(' in target_name:
+                                        # Extrahera lag från target-spelarens namn
+                                        target_team = target_name.split('(')[1].rstrip(')')
+                                        target_club = self.standardize_club_name(target_team)
+                                        current_club = self.standardize_club_name(club_name)
+
+                                        # Target-spelaren ska tillhöra samma lag som vi söker för
+                                        if target_club.lower() != current_club.lower():
+                                            print(f"    [SKIP] Skipping mapping {target_name} - belongs to {target_club}, not {current_club}")
+                                            continue
+
+                                    best_mapping = mapping
+                                    break
+
+                        # VIKTIGT: Endast returnera mappning om vi hittade EXAKT SAME LAG
+                        if best_mapping:
+                            return {
+                                'action': 'first_name_mapping_found',
+                                'player_id': None,
+                                'player_name': best_mapping['correct_player_name'],
+                                'confidence': 90,
+                                'notes': f'Team context first name mapping: {incoming_name} -> {best_mapping["correct_player_name"]} (team: {club_name}, {best_mapping["mapping_count"]} mappings)',
+                                'mapping_type': 'first_name',
+                                'original_name': incoming_name
+                            }
+
+                        # Om ingen team-specifik mappning, INTE använda mappningar från andra lag
+                        # Låt systemet hantera detta som 'create_new' istället
+
+                    # INNAN exact match: Kolla om det är ett förnamn med separerade spelare
+                    if team_name:
+                        club_name = self.extract_club_name(team_name)
+
+                        # Leta efter partiell match bland separerade spelare
+                        base_name_match = None
+                        for base_name in self.separated_players.keys():
+                            if base_name.lower().startswith(incoming_name.lower() + ' '):
+                                base_name_match = base_name
+                                print(f"    [PARTIAL] Partial match: '{incoming_name}' matches base '{base_name}'")
+                                break
+
+                        if base_name_match:
+                            # Försök hitta klubb-specifik variant
+                            for variant in self.separated_players[base_name_match]:
+                                if variant['club'].lower() == club_name.lower():
+                                    return {
+                                        'action': 'club_specific',
+                                        'player_id': variant['id'],
+                                        'player_name': variant['full_name'],
+                                        'confidence': 95,
+                                        'notes': f'Matched to separated player via partial name: {incoming_name} -> {variant["full_name"]} (club: {variant["club"]})'
+                                    }
+
+                                # Kolla också standardiserad matchning
+                                standardized_variant_club = self.standardize_club_name(variant['club'])
+                                standardized_current_club = self.standardize_club_name(club_name)
+                                if standardized_variant_club.lower() == standardized_current_club.lower():
+                                    return {
+                                        'action': 'club_specific_standardized',
+                                        'player_id': variant['id'],
+                                        'player_name': variant['full_name'],
+                                        'confidence': 93,
+                                        'notes': f'Matched to separated player via partial name (standardized): {incoming_name} -> {variant["full_name"]} (club: {variant["club"]})'
+                                    }
+
+                # Om inget separerat match, returnera exact match
                 return {
                     'action': 'exact_match',
                     'player_id': exact_match['id'],
                     'player_name': exact_match['name'],
                     'confidence': 100,
-                    'notes': 'Exact match found'
+                    'notes': f'Exact match with {exact_match["match_count"]} matches'
                 }
 
-            # 2. Klub-specifik matchning (för separerade spelare)
-            # Försök hitta basnamnet case-insensitive
+            # 2. Kolla befintliga förnamn-mappningar för fall där ingen exakt match finns
+            # Om incoming_name är bara ett förnamn, kolla om det finns etablerade mappningar
+            if ' ' not in incoming_name and len(incoming_name) >= 3 and len(incoming_name) <= 15:
+                # Detta kan vara ett förnamn - kolla befintliga mappningar
+                cursor.execute("""
+                    SELECT DISTINCT p.name as original_name, smpm.correct_player_name,
+                           COUNT(*) as mapping_count,
+                           -- Kolla om mappningen är för samma klubb-kontext
+                           GROUP_CONCAT(DISTINCT
+                               CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END
+                           ) as mapped_teams
+                    FROM sub_match_player_mappings smpm
+                    JOIN players p ON smpm.original_player_id = p.id
+                    JOIN sub_matches sm ON smpm.sub_match_id = sm.id
+                    JOIN matches m ON sm.match_id = m.id
+                    JOIN teams t1 ON m.team1_id = t1.id
+                    JOIN teams t2 ON m.team2_id = t2.id
+                    JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                    WHERE p.name = ? AND smp.player_id = p.id
+                    GROUP BY p.name, smpm.correct_player_name
+                    ORDER BY mapping_count DESC
+                """, (incoming_name,))
+
+                first_name_mappings = cursor.fetchall()
+
+                if first_name_mappings:
+                    # Hitta den bästa mappningen baserat på klubb-kontext
+                    best_mapping = None
+                    if team_name:
+                        # Prioritera mappningar som matchar klubb-kontexten
+                        club_name = self.extract_club_name(team_name)
+                        for mapping in first_name_mappings:
+                            mapped_teams = mapping['mapped_teams'] or ''
+                            if club_name.lower() in mapped_teams.lower():
+                                # EXTRA KONTROLL: Target-spelaren ska också vara logisk för detta lag
+                                target_name = mapping['correct_player_name']
+
+                                # Om target-spelaren har lag-kontext i namnet, ska den matcha vårt lag
+                                if '(' in target_name:
+                                    # Extrahera lag från target-spelarens namn
+                                    target_team = target_name.split('(')[1].rstrip(')')
+                                    target_club = self.standardize_club_name(target_team)
+                                    current_club = self.standardize_club_name(club_name)
+
+                                    # Target-spelaren ska tillhöra samma lag som vi söker för
+                                    if target_club.lower() != current_club.lower():
+                                        print(f"    [SKIP] Skipping mapping {target_name} - belongs to {target_club}, not {current_club}")
+                                        continue
+
+                                best_mapping = mapping
+                                break
+
+                    # VIKTIGT: Endast returnera mappning om vi hittade EXAKT SAME LAG
+                    if best_mapping:
+                        return {
+                            'action': 'first_name_mapping_found',
+                            'player_id': None,
+                            'player_name': best_mapping['correct_player_name'],
+                            'confidence': 90,
+                            'notes': f'Team context first name mapping: {incoming_name} -> {best_mapping["correct_player_name"]} (team: {club_name}, {best_mapping["mapping_count"]} mappings)',
+                            'mapping_type': 'first_name',
+                            'original_name': incoming_name
+                        }
+
+                    # Om ingen team-specifik mappning finns, låt systemet skapa ny spelare
+                    # INTE använda mappningar från andra lag!
+
+            # 3. Klub-specifik matchning (för separerade spelare)
+            # Försök hitta basnamnet case-insensitive, eller partiell match om det är förnamn
             base_name_match = None
+
+            # Först: Exakt match
             for base_name in self.separated_players.keys():
                 if base_name.lower() == incoming_name.lower():
                     base_name_match = base_name
                     break
+
+            # Om ingen exakt match och det verkar vara ett förnamn, sök partiella matches
+            if not base_name_match and ' ' not in incoming_name and len(incoming_name) >= 3:
+                for base_name in self.separated_players.keys():
+                    # Kolla om base_name börjar med incoming_name (t.ex. "Mats Andersson" börjar med "Mats")
+                    if base_name.lower().startswith(incoming_name.lower() + ' '):
+                        base_name_match = base_name
+                        print(f"    [PARTIAL] Partial match: '{incoming_name}' matches base '{base_name}'")
+                        break
 
             if base_name_match and club:
                 # Först, försök exakt matchning

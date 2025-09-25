@@ -101,3 +101,105 @@ För division `t_jM8s_0341` (Division 2A) importerades 5 spelade matcher:
 - **Rate limiting**: 1 sekunds delay mellan requests
 - **Encoding**: UTF-8 stöd för svenska tecken
 - **Logging**: Detaljerad progress-information med emojis för tydlighet
+
+2025-09-25
+Kommandot för att köra det automatiserade importscriptet är:
+
+  python daily_import.py
+
+  Detta script:
+  - Processar alla match-URL filer i 2025-2026/ mappen automatiskt
+  - Använder den fixade SmartSeasonImporter som nu hanterar alla spelare korrekt
+  - Skapar detaljerade loggar i import_logs/ mappen
+  - Visar realtidsstatistik för spelarmappningar
+
+  Alternativt kan du också köra:
+
+  python test_import_2a.py
+
+  För att bara testa 2A divisionen specifikt.
+
+Nu kan du köra import för en specifik fil:
+
+  python single_file_import.py t_jM8s_0341_match_urls2A.txt
+
+  Eller för andra divisioner:
+
+  python single_file_import.py t_jM8s_0342_match_urls2B.txt
+  python single_file_import.py t_jM8s_0343_match_urls2C.txt
+
+  Scriptet kommer:
+  - Hitta filen i 2025-2026/ mappen
+  - Extrahera division ID från filnamnet automatiskt
+  - Använda den fixade SmartSeasonImporter
+  - Visa samma detaljerade statistik som daily_import.py
+
+  Om du skriver fel filnamn så visar det alla tillgängliga filer i mappen.
+
+  Update(fix_petra_sweden_capital.py)
+  ⎿  Updated fix_petra_sweden_capital.py with 1 addition and 1 removal
+       91                mappings_created += 1
+       92    
+       93            conn.commit()
+       94 -          print(f"✓ Skapade {mappings_created} kontextuella mappningar för Petra -> {target_name}")
+       94 +          print(f"[OK] Skapade {mappings_created} kontextuella mappningar for Petra -> {target_name}")
+       95    
+       96            # Visa resultat
+       97            cursor.execute("""
+
+● Bash(python fix_petra_sweden_capital.py)
+  ⎿  === FIXA PETRA SWEDEN CAPITAL MAPPNINGAR === 
+     Petra spelare: ID 1171
+     Hittade 0 omappade Sweden Capital matcher:
+     Inga omappade Sweden Capital matcher hittades
+
+● Perfect! Nu säger den "Inga omappade Sweden Capital matcher hittades" vilket betyder att mappningarna skapades framgångsrikt första gången.
+
+  Låt mig nu verifiera att Petra (Sweden Capital) nu visas korrekt i sökningen:
+
+● Write(verify_petra_fix.py)
+  ⎿  Wrote 1 lines to verify_petra_fix.py
+     #!/usr/bin/env python3
+     """
+     Verifiera att Petra Sweden Capital fix fungerade
+     """
+     import sqlite3
+     def verify_petra_fix():
+         """Verifiera Petra fix"""
+         print("=== VERIFIERING AV PETRA FIX ===")
+
+● Bash(python verify_petra_fix.py)
+  ⎿  === VERIFIERING AV PETRA FIX ===
+     Alla Petra spelare efter fix:
+       ID 1171: Petra
+     … +24 lines (ctrl+o to expand)
+
+● Utmärkt! Fixet fungerade perfekt:
+
+  ✅ Petra Sweden Capital Fix - Framgångsrik
+
+  ✅ Skapade: Petra (Sweden Capital) (ID 2365)✅ Mappningar: 2 st från 2025-09-23✅ Specifika matcher: sub_match 18435 och 18437✅ Syns i sökning: "Petra (Sweden Capital)"
+  visas nu i resultaten
+
+  📋 Nästa Steg för Framtida Importer
+
+● Nu har vi två strategier för att hantera förnamn:
+
+  🔄 Två-Stegs Approach för Förnamn
+
+  1. During Import (Enhanced Logic)
+
+  Min uppdaterade SmartSeasonImporter som försöker skapa kontextuella mappningar direkt under import för nya förnamn med confidence < 90.
+
+  2. Post-Import Fix (Retroaktiv)
+
+  Script som fix_petra_sweden_capital.py som identifierar och fixar redan importerade förnamn som behöver kontextuell mappning.
+
+  🎯 För nästa import-cykel: Systemet borde nu automatiskt hantera nya förnamn bättre, men vi kan också köra post-import fix-script för att fånga fall som inte hanterades       
+  perfekt under import.
+
+  Vill du att jag skapar ett generellt post-import fix-script som kan identifiera och fixa alla liknande förnamn-fall automatiskt efter import?
+
+> Vi har väl redan ett import fix script som vi kan använda, det som vi tidigare har kört för att fixa till den här typen av spelare?
+
+● Du har helt rätt! Vi har redan de etablerade scripten i player_name_mapping/ mappen. Låt mig kolla vilka som är relevanta:
