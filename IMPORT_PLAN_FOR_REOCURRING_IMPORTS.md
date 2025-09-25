@@ -1,0 +1,7 @@
+Nu vill jag du lägger upp en plan för hur kommande importer ska hanteras. Förutsättningarna är att vi kommer köra befintligt importscript (alla match-url .txt filer finns redan skapade) varje dag. Jag kan köra scriptet manuellt så det behöver vi inte fokusera på. Det vi måste hantera, och som har gått fel vid flera tidigare försök, är hanteringen av befintliga mappade spelare. Som exempel på vad som kommer hända så kan vi titta på hur datat vi hämtar för senaste matchen som Dartanjang spelade, match-url: https://n01darts.com/n01/league/season.php?id=t_jM8s_0341&lg=0-rTNf&tm=lg-0_01bh-rTNf-tP9x
+
+Där har vi Mats Andersson vars matcher ska hamna hos Mats Andersson (Dartanjang) samt Micke Lundberg vars matcher ska hamna hos Micke Lundberg (Dartanjang). Vi måste alltså vid importen avgöra om en spelare har en mappning och se till att det blir rätt från början! Det finns färdiga script som vi borde kunna dra nytta av när det gäller att veta hur mappningar ska avgöras.
+
+Observera att jag har gjort flera försök tidigare men det har alltid blivit fel så nu vill jag att vi tänker till rejält från början. Grundregeln gäller fortfarande, jag vill alltid ha kvar grunddatan oförändrad i min databas.
+
+Hur går vi tillväga?
