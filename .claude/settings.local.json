@@ -8,7 +8,8 @@
       "Bash(set PYTHONIOENCODING=utf-8)",
       "Read(//c/Users/K97965/**)",
       "Bash(curl:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

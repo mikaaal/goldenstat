@@ -523,25 +523,25 @@ def get_player_throws(player_name):
             where_conditions = [
                 """(
                     -- Include direct matches for this player, but exclude mapped-away sub-matches
-                    (smp.player_id = ? AND p.name = ? 
+                    (smp.player_id = ? AND p.name = ?
                      AND smp.sub_match_id NOT IN (
-                         SELECT smpm.sub_match_id 
-                         FROM sub_match_player_mappings smpm 
+                         SELECT smpm.sub_match_id
+                         FROM sub_match_player_mappings smpm
                          WHERE smpm.original_player_id = ?
                      )
-                    ) 
-                    OR 
+                    )
+                    OR
                     -- Include sub-matches that are mapped TO this player
                     (smp.sub_match_id IN (
-                        SELECT smpm.sub_match_id 
-                        FROM sub_match_player_mappings smpm 
+                        SELECT smpm.sub_match_id
+                        FROM sub_match_player_mappings smpm
                         WHERE smpm.correct_player_name = ?
                     ) AND smp.player_id IN (
-                        SELECT DISTINCT smpm2.original_player_id 
-                        FROM sub_match_player_mappings smpm2 
+                        SELECT DISTINCT smpm2.original_player_id
+                        FROM sub_match_player_mappings smpm2
                         WHERE smpm2.correct_player_name = ?
                     ))
-                ) AND t.team_number = smp.team_number AND sm.match_type = 'Singles'"""
+                ) AND sm.match_type = 'Singles'"""
             ]
             params = [player_ids[0], player_name, player_ids[0], player_name, player_name]
             
@@ -690,8 +690,11 @@ def get_player_throws(player_name):
                 'throws': throws[:100],  # Limit to last 100 throws for performance
                 'statistics': statistics
             })
-            
+
     except Exception as e:
+        import traceback
+        print(f"ERROR in get_player_throws for '{player_name}': {str(e)}", flush=True)
+        print(f"Full traceback: {traceback.format_exc()}", flush=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sub_match/<int:sub_match_id>')
