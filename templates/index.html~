@@ -20,7 +20,7 @@
                     <input type="text" 
                            id="playerSearch" 
                            class="form-control" 
-                           placeholder="Skriv spelarens namn..."
+                           placeholder="Namn..."
                            autocomplete="off">
                     <button class="btn btn-primary" type="button" onclick="searchPlayer()">
                         <i class="bi bi-search">🔍</i> Sök

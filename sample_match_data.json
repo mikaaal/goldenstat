@@ -1,0 +1,5350 @@
+[
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "abAytnhS_1758041806131",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "imto",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758041806,
+    "updateTime": 1758043222020,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Doubles1",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 2,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758042521870,
+        "first": 0,
+        "currentRound": 8,
+        "currentPlayer": 1,
+        "selectRound": 8,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 7,
+              "left": 494
+            },
+            {
+              "score": 41,
+              "left": 453
+            },
+            {
+              "score": 51,
+              "left": 402
+            },
+            {
+              "score": 56,
+              "left": 346
+            },
+            {
+              "score": 26,
+              "left": 320
+            },
+            {
+              "score": 41,
+              "left": 279
+            },
+            {
+              "score": 12,
+              "left": 267
+            },
+            {
+              "score": 28,
+              "left": 239
+            },
+            {
+              "score": 61,
+              "left": 178
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 180,
+              "left": 280
+            },
+            {
+              "score": 15,
+              "left": 265
+            },
+            {
+              "score": 45,
+              "left": 220
+            },
+            {
+              "score": 30,
+              "left": 190
+            },
+            {
+              "score": 40,
+              "left": 150
+            },
+            {
+              "score": 64,
+              "left": 86
+            },
+            {
+              "score": 54,
+              "left": 32
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758042258,
+        "endTime": 1758042521
+      },
+      {
+        "time": 1758042808905,
+        "first": 1,
+        "currentRound": 8,
+        "currentPlayer": 1,
+        "selectRound": 8,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 58,
+              "left": 443
+            },
+            {
+              "score": 26,
+              "left": 417
+            },
+            {
+              "score": 60,
+              "left": 357
+            },
+            {
+              "score": 77,
+              "left": 280
+            },
+            {
+              "score": 81,
+              "left": 199
+            },
+            {
+              "score": 81,
+              "left": 118
+            },
+            {
+              "score": 32,
+              "left": 86
+            },
+            {
+              "score": 46,
+              "left": 40
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 59,
+              "left": 442
+            },
+            {
+              "score": 26,
+              "left": 416
+            },
+            {
+              "score": 45,
+              "left": 371
+            },
+            {
+              "score": 121,
+              "left": 250
+            },
+            {
+              "score": 80,
+              "left": 170
+            },
+            {
+              "score": 45,
+              "left": 125
+            },
+            {
+              "score": 44,
+              "left": 81
+            },
+            {
+              "score": 29,
+              "left": 52
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758042536,
+        "endTime": 1758042808
+      },
+      {
+        "time": 1758043222020,
+        "first": 0,
+        "currentRound": 11,
+        "currentPlayer": 1,
+        "selectRound": 11,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 26,
+              "left": 475
+            },
+            {
+              "score": 26,
+              "left": 449
+            },
+            {
+              "score": 44,
+              "left": 405
+            },
+            {
+              "score": 30,
+              "left": 375
+            },
+            {
+              "score": 45,
+              "left": 330
+            },
+            {
+              "score": 42,
+              "left": 288
+            },
+            {
+              "score": 58,
+              "left": 230
+            },
+            {
+              "score": 41,
+              "left": 189
+            },
+            {
+              "score": 99,
+              "left": 90
+            },
+            {
+              "score": 38,
+              "left": 52
+            },
+            {
+              "score": 0,
+              "left": 52
+            },
+            {
+              "score": 20,
+              "left": 32
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 15,
+              "left": 445
+            },
+            {
+              "score": 60,
+              "left": 385
+            },
+            {
+              "score": 81,
+              "left": 304
+            },
+            {
+              "score": 60,
+              "left": 244
+            },
+            {
+              "score": 58,
+              "left": 186
+            },
+            {
+              "score": 60,
+              "left": 126
+            },
+            {
+              "score": 58,
+              "left": 68
+            },
+            {
+              "score": 12,
+              "left": 56
+            },
+            {
+              "score": 24,
+              "left": 32
+            },
+            {
+              "score": 16,
+              "left": 16
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758042824,
+        "endTime": 1758043222
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "e5ee5f1d_1758041806127",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "J1Ub",
+            "opid": "",
+            "oname": "Markus Holmqvist"
+          },
+          {
+            "oid": "3SZt",
+            "opid": "",
+            "oname": "Kim Örnfjärd"
+          }
+        ],
+        "me": 0,
+        "winSets": 0,
+        "winLegs": 0,
+        "allScore": 1253,
+        "allDarts": 87
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "3cc81c10_1758041806127",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "1PaG",
+            "opid": "",
+            "oname": "Wojtek Grezsica"
+          },
+          {
+            "oid": "jaWY",
+            "opid": "",
+            "oname": "Cevin Svanemar"
+          }
+        ],
+        "me": 0,
+        "winSets": 1,
+        "winLegs": 3,
+        "allScore": 1503,
+        "allDarts": 88
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "W7j3gjfP_1758043234551",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "h7gr",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758043234,
+    "updateTime": 1758044506192,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Singles1",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 3,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758043843974,
+        "first": 1,
+        "currentRound": 9,
+        "currentPlayer": 0,
+        "selectRound": 9,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 135,
+              "left": 366
+            },
+            {
+              "score": 45,
+              "left": 321
+            },
+            {
+              "score": 30,
+              "left": 291
+            },
+            {
+              "score": 100,
+              "left": 191
+            },
+            {
+              "score": 56,
+              "left": 135
+            },
+            {
+              "score": 37,
+              "left": 98
+            },
+            {
+              "score": 16,
+              "left": 82
+            },
+            {
+              "score": 34,
+              "left": 48
+            },
+            {
+              "score": 16,
+              "left": 32
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 85,
+              "left": 416
+            },
+            {
+              "score": 40,
+              "left": 376
+            },
+            {
+              "score": 45,
+              "left": 331
+            },
+            {
+              "score": 7,
+              "left": 324
+            },
+            {
+              "score": 45,
+              "left": 279
+            },
+            {
+              "score": 60,
+              "left": 219
+            },
+            {
+              "score": 85,
+              "left": 134
+            },
+            {
+              "score": 42,
+              "left": 92
+            },
+            {
+              "score": 86,
+              "left": 6
+            },
+            {
+              "score": 4,
+              "left": 2
+            }
+          ]
+        ],
+        "startTime": 1758043581,
+        "endTime": 1758043843
+      },
+      {
+        "time": 1758044071235,
+        "first": 0,
+        "currentRound": 7,
+        "currentPlayer": 1,
+        "selectRound": 7,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 90,
+              "left": 411
+            },
+            {
+              "score": 38,
+              "left": 373
+            },
+            {
+              "score": 15,
+              "left": 358
+            },
+            {
+              "score": 45,
+              "left": 313
+            },
+            {
+              "score": 83,
+              "left": 230
+            },
+            {
+              "score": 28,
+              "left": 202
+            },
+            {
+              "score": 100,
+              "left": 102
+            },
+            {
+              "score": 22,
+              "left": 80
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 81,
+              "left": 420
+            },
+            {
+              "score": 95,
+              "left": 325
+            },
+            {
+              "score": 60,
+              "left": 265
+            },
+            {
+              "score": 85,
+              "left": 180
+            },
+            {
+              "score": 100,
+              "left": 80
+            },
+            {
+              "score": 42,
+              "left": 38
+            },
+            {
+              "score": 0,
+              "left": 38
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758043859,
+        "endTime": 1758044071
+      },
+      {
+        "time": 1758044240777,
+        "first": 1,
+        "currentRound": 6,
+        "currentPlayer": 1,
+        "selectRound": 6,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 36,
+              "left": 424
+            },
+            {
+              "score": 26,
+              "left": 398
+            },
+            {
+              "score": 37,
+              "left": 361
+            },
+            {
+              "score": 60,
+              "left": 301
+            },
+            {
+              "score": 50,
+              "left": 251
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 81,
+              "left": 420
+            },
+            {
+              "score": 180,
+              "left": 240
+            },
+            {
+              "score": 60,
+              "left": 180
+            },
+            {
+              "score": 100,
+              "left": 80
+            },
+            {
+              "score": 35,
+              "left": 45
+            },
+            {
+              "score": 0,
+              "left": 45
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758044088,
+        "endTime": 1758044240
+      },
+      {
+        "time": 1758044506192,
+        "first": 0,
+        "currentRound": 9,
+        "currentPlayer": 1,
+        "selectRound": 9,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 30,
+              "left": 471
+            },
+            {
+              "score": 23,
+              "left": 448
+            },
+            {
+              "score": 40,
+              "left": 408
+            },
+            {
+              "score": 26,
+              "left": 382
+            },
+            {
+              "score": 38,
+              "left": 344
+            },
+            {
+              "score": 9,
+              "left": 335
+            },
+            {
+              "score": 85,
+              "left": 250
+            },
+            {
+              "score": 42,
+              "left": 208
+            },
+            {
+              "score": 60,
+              "left": 148
+            },
+            {
+              "score": 32,
+              "left": 116
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 60,
+              "left": 441
+            },
+            {
+              "score": 45,
+              "left": 396
+            },
+            {
+              "score": 30,
+              "left": 366
+            },
+            {
+              "score": 60,
+              "left": 306
+            },
+            {
+              "score": 60,
+              "left": 246
+            },
+            {
+              "score": 85,
+              "left": 161
+            },
+            {
+              "score": 89,
+              "left": 72
+            },
+            {
+              "score": 56,
+              "left": 16
+            },
+            {
+              "score": 8,
+              "left": 8
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758044252,
+        "endTime": 1758044506
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "df28eb72_1758043234547",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "3SZt",
+            "opid": "",
+            "oname": "Kim Örnfjärd"
+          }
+        ],
+        "me": 0,
+        "winSets": 0,
+        "winLegs": 1,
+        "allScore": 1557,
+        "allDarts": 100
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "060ea87f_1758043234547",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "jaWY",
+            "opid": "",
+            "oname": "Cevin Svanemar"
+          }
+        ],
+        "me": 0,
+        "winSets": 2,
+        "winLegs": 3,
+        "allScore": 2002,
+        "allDarts": 102
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "hMt7CnPN_1758043243386",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "wqju",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758043243,
+    "updateTime": 1758045598845,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Singles2",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 4,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758044129440,
+        "first": 0,
+        "currentRound": 13,
+        "currentPlayer": 1,
+        "selectRound": 13,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 1,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 28,
+              "left": 473
+            },
+            {
+              "score": 68,
+              "left": 405
+            },
+            {
+              "score": 97,
+              "left": 308
+            },
+            {
+              "score": 44,
+              "left": 264
+            },
+            {
+              "score": 56,
+              "left": 208
+            },
+            {
+              "score": 43,
+              "left": 165
+            },
+            {
+              "score": 39,
+              "left": 126
+            },
+            {
+              "score": 60,
+              "left": 66
+            },
+            {
+              "score": 34,
+              "left": 32
+            },
+            {
+              "score": 0,
+              "left": 32
+            },
+            {
+              "score": 0,
+              "left": 32
+            },
+            {
+              "score": 27,
+              "left": 5
+            },
+            {
+              "score": 3,
+              "left": 2
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 59,
+              "left": 442
+            },
+            {
+              "score": 60,
+              "left": 382
+            },
+            {
+              "score": 60,
+              "left": 322
+            },
+            {
+              "score": 25,
+              "left": 297
+            },
+            {
+              "score": 41,
+              "left": 256
+            },
+            {
+              "score": 60,
+              "left": 196
+            },
+            {
+              "score": 60,
+              "left": 136
+            },
+            {
+              "score": 42,
+              "left": 94
+            },
+            {
+              "score": 54,
+              "left": 40
+            },
+            {
+              "score": 8,
+              "left": 32
+            },
+            {
+              "score": 16,
+              "left": 16
+            },
+            {
+              "score": 12,
+              "left": 4
+            },
+            {
+              "score": 0,
+              "left": 4
+            }
+          ]
+        ],
+        "startTime": 1758043637,
+        "endTime": 1758044129
+      },
+      {
+        "time": 1758044453144,
+        "first": 1,
+        "currentRound": 9,
+        "currentPlayer": 1,
+        "selectRound": 9,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 29,
+              "left": 472
+            },
+            {
+              "score": 100,
+              "left": 372
+            },
+            {
+              "score": 38,
+              "left": 334
+            },
+            {
+              "score": 40,
+              "left": 294
+            },
+            {
+              "score": 31,
+              "left": 263
+            },
+            {
+              "score": 25,
+              "left": 238
+            },
+            {
+              "score": 83,
+              "left": 155
+            },
+            {
+              "score": 42,
+              "left": 113
+            },
+            {
+              "score": 41,
+              "left": 72
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 60,
+              "left": 441
+            },
+            {
+              "score": 85,
+              "left": 356
+            },
+            {
+              "score": 81,
+              "left": 275
+            },
+            {
+              "score": 40,
+              "left": 235
+            },
+            {
+              "score": 24,
+              "left": 211
+            },
+            {
+              "score": 60,
+              "left": 151
+            },
+            {
+              "score": 91,
+              "left": 60
+            },
+            {
+              "score": 40,
+              "left": 20
+            },
+            {
+              "score": 10,
+              "left": 10
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758044152,
+        "endTime": 1758044453
+      },
+      {
+        "time": 1758044815392,
+        "first": 0,
+        "currentRound": 10,
+        "currentPlayer": 0,
+        "selectRound": 10,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 44,
+              "left": 457
+            },
+            {
+              "score": 60,
+              "left": 397
+            },
+            {
+              "score": 95,
+              "left": 302
+            },
+            {
+              "score": 26,
+              "left": 276
+            },
+            {
+              "score": 44,
+              "left": 232
+            },
+            {
+              "score": 44,
+              "left": 188
+            },
+            {
+              "score": 64,
+              "left": 124
+            },
+            {
+              "score": 44,
+              "left": 80
+            },
+            {
+              "score": 40,
+              "left": 40
+            },
+            {
+              "score": 0,
+              "left": 40
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 45,
+              "left": 456
+            },
+            {
+              "score": 43,
+              "left": 413
+            },
+            {
+              "score": 30,
+              "left": 383
+            },
+            {
+              "score": 43,
+              "left": 340
+            },
+            {
+              "score": 41,
+              "left": 299
+            },
+            {
+              "score": 95,
+              "left": 204
+            },
+            {
+              "score": 67,
+              "left": 137
+            },
+            {
+              "score": 43,
+              "left": 94
+            },
+            {
+              "score": 54,
+              "left": 40
+            },
+            {
+              "score": 24,
+              "left": 16
+            }
+          ]
+        ],
+        "startTime": 1758044469,
+        "endTime": 1758044815
+      },
+      {
+        "time": 1758045138315,
+        "first": 1,
+        "currentRound": 8,
+        "currentPlayer": 0,
+        "selectRound": 8,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 55,
+              "left": 446
+            },
+            {
+              "score": 54,
+              "left": 392
+            },
+            {
+              "score": 100,
+              "left": 292
+            },
+            {
+              "score": 24,
+              "left": 268
+            },
+            {
+              "score": 40,
+              "left": 228
+            },
+            {
+              "score": 80,
+              "left": 148
+            },
+            {
+              "score": 64,
+              "left": 84
+            },
+            {
+              "score": 54,
+              "left": 30
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 85,
+              "left": 416
+            },
+            {
+              "score": 60,
+              "left": 356
+            },
+            {
+              "score": 68,
+              "left": 288
+            },
+            {
+              "score": 26,
+              "left": 262
+            },
+            {
+              "score": 81,
+              "left": 181
+            },
+            {
+              "score": 45,
+              "left": 136
+            },
+            {
+              "score": 41,
+              "left": 95
+            },
+            {
+              "score": 37,
+              "left": 58
+            },
+            {
+              "score": 38,
+              "left": 20
+            }
+          ]
+        ],
+        "startTime": 1758044838,
+        "endTime": 1758045138
+      },
+      {
+        "time": 1758045598845,
+        "first": 0,
+        "currentRound": 11,
+        "currentPlayer": 1,
+        "selectRound": 11,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 60,
+              "left": 441
+            },
+            {
+              "score": 34,
+              "left": 407
+            },
+            {
+              "score": 32,
+              "left": 375
+            },
+            {
+              "score": 60,
+              "left": 315
+            },
+            {
+              "score": 78,
+              "left": 237
+            },
+            {
+              "score": 47,
+              "left": 190
+            },
+            {
+              "score": 21,
+              "left": 169
+            },
+            {
+              "score": 53,
+              "left": 116
+            },
+            {
+              "score": 27,
+              "left": 89
+            },
+            {
+              "score": 37,
+              "left": 52
+            },
+            {
+              "score": 20,
+              "left": 32
+            },
+            {
+              "score": 0,
+              "left": 32
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 45,
+              "left": 456
+            },
+            {
+              "score": 140,
+              "left": 316
+            },
+            {
+              "score": 60,
+              "left": 256
+            },
+            {
+              "score": 41,
+              "left": 215
+            },
+            {
+              "score": 26,
+              "left": 189
+            },
+            {
+              "score": 45,
+              "left": 144
+            },
+            {
+              "score": 96,
+              "left": 48
+            },
+            {
+              "score": 27,
+              "left": 21
+            },
+            {
+              "score": 13,
+              "left": 8
+            },
+            {
+              "score": 0,
+              "left": 8
+            },
+            {
+              "score": 4,
+              "left": 4
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758045151,
+        "endTime": 1758045598
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "313c310d_1758043243383",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "J1Ub",
+            "opid": "",
+            "oname": "Markus Holmqvist"
+          }
+        ],
+        "me": 0,
+        "winSets": 0,
+        "winLegs": 2,
+        "allScore": 2399,
+        "allDarts": 159
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "e81a7200_1758043243383",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "1PaG",
+            "opid": "",
+            "oname": "Wojtek Grezsica"
+          }
+        ],
+        "me": 0,
+        "winSets": 3,
+        "winLegs": 3,
+        "allScore": 2465,
+        "allDarts": 159
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "LkO9KZOI_1758045644700",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "t5il",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758045644,
+    "updateTime": 1758047813909,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Doubles2",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 3,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758046498638,
+        "first": 1,
+        "currentRound": 10,
+        "currentPlayer": 0,
+        "selectRound": 10,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 26,
+              "left": 475
+            },
+            {
+              "score": 80,
+              "left": 395
+            },
+            {
+              "score": 24,
+              "left": 371
+            },
+            {
+              "score": 40,
+              "left": 331
+            },
+            {
+              "score": 60,
+              "left": 271
+            },
+            {
+              "score": 65,
+              "left": 206
+            },
+            {
+              "score": 25,
+              "left": 181
+            },
+            {
+              "score": 5,
+              "left": 176
+            },
+            {
+              "score": 100,
+              "left": 76
+            },
+            {
+              "score": 44,
+              "left": 32
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 81,
+              "left": 420
+            },
+            {
+              "score": 31,
+              "left": 389
+            },
+            {
+              "score": 11,
+              "left": 378
+            },
+            {
+              "score": 28,
+              "left": 350
+            },
+            {
+              "score": 24,
+              "left": 326
+            },
+            {
+              "score": 84,
+              "left": 242
+            },
+            {
+              "score": 26,
+              "left": 216
+            },
+            {
+              "score": 140,
+              "left": 76
+            },
+            {
+              "score": 40,
+              "left": 36
+            },
+            {
+              "score": 20,
+              "left": 16
+            },
+            {
+              "score": 0,
+              "left": 16
+            }
+          ]
+        ],
+        "startTime": 1758046181,
+        "endTime": 1758046498
+      },
+      {
+        "time": 1758046959145,
+        "first": 0,
+        "currentRound": 12,
+        "currentPlayer": 1,
+        "selectRound": 12,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 95,
+              "left": 406
+            },
+            {
+              "score": 41,
+              "left": 365
+            },
+            {
+              "score": 22,
+              "left": 343
+            },
+            {
+              "score": 60,
+              "left": 283
+            },
+            {
+              "score": 85,
+              "left": 198
+            },
+            {
+              "score": 41,
+              "left": 157
+            },
+            {
+              "score": 26,
+              "left": 131
+            },
+            {
+              "score": 43,
+              "left": 88
+            },
+            {
+              "score": 18,
+              "left": 70
+            },
+            {
+              "score": 38,
+              "left": 32
+            },
+            {
+              "score": 24,
+              "left": 8
+            },
+            {
+              "score": 0,
+              "left": 8
+            },
+            {
+              "score": 4,
+              "left": 4
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 40,
+              "left": 461
+            },
+            {
+              "score": 79,
+              "left": 382
+            },
+            {
+              "score": 19,
+              "left": 363
+            },
+            {
+              "score": 99,
+              "left": 264
+            },
+            {
+              "score": 58,
+              "left": 206
+            },
+            {
+              "score": 7,
+              "left": 199
+            },
+            {
+              "score": 23,
+              "left": 176
+            },
+            {
+              "score": 13,
+              "left": 163
+            },
+            {
+              "score": 31,
+              "left": 132
+            },
+            {
+              "score": 41,
+              "left": 91
+            },
+            {
+              "score": 37,
+              "left": 54
+            },
+            {
+              "score": 15,
+              "left": 39
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758046521,
+        "endTime": 1758046959
+      },
+      {
+        "time": 1758047392593,
+        "first": 1,
+        "currentRound": 12,
+        "currentPlayer": 0,
+        "selectRound": 12,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 15,
+              "left": 486
+            },
+            {
+              "score": 25,
+              "left": 461
+            },
+            {
+              "score": 80,
+              "left": 381
+            },
+            {
+              "score": 45,
+              "left": 336
+            },
+            {
+              "score": 92,
+              "left": 244
+            },
+            {
+              "score": 100,
+              "left": 144
+            },
+            {
+              "score": 7,
+              "left": 137
+            },
+            {
+              "score": 85,
+              "left": 52
+            },
+            {
+              "score": 13,
+              "left": 39
+            },
+            {
+              "score": 19,
+              "left": 20
+            },
+            {
+              "score": 13,
+              "left": 7
+            },
+            {
+              "score": 0,
+              "left": 7
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 30,
+              "left": 471
+            },
+            {
+              "score": 33,
+              "left": 438
+            },
+            {
+              "score": 41,
+              "left": 397
+            },
+            {
+              "score": 59,
+              "left": 338
+            },
+            {
+              "score": 26,
+              "left": 312
+            },
+            {
+              "score": 28,
+              "left": 284
+            },
+            {
+              "score": 80,
+              "left": 204
+            },
+            {
+              "score": 27,
+              "left": 177
+            },
+            {
+              "score": 25,
+              "left": 152
+            },
+            {
+              "score": 59,
+              "left": 93
+            },
+            {
+              "score": 43,
+              "left": 50
+            },
+            {
+              "score": 0,
+              "left": 50
+            },
+            {
+              "score": 0,
+              "left": 50
+            }
+          ]
+        ],
+        "startTime": 1758046980,
+        "endTime": 1758047392
+      },
+      {
+        "time": 1758047813909,
+        "first": 0,
+        "currentRound": 12,
+        "currentPlayer": 0,
+        "selectRound": 12,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 22,
+              "left": 438
+            },
+            {
+              "score": 11,
+              "left": 427
+            },
+            {
+              "score": 25,
+              "left": 402
+            },
+            {
+              "score": 24,
+              "left": 378
+            },
+            {
+              "score": 59,
+              "left": 319
+            },
+            {
+              "score": 60,
+              "left": 259
+            },
+            {
+              "score": 43,
+              "left": 216
+            },
+            {
+              "score": 30,
+              "left": 186
+            },
+            {
+              "score": 45,
+              "left": 141
+            },
+            {
+              "score": 30,
+              "left": 111
+            },
+            {
+              "score": 55,
+              "left": 56
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 56,
+              "left": 445
+            },
+            {
+              "score": 22,
+              "left": 423
+            },
+            {
+              "score": 45,
+              "left": 378
+            },
+            {
+              "score": 41,
+              "left": 337
+            },
+            {
+              "score": 42,
+              "left": 295
+            },
+            {
+              "score": 8,
+              "left": 287
+            },
+            {
+              "score": 40,
+              "left": 247
+            },
+            {
+              "score": 41,
+              "left": 206
+            },
+            {
+              "score": 36,
+              "left": 170
+            },
+            {
+              "score": 43,
+              "left": 127
+            },
+            {
+              "score": 51,
+              "left": 76
+            },
+            {
+              "score": 53,
+              "left": 23
+            }
+          ]
+        ],
+        "startTime": 1758047415,
+        "endTime": 1758047813
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "2dc92a21_1758045644695",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "RXcG",
+            "opid": "",
+            "oname": "Thomas Reher"
+          },
+          {
+            "oid": "W0tE",
+            "opid": "",
+            "oname": "Lucas Reher"
+          }
+        ],
+        "me": 0,
+        "winSets": 1,
+        "winLegs": 3,
+        "allScore": 2000,
+        "allDarts": 150
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "f4ef692c_1758045644695",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "q1fy",
+            "opid": "",
+            "oname": "Magnus Jakobsson"
+          },
+          {
+            "oid": "6uyb",
+            "opid": "",
+            "oname": "Isak Sewón"
+          }
+        ],
+        "me": 0,
+        "winSets": 3,
+        "winLegs": 1,
+        "allScore": 1915,
+        "allDarts": 146
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "lHorJbRV_1758047861212",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "fppn",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758047861,
+    "updateTime": 1758049184071,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Singles3",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 3,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758048294933,
+        "first": 0,
+        "currentRound": 10,
+        "currentPlayer": 0,
+        "selectRound": 10,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 28,
+              "left": 473
+            },
+            {
+              "score": 36,
+              "left": 437
+            },
+            {
+              "score": 70,
+              "left": 367
+            },
+            {
+              "score": 135,
+              "left": 232
+            },
+            {
+              "score": 180,
+              "left": 52
+            },
+            {
+              "score": 36,
+              "left": 16
+            },
+            {
+              "score": 0,
+              "left": 16
+            },
+            {
+              "score": 0,
+              "left": 16
+            },
+            {
+              "score": 8,
+              "left": 8
+            },
+            {
+              "score": 0,
+              "left": 8
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 40,
+              "left": 461
+            },
+            {
+              "score": 43,
+              "left": 418
+            },
+            {
+              "score": 37,
+              "left": 381
+            },
+            {
+              "score": 46,
+              "left": 335
+            },
+            {
+              "score": 59,
+              "left": 276
+            },
+            {
+              "score": 60,
+              "left": 216
+            },
+            {
+              "score": 77,
+              "left": 139
+            },
+            {
+              "score": 59,
+              "left": 80
+            },
+            {
+              "score": 40,
+              "left": 40
+            },
+            {
+              "score": 20,
+              "left": 20
+            }
+          ]
+        ],
+        "startTime": 1758048030,
+        "endTime": 1758048294
+      },
+      {
+        "time": 1758048596651,
+        "first": 1,
+        "currentRound": 9,
+        "currentPlayer": 1,
+        "selectRound": 9,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 7,
+              "left": 494
+            },
+            {
+              "score": 36,
+              "left": 458
+            },
+            {
+              "score": 83,
+              "left": 375
+            },
+            {
+              "score": 85,
+              "left": 290
+            },
+            {
+              "score": 60,
+              "left": 230
+            },
+            {
+              "score": 30,
+              "left": 200
+            },
+            {
+              "score": 55,
+              "left": 145
+            },
+            {
+              "score": 45,
+              "left": 100
+            },
+            {
+              "score": 45,
+              "left": 55
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 96,
+              "left": 405
+            },
+            {
+              "score": 43,
+              "left": 362
+            },
+            {
+              "score": 45,
+              "left": 317
+            },
+            {
+              "score": 45,
+              "left": 272
+            },
+            {
+              "score": 57,
+              "left": 215
+            },
+            {
+              "score": 123,
+              "left": 92
+            },
+            {
+              "score": 74,
+              "left": 18
+            },
+            {
+              "score": 0,
+              "left": 18
+            },
+            {
+              "score": 10,
+              "left": 8
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758048305,
+        "endTime": 1758048596
+      },
+      {
+        "time": 1758048875613,
+        "first": 0,
+        "currentRound": 9,
+        "currentPlayer": 0,
+        "selectRound": 9,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 26,
+              "left": 475
+            },
+            {
+              "score": 140,
+              "left": 335
+            },
+            {
+              "score": 41,
+              "left": 294
+            },
+            {
+              "score": 98,
+              "left": 196
+            },
+            {
+              "score": 42,
+              "left": 154
+            },
+            {
+              "score": 40,
+              "left": 114
+            },
+            {
+              "score": 24,
+              "left": 90
+            },
+            {
+              "score": 20,
+              "left": 70
+            },
+            {
+              "score": 38,
+              "left": 32
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 71,
+              "left": 430
+            },
+            {
+              "score": 46,
+              "left": 384
+            },
+            {
+              "score": 84,
+              "left": 300
+            },
+            {
+              "score": 9,
+              "left": 291
+            },
+            {
+              "score": 27,
+              "left": 264
+            },
+            {
+              "score": 27,
+              "left": 237
+            },
+            {
+              "score": 23,
+              "left": 214
+            },
+            {
+              "score": 32,
+              "left": 182
+            },
+            {
+              "score": 36,
+              "left": 146
+            }
+          ]
+        ],
+        "startTime": 1758048611,
+        "endTime": 1758048875
+      },
+      {
+        "time": 1758049184071,
+        "first": 1,
+        "currentRound": 8,
+        "currentPlayer": 0,
+        "selectRound": 8,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 100,
+              "left": 401
+            },
+            {
+              "score": 85,
+              "left": 316
+            },
+            {
+              "score": 66,
+              "left": 250
+            },
+            {
+              "score": 83,
+              "left": 167
+            },
+            {
+              "score": 45,
+              "left": 122
+            },
+            {
+              "score": 36,
+              "left": 86
+            },
+            {
+              "score": 52,
+              "left": 34
+            },
+            {
+              "score": 26,
+              "left": 8
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 130,
+              "left": 371
+            },
+            {
+              "score": 13,
+              "left": 358
+            },
+            {
+              "score": 27,
+              "left": 331
+            },
+            {
+              "score": 25,
+              "left": 306
+            },
+            {
+              "score": 45,
+              "left": 261
+            },
+            {
+              "score": 44,
+              "left": 217
+            },
+            {
+              "score": 24,
+              "left": 193
+            },
+            {
+              "score": 24,
+              "left": 169
+            },
+            {
+              "score": 39,
+              "left": 130
+            }
+          ]
+        ],
+        "startTime": 1758048892,
+        "endTime": 1758049184
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "c8edb7fb_1758047861208",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "RXcG",
+            "opid": "",
+            "oname": "Thomas Reher"
+          }
+        ],
+        "me": 0,
+        "winSets": 2,
+        "winLegs": 3,
+        "allScore": 1949,
+        "allDarts": 111
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "11cbf4f6_1758047861208",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "6uyb",
+            "opid": "",
+            "oname": "Isak Sewón"
+          }
+        ],
+        "me": 0,
+        "winSets": 3,
+        "winLegs": 1,
+        "allScore": 1708,
+        "allDarts": 114
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "0gI6DoMi_1758047878498",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "fwat",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758047878,
+    "updateTime": 1758049543554,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Singles4",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 3,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758048475780,
+        "first": 1,
+        "currentRound": 13,
+        "currentPlayer": 1,
+        "selectRound": 13,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 1,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 25,
+              "left": 476
+            },
+            {
+              "score": 50,
+              "left": 426
+            },
+            {
+              "score": 41,
+              "left": 385
+            },
+            {
+              "score": 44,
+              "left": 341
+            },
+            {
+              "score": 81,
+              "left": 260
+            },
+            {
+              "score": 41,
+              "left": 219
+            },
+            {
+              "score": 45,
+              "left": 174
+            },
+            {
+              "score": 60,
+              "left": 114
+            },
+            {
+              "score": 22,
+              "left": 92
+            },
+            {
+              "score": 49,
+              "left": 43
+            },
+            {
+              "score": 3,
+              "left": 40
+            },
+            {
+              "score": 20,
+              "left": 20
+            },
+            {
+              "score": 6,
+              "left": 14
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 43,
+              "left": 458
+            },
+            {
+              "score": 45,
+              "left": 413
+            },
+            {
+              "score": 30,
+              "left": 383
+            },
+            {
+              "score": 39,
+              "left": 344
+            },
+            {
+              "score": 64,
+              "left": 280
+            },
+            {
+              "score": 26,
+              "left": 254
+            },
+            {
+              "score": 41,
+              "left": 213
+            },
+            {
+              "score": 42,
+              "left": 171
+            },
+            {
+              "score": 44,
+              "left": 127
+            },
+            {
+              "score": 59,
+              "left": 68
+            },
+            {
+              "score": 36,
+              "left": 32
+            },
+            {
+              "score": 16,
+              "left": 16
+            },
+            {
+              "score": 0,
+              "left": 16
+            }
+          ]
+        ],
+        "startTime": 1758048027,
+        "endTime": 1758048475
+      },
+      {
+        "time": 1758048885567,
+        "first": 0,
+        "currentRound": 12,
+        "currentPlayer": 1,
+        "selectRound": 12,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 41,
+              "left": 419
+            },
+            {
+              "score": 58,
+              "left": 361
+            },
+            {
+              "score": 100,
+              "left": 261
+            },
+            {
+              "score": 60,
+              "left": 201
+            },
+            {
+              "score": 41,
+              "left": 160
+            },
+            {
+              "score": 58,
+              "left": 102
+            },
+            {
+              "score": 37,
+              "left": 65
+            },
+            {
+              "score": 13,
+              "left": 52
+            },
+            {
+              "score": 20,
+              "left": 32
+            },
+            {
+              "score": 0,
+              "left": 32
+            },
+            {
+              "score": 20,
+              "left": 12
+            },
+            {
+              "score": 9,
+              "left": 3
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 62,
+              "left": 439
+            },
+            {
+              "score": 29,
+              "left": 410
+            },
+            {
+              "score": 26,
+              "left": 384
+            },
+            {
+              "score": 45,
+              "left": 339
+            },
+            {
+              "score": 30,
+              "left": 309
+            },
+            {
+              "score": 80,
+              "left": 229
+            },
+            {
+              "score": 43,
+              "left": 186
+            },
+            {
+              "score": 60,
+              "left": 126
+            },
+            {
+              "score": 41,
+              "left": 85
+            },
+            {
+              "score": 34,
+              "left": 51
+            },
+            {
+              "score": 0,
+              "left": 51
+            },
+            {
+              "score": 19,
+              "left": 32
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758048494,
+        "endTime": 1758048885
+      },
+      {
+        "time": 1758049225710,
+        "first": 1,
+        "currentRound": 9,
+        "currentPlayer": 0,
+        "selectRound": 9,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 45,
+              "left": 456
+            },
+            {
+              "score": 7,
+              "left": 449
+            },
+            {
+              "score": 21,
+              "left": 428
+            },
+            {
+              "score": 83,
+              "left": 345
+            },
+            {
+              "score": 60,
+              "left": 285
+            },
+            {
+              "score": 100,
+              "left": 185
+            },
+            {
+              "score": 41,
+              "left": 144
+            },
+            {
+              "score": 70,
+              "left": 74
+            },
+            {
+              "score": 54,
+              "left": 20
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 100,
+              "left": 360
+            },
+            {
+              "score": 64,
+              "left": 296
+            },
+            {
+              "score": 100,
+              "left": 196
+            },
+            {
+              "score": 100,
+              "left": 96
+            },
+            {
+              "score": 56,
+              "left": 40
+            },
+            {
+              "score": 18,
+              "left": 22
+            },
+            {
+              "score": 0,
+              "left": 22
+            },
+            {
+              "score": 14,
+              "left": 8
+            },
+            {
+              "score": 0,
+              "left": 8
+            }
+          ]
+        ],
+        "startTime": 1758048909,
+        "endTime": 1758049225
+      },
+      {
+        "time": 1758049543554,
+        "first": 0,
+        "currentRound": 9,
+        "currentPlayer": 1,
+        "selectRound": 9,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 21,
+              "left": 480
+            },
+            {
+              "score": 61,
+              "left": 419
+            },
+            {
+              "score": 118,
+              "left": 301
+            },
+            {
+              "score": 100,
+              "left": 201
+            },
+            {
+              "score": 59,
+              "left": 142
+            },
+            {
+              "score": 38,
+              "left": 104
+            },
+            {
+              "score": 48,
+              "left": 56
+            },
+            {
+              "score": 24,
+              "left": 32
+            },
+            {
+              "score": 0,
+              "left": 32
+            },
+            {
+              "score": 24,
+              "left": 8
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 81,
+              "left": 420
+            },
+            {
+              "score": 78,
+              "left": 342
+            },
+            {
+              "score": 45,
+              "left": 297
+            },
+            {
+              "score": 40,
+              "left": 257
+            },
+            {
+              "score": 15,
+              "left": 242
+            },
+            {
+              "score": 60,
+              "left": 182
+            },
+            {
+              "score": 29,
+              "left": 153
+            },
+            {
+              "score": 40,
+              "left": 113
+            },
+            {
+              "score": 73,
+              "left": 40
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758049243,
+        "endTime": 1758049543
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "4515efc8_1758047878494",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "W0tE",
+            "opid": "",
+            "oname": "Lucas Reher"
+          }
+        ],
+        "me": 0,
+        "winSets": 2,
+        "winLegs": 1,
+        "allScore": 1979,
+        "allDarts": 136
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "9c33acc5_1758047878494",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "q1fy",
+            "opid": "",
+            "oname": "Magnus Jakobsson"
+          }
+        ],
+        "me": 0,
+        "winSets": 4,
+        "winLegs": 3,
+        "allScore": 1980,
+        "allDarts": 138
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "DixUxXfV_1758049617775",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "8yah",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758049617,
+    "updateTime": 1758051150763,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Doubles3",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 3,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758050202502,
+        "first": 0,
+        "currentRound": 8,
+        "currentPlayer": 0,
+        "selectRound": 8,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 22,
+              "left": 479
+            },
+            {
+              "score": 95,
+              "left": 384
+            },
+            {
+              "score": 40,
+              "left": 344
+            },
+            {
+              "score": 81,
+              "left": 263
+            },
+            {
+              "score": 41,
+              "left": 222
+            },
+            {
+              "score": 135,
+              "left": 87
+            },
+            {
+              "score": 19,
+              "left": 68
+            },
+            {
+              "score": 28,
+              "left": 40
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 22,
+              "left": 479
+            },
+            {
+              "score": 39,
+              "left": 440
+            },
+            {
+              "score": 27,
+              "left": 413
+            },
+            {
+              "score": 13,
+              "left": 400
+            },
+            {
+              "score": 41,
+              "left": 359
+            },
+            {
+              "score": 41,
+              "left": 318
+            },
+            {
+              "score": 79,
+              "left": 239
+            },
+            {
+              "score": 85,
+              "left": 154
+            }
+          ]
+        ],
+        "startTime": 1758049979,
+        "endTime": 1758050202
+      },
+      {
+        "time": 1758050489441,
+        "first": 1,
+        "currentRound": 9,
+        "currentPlayer": 1,
+        "selectRound": 9,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 60,
+              "left": 441
+            },
+            {
+              "score": 35,
+              "left": 406
+            },
+            {
+              "score": 5,
+              "left": 401
+            },
+            {
+              "score": 134,
+              "left": 267
+            },
+            {
+              "score": 40,
+              "left": 227
+            },
+            {
+              "score": 79,
+              "left": 148
+            },
+            {
+              "score": 28,
+              "left": 120
+            },
+            {
+              "score": 42,
+              "left": 78
+            },
+            {
+              "score": 38,
+              "left": 40
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 85,
+              "left": 416
+            },
+            {
+              "score": 46,
+              "left": 370
+            },
+            {
+              "score": 25,
+              "left": 345
+            },
+            {
+              "score": 41,
+              "left": 304
+            },
+            {
+              "score": 55,
+              "left": 249
+            },
+            {
+              "score": 85,
+              "left": 164
+            },
+            {
+              "score": 28,
+              "left": 136
+            },
+            {
+              "score": 44,
+              "left": 92
+            },
+            {
+              "score": 44,
+              "left": 48
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758050216,
+        "endTime": 1758050489
+      },
+      {
+        "time": 1758050761229,
+        "first": 0,
+        "currentRound": 9,
+        "currentPlayer": 0,
+        "selectRound": 9,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 64,
+              "left": 437
+            },
+            {
+              "score": 24,
+              "left": 413
+            },
+            {
+              "score": 11,
+              "left": 402
+            },
+            {
+              "score": 100,
+              "left": 302
+            },
+            {
+              "score": 42,
+              "left": 260
+            },
+            {
+              "score": 85,
+              "left": 175
+            },
+            {
+              "score": 41,
+              "left": 134
+            },
+            {
+              "score": 114,
+              "left": 20
+            },
+            {
+              "score": 0,
+              "left": 20
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 100,
+              "left": 401
+            },
+            {
+              "score": 60,
+              "left": 341
+            },
+            {
+              "score": 121,
+              "left": 220
+            },
+            {
+              "score": 37,
+              "left": 183
+            },
+            {
+              "score": 55,
+              "left": 128
+            },
+            {
+              "score": 42,
+              "left": 86
+            },
+            {
+              "score": 46,
+              "left": 40
+            },
+            {
+              "score": 0,
+              "left": 40
+            },
+            {
+              "score": 0,
+              "left": 40
+            }
+          ]
+        ],
+        "startTime": 1758050502,
+        "endTime": 1758050761
+      },
+      {
+        "time": 1758051150763,
+        "first": 1,
+        "currentRound": 10,
+        "currentPlayer": 0,
+        "selectRound": 10,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 60,
+              "left": 441
+            },
+            {
+              "score": 45,
+              "left": 396
+            },
+            {
+              "score": 45,
+              "left": 351
+            },
+            {
+              "score": 85,
+              "left": 266
+            },
+            {
+              "score": 58,
+              "left": 208
+            },
+            {
+              "score": 36,
+              "left": 172
+            },
+            {
+              "score": 22,
+              "left": 150
+            },
+            {
+              "score": 65,
+              "left": 85
+            },
+            {
+              "score": 29,
+              "left": 56
+            },
+            {
+              "score": 24,
+              "left": 32
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 15,
+              "left": 486
+            },
+            {
+              "score": 45,
+              "left": 441
+            },
+            {
+              "score": 41,
+              "left": 400
+            },
+            {
+              "score": 13,
+              "left": 387
+            },
+            {
+              "score": 33,
+              "left": 354
+            },
+            {
+              "score": 76,
+              "left": 278
+            },
+            {
+              "score": 82,
+              "left": 196
+            },
+            {
+              "score": 60,
+              "left": 136
+            },
+            {
+              "score": 25,
+              "left": 111
+            },
+            {
+              "score": 0,
+              "left": 111
+            },
+            {
+              "score": 79,
+              "left": 32
+            }
+          ]
+        ],
+        "startTime": 1758050775,
+        "endTime": 1758051150
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "520b8cbc_1758049720052",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "EYgd",
+            "opid": "",
+            "oname": "Ted  Åbom"
+          },
+          {
+            "oid": "WDoS",
+            "opid": "",
+            "oname": "Dennis Felldin"
+          }
+        ],
+        "me": 0,
+        "winSets": 3,
+        "winLegs": 3,
+        "allScore": 1964,
+        "allDarts": 112
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "8b2dcfb1_1758049720052",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "s8dT",
+            "opid": "",
+            "oname": "Alessio Tampella"
+          },
+          {
+            "oid": "E8ZB",
+            "opid": "",
+            "oname": "Matthew Collins"
+          }
+        ],
+        "me": 0,
+        "winSets": 4,
+        "winLegs": 1,
+        "allScore": 1778,
+        "allDarts": 113
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "DjmSpiRq_1758051165980",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "06pi",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758051165,
+    "updateTime": 1758053171300,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Singles5",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 4,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758051985811,
+        "first": 1,
+        "currentRound": 11,
+        "currentPlayer": 1,
+        "selectRound": 11,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 76,
+              "left": 425
+            },
+            {
+              "score": 26,
+              "left": 399
+            },
+            {
+              "score": 45,
+              "left": 354
+            },
+            {
+              "score": 30,
+              "left": 324
+            },
+            {
+              "score": 26,
+              "left": 298
+            },
+            {
+              "score": 60,
+              "left": 238
+            },
+            {
+              "score": 60,
+              "left": 178
+            },
+            {
+              "score": 44,
+              "left": 134
+            },
+            {
+              "score": 41,
+              "left": 93
+            },
+            {
+              "score": 45,
+              "left": 48
+            },
+            {
+              "score": 8,
+              "left": 40
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 7,
+              "left": 494
+            },
+            {
+              "score": 92,
+              "left": 402
+            },
+            {
+              "score": 6,
+              "left": 396
+            },
+            {
+              "score": 41,
+              "left": 355
+            },
+            {
+              "score": 41,
+              "left": 314
+            },
+            {
+              "score": 25,
+              "left": 289
+            },
+            {
+              "score": 45,
+              "left": 244
+            },
+            {
+              "score": 83,
+              "left": 161
+            },
+            {
+              "score": 39,
+              "left": 122
+            },
+            {
+              "score": 37,
+              "left": 85
+            },
+            {
+              "score": 75,
+              "left": 10
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758051605,
+        "endTime": 1758051985
+      },
+      {
+        "time": 1758052124496,
+        "first": 0,
+        "currentRound": 5,
+        "currentPlayer": 0,
+        "selectRound": 5,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 100,
+              "left": 401
+            },
+            {
+              "score": 100,
+              "left": 301
+            },
+            {
+              "score": 81,
+              "left": 220
+            },
+            {
+              "score": 32,
+              "left": 188
+            },
+            {
+              "score": 140,
+              "left": 48
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 30,
+              "left": 471
+            },
+            {
+              "score": 60,
+              "left": 411
+            },
+            {
+              "score": 60,
+              "left": 351
+            },
+            {
+              "score": 41,
+              "left": 310
+            },
+            {
+              "score": 30,
+              "left": 280
+            }
+          ]
+        ],
+        "startTime": 1758051998,
+        "endTime": 1758052124
+      },
+      {
+        "time": 1758052375528,
+        "first": 1,
+        "currentRound": 8,
+        "currentPlayer": 0,
+        "selectRound": 8,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 45,
+              "left": 456
+            },
+            {
+              "score": 62,
+              "left": 394
+            },
+            {
+              "score": 100,
+              "left": 294
+            },
+            {
+              "score": 9,
+              "left": 285
+            },
+            {
+              "score": 80,
+              "left": 205
+            },
+            {
+              "score": 54,
+              "left": 151
+            },
+            {
+              "score": 26,
+              "left": 125
+            },
+            {
+              "score": 79,
+              "left": 46
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 36,
+              "left": 424
+            },
+            {
+              "score": 60,
+              "left": 364
+            },
+            {
+              "score": 11,
+              "left": 353
+            },
+            {
+              "score": 30,
+              "left": 323
+            },
+            {
+              "score": 66,
+              "left": 257
+            },
+            {
+              "score": 26,
+              "left": 231
+            },
+            {
+              "score": 26,
+              "left": 205
+            },
+            {
+              "score": 60,
+              "left": 145
+            }
+          ]
+        ],
+        "startTime": 1758052140,
+        "endTime": 1758052375
+      },
+      {
+        "time": 1758052764544,
+        "first": 0,
+        "currentRound": 9,
+        "currentPlayer": 1,
+        "selectRound": 9,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 60,
+              "left": 400
+            },
+            {
+              "score": 41,
+              "left": 359
+            },
+            {
+              "score": 21,
+              "left": 338
+            },
+            {
+              "score": 64,
+              "left": 274
+            },
+            {
+              "score": 26,
+              "left": 248
+            },
+            {
+              "score": 41,
+              "left": 207
+            },
+            {
+              "score": 85,
+              "left": 122
+            },
+            {
+              "score": 56,
+              "left": 66
+            },
+            {
+              "score": 26,
+              "left": 40
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 27,
+              "left": 474
+            },
+            {
+              "score": 85,
+              "left": 389
+            },
+            {
+              "score": 43,
+              "left": 346
+            },
+            {
+              "score": 41,
+              "left": 305
+            },
+            {
+              "score": 43,
+              "left": 262
+            },
+            {
+              "score": 45,
+              "left": 217
+            },
+            {
+              "score": 29,
+              "left": 188
+            },
+            {
+              "score": 125,
+              "left": 63
+            },
+            {
+              "score": 35,
+              "left": 28
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758052398,
+        "endTime": 1758052764
+      },
+      {
+        "time": 1758053171300,
+        "first": 1,
+        "currentRound": 11,
+        "currentPlayer": 0,
+        "selectRound": 11,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 45,
+              "left": 456
+            },
+            {
+              "score": 41,
+              "left": 415
+            },
+            {
+              "score": 26,
+              "left": 389
+            },
+            {
+              "score": 45,
+              "left": 344
+            },
+            {
+              "score": 22,
+              "left": 322
+            },
+            {
+              "score": 45,
+              "left": 277
+            },
+            {
+              "score": 23,
+              "left": 254
+            },
+            {
+              "score": 95,
+              "left": 159
+            },
+            {
+              "score": 45,
+              "left": 114
+            },
+            {
+              "score": 98,
+              "left": 16
+            },
+            {
+              "score": 14,
+              "left": 2
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 81,
+              "left": 420
+            },
+            {
+              "score": 49,
+              "left": 371
+            },
+            {
+              "score": 30,
+              "left": 341
+            },
+            {
+              "score": 60,
+              "left": 281
+            },
+            {
+              "score": 22,
+              "left": 259
+            },
+            {
+              "score": 27,
+              "left": 232
+            },
+            {
+              "score": 66,
+              "left": 166
+            },
+            {
+              "score": 39,
+              "left": 127
+            },
+            {
+              "score": 33,
+              "left": 94
+            },
+            {
+              "score": 46,
+              "left": 48
+            },
+            {
+              "score": 16,
+              "left": 32
+            },
+            {
+              "score": 0,
+              "left": 32
+            }
+          ]
+        ],
+        "startTime": 1758052779,
+        "endTime": 1758053171
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "ba216640_1758051165976",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "EYgd",
+            "opid": "",
+            "oname": "Ted  Åbom"
+          }
+        ],
+        "me": 0,
+        "winSets": 4,
+        "winLegs": 3,
+        "allScore": 2425,
+        "allDarts": 140
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "6307254d_1758051165976",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "E8ZB",
+            "opid": "",
+            "oname": "Matthew Collins"
+          }
+        ],
+        "me": 0,
+        "winSets": 5,
+        "winLegs": 2,
+        "allScore": 2048,
+        "allDarts": 140
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "aLYpbMmm_1758051170069",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "7d3m",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758051170,
+    "updateTime": 1758052718452,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A Singles6",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 2,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758051977124,
+        "first": 0,
+        "currentRound": 12,
+        "currentPlayer": 1,
+        "selectRound": 12,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 100,
+              "left": 401
+            },
+            {
+              "score": 27,
+              "left": 374
+            },
+            {
+              "score": 40,
+              "left": 334
+            },
+            {
+              "score": 60,
+              "left": 274
+            },
+            {
+              "score": 43,
+              "left": 231
+            },
+            {
+              "score": 45,
+              "left": 186
+            },
+            {
+              "score": 82,
+              "left": 104
+            },
+            {
+              "score": 54,
+              "left": 50
+            },
+            {
+              "score": 37,
+              "left": 13
+            },
+            {
+              "score": 0,
+              "left": 13
+            },
+            {
+              "score": 11,
+              "left": 2
+            },
+            {
+              "score": 0,
+              "left": 2
+            },
+            {
+              "score": 0,
+              "left": 2
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 30,
+              "left": 471
+            },
+            {
+              "score": 43,
+              "left": 428
+            },
+            {
+              "score": 40,
+              "left": 388
+            },
+            {
+              "score": 28,
+              "left": 360
+            },
+            {
+              "score": 11,
+              "left": 349
+            },
+            {
+              "score": 65,
+              "left": 284
+            },
+            {
+              "score": 42,
+              "left": 242
+            },
+            {
+              "score": 95,
+              "left": 147
+            },
+            {
+              "score": 48,
+              "left": 99
+            },
+            {
+              "score": 56,
+              "left": 43
+            },
+            {
+              "score": 0,
+              "left": 43
+            },
+            {
+              "score": 27,
+              "left": 16
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758051587,
+        "endTime": 1758051977
+      },
+      {
+        "time": 1758052315888,
+        "first": 1,
+        "currentRound": 9,
+        "currentPlayer": 1,
+        "selectRound": 9,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 60,
+              "left": 441
+            },
+            {
+              "score": 86,
+              "left": 355
+            },
+            {
+              "score": 40,
+              "left": 315
+            },
+            {
+              "score": 60,
+              "left": 255
+            },
+            {
+              "score": 60,
+              "left": 195
+            },
+            {
+              "score": 61,
+              "left": 134
+            },
+            {
+              "score": 118,
+              "left": 16
+            },
+            {
+              "score": 8,
+              "left": 8
+            },
+            {
+              "score": 0,
+              "left": 8
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 43,
+              "left": 458
+            },
+            {
+              "score": 41,
+              "left": 417
+            },
+            {
+              "score": 24,
+              "left": 393
+            },
+            {
+              "score": 13,
+              "left": 380
+            },
+            {
+              "score": 41,
+              "left": 339
+            },
+            {
+              "score": 81,
+              "left": 258
+            },
+            {
+              "score": 81,
+              "left": 177
+            },
+            {
+              "score": 68,
+              "left": 109
+            },
+            {
+              "score": 84,
+              "left": 25
+            },
+            {
+              "score": -3,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758051995,
+        "endTime": 1758052315
+      },
+      {
+        "time": 1758052718452,
+        "first": 0,
+        "currentRound": 12,
+        "currentPlayer": 1,
+        "selectRound": 12,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 66,
+              "left": 435
+            },
+            {
+              "score": 24,
+              "left": 411
+            },
+            {
+              "score": 42,
+              "left": 369
+            },
+            {
+              "score": 41,
+              "left": 328
+            },
+            {
+              "score": 42,
+              "left": 286
+            },
+            {
+              "score": 23,
+              "left": 263
+            },
+            {
+              "score": 41,
+              "left": 222
+            },
+            {
+              "score": 60,
+              "left": 162
+            },
+            {
+              "score": 22,
+              "left": 140
+            },
+            {
+              "score": 37,
+              "left": 103
+            },
+            {
+              "score": 67,
+              "left": 36
+            },
+            {
+              "score": 27,
+              "left": 9
+            },
+            {
+              "score": 0,
+              "left": 9
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 43,
+              "left": 458
+            },
+            {
+              "score": 41,
+              "left": 417
+            },
+            {
+              "score": 9,
+              "left": 408
+            },
+            {
+              "score": 29,
+              "left": 379
+            },
+            {
+              "score": 100,
+              "left": 279
+            },
+            {
+              "score": 43,
+              "left": 236
+            },
+            {
+              "score": 85,
+              "left": 151
+            },
+            {
+              "score": 47,
+              "left": 104
+            },
+            {
+              "score": 48,
+              "left": 56
+            },
+            {
+              "score": 36,
+              "left": 20
+            },
+            {
+              "score": 0,
+              "left": 20
+            },
+            {
+              "score": 0,
+              "left": 20
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758052338,
+        "endTime": 1758052718
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "4a1bc14c_1758051170064",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "WDoS",
+            "opid": "",
+            "oname": "Dennis Felldin"
+          }
+        ],
+        "me": 0,
+        "winSets": 3,
+        "winLegs": 0,
+        "allScore": 1484,
+        "allDarts": 105
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "933d8241_1758051170064",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "s8dT",
+            "opid": "",
+            "oname": "Alessio Tampella"
+          }
+        ],
+        "me": 0,
+        "winSets": 5,
+        "winLegs": 3,
+        "allScore": 1503,
+        "allDarts": 105
+      }
+    ]
+  },
+  {
+    "tdid": "t_jM8s_0341",
+    "lgid": "lg_ml5H_9075",
+    "tmid": "t_jM8s_0341_lg_0_s3n5_TU7N_fQ08",
+    "ttype": "lg",
+    "round": "0_s3n5",
+    "gs_round": 0,
+    "t_no": 0,
+    "mid": "iWRDab6H_1758053270569",
+    "scid": "scid_62ZDoLzm_1758041806131",
+    "scMode": 1,
+    "schid": "j7cj",
+    "exitResult": 0,
+    "autoNext": 0,
+    "startTime": 1758053270,
+    "updateTime": 1758055306524,
+    "title": "Stockholmsserien (2025/2026) - 2A Division 2A AD",
+    "orgTitle": "Stockholmsserien (2025/2026) - 2A Division 2A",
+    "startScore": 501,
+    "roundLimit": 1,
+    "maxRound": 13,
+    "currnetInput": "",
+    "currentSet": 0,
+    "currentLeg": 4,
+    "limitSet": 10,
+    "limitLeg": 3,
+    "drawMode": 0,
+    "endMatch": 1,
+    "viewMode": 0,
+    "relayMode": 1,
+    "tournamentMode": 2,
+    "private": 0,
+    "delete": 0,
+    "legData": [
+      {
+        "time": 1758054056038,
+        "first": 1,
+        "currentRound": 9,
+        "currentPlayer": 0,
+        "selectRound": 9,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 40,
+              "left": 461
+            },
+            {
+              "score": 7,
+              "left": 454
+            },
+            {
+              "score": 100,
+              "left": 354
+            },
+            {
+              "score": 45,
+              "left": 309
+            },
+            {
+              "score": 85,
+              "left": 224
+            },
+            {
+              "score": 85,
+              "left": 139
+            },
+            {
+              "score": 65,
+              "left": 74
+            },
+            {
+              "score": 22,
+              "left": 52
+            },
+            {
+              "score": 32,
+              "left": 20
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 32,
+              "left": 469
+            },
+            {
+              "score": 41,
+              "left": 428
+            },
+            {
+              "score": 41,
+              "left": 387
+            },
+            {
+              "score": 30,
+              "left": 357
+            },
+            {
+              "score": 100,
+              "left": 257
+            },
+            {
+              "score": 7,
+              "left": 250
+            },
+            {
+              "score": 100,
+              "left": 150
+            },
+            {
+              "score": 90,
+              "left": 60
+            },
+            {
+              "score": 30,
+              "left": 30
+            },
+            {
+              "score": 18,
+              "left": 12
+            }
+          ]
+        ],
+        "startTime": 1758053768,
+        "endTime": 1758054056
+      },
+      {
+        "time": 1758054549136,
+        "first": 0,
+        "currentRound": 13,
+        "currentPlayer": 0,
+        "selectRound": 13,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 1,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 41,
+              "left": 460
+            },
+            {
+              "score": 80,
+              "left": 380
+            },
+            {
+              "score": 17,
+              "left": 363
+            },
+            {
+              "score": 79,
+              "left": 284
+            },
+            {
+              "score": 66,
+              "left": 218
+            },
+            {
+              "score": 30,
+              "left": 188
+            },
+            {
+              "score": 58,
+              "left": 130
+            },
+            {
+              "score": 26,
+              "left": 104
+            },
+            {
+              "score": 48,
+              "left": 56
+            },
+            {
+              "score": 17,
+              "left": 39
+            },
+            {
+              "score": 14,
+              "left": 25
+            },
+            {
+              "score": 0,
+              "left": 25
+            },
+            {
+              "score": 17,
+              "left": 8
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 24,
+              "left": 477
+            },
+            {
+              "score": 85,
+              "left": 392
+            },
+            {
+              "score": 45,
+              "left": 347
+            },
+            {
+              "score": 60,
+              "left": 287
+            },
+            {
+              "score": 66,
+              "left": 221
+            },
+            {
+              "score": 41,
+              "left": 180
+            },
+            {
+              "score": 80,
+              "left": 100
+            },
+            {
+              "score": 81,
+              "left": 19
+            },
+            {
+              "score": 0,
+              "left": 19
+            },
+            {
+              "score": 0,
+              "left": 19
+            },
+            {
+              "score": 0,
+              "left": 19
+            },
+            {
+              "score": 11,
+              "left": 8
+            },
+            {
+              "score": 4,
+              "left": 4
+            }
+          ]
+        ],
+        "startTime": 1758054074,
+        "endTime": 1758054549
+      },
+      {
+        "time": 1758054888749,
+        "first": 1,
+        "currentRound": 11,
+        "currentPlayer": 1,
+        "selectRound": 11,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 40,
+              "left": 461
+            },
+            {
+              "score": 30,
+              "left": 431
+            },
+            {
+              "score": 30,
+              "left": 401
+            },
+            {
+              "score": 36,
+              "left": 365
+            },
+            {
+              "score": 81,
+              "left": 284
+            },
+            {
+              "score": 33,
+              "left": 251
+            },
+            {
+              "score": 59,
+              "left": 192
+            },
+            {
+              "score": 22,
+              "left": 170
+            },
+            {
+              "score": 26,
+              "left": 144
+            },
+            {
+              "score": 84,
+              "left": 60
+            },
+            {
+              "score": 40,
+              "left": 20
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 45,
+              "left": 456
+            },
+            {
+              "score": 38,
+              "left": 418
+            },
+            {
+              "score": 100,
+              "left": 318
+            },
+            {
+              "score": 63,
+              "left": 255
+            },
+            {
+              "score": 90,
+              "left": 165
+            },
+            {
+              "score": 79,
+              "left": 86
+            },
+            {
+              "score": 27,
+              "left": 59
+            },
+            {
+              "score": 40,
+              "left": 19
+            },
+            {
+              "score": 3,
+              "left": 16
+            },
+            {
+              "score": 0,
+              "left": 16
+            },
+            {
+              "score": 8,
+              "left": 8
+            },
+            {
+              "score": -1,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758054570,
+        "endTime": 1758054888
+      },
+      {
+        "time": 1758055056899,
+        "first": 0,
+        "currentRound": 5,
+        "currentPlayer": 1,
+        "selectRound": 5,
+        "selectPlayer": 1,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 1,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 25,
+              "left": 476
+            },
+            {
+              "score": 43,
+              "left": 433
+            },
+            {
+              "score": 40,
+              "left": 393
+            },
+            {
+              "score": 85,
+              "left": 308
+            },
+            {
+              "score": 26,
+              "left": 282
+            },
+            {
+              "score": 45,
+              "left": 237
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 83,
+              "left": 418
+            },
+            {
+              "score": 60,
+              "left": 358
+            },
+            {
+              "score": 81,
+              "left": 277
+            },
+            {
+              "score": 83,
+              "left": 194
+            },
+            {
+              "score": 140,
+              "left": 54
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ]
+        ],
+        "startTime": 1758054912,
+        "endTime": 1758055056
+      },
+      {
+        "time": 1758055306524,
+        "first": 1,
+        "currentRound": 7,
+        "currentPlayer": 0,
+        "selectRound": 7,
+        "selectPlayer": 0,
+        "endFlag": 1,
+        "middleForDiddle": 0,
+        "winner": 0,
+        "playerData": [
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 134,
+              "left": 367
+            },
+            {
+              "score": 87,
+              "left": 280
+            },
+            {
+              "score": 36,
+              "left": 244
+            },
+            {
+              "score": 57,
+              "left": 187
+            },
+            {
+              "score": 99,
+              "left": 88
+            },
+            {
+              "score": 19,
+              "left": 69
+            },
+            {
+              "score": 45,
+              "left": 24
+            },
+            {
+              "score": -2,
+              "left": 0
+            }
+          ],
+          [
+            {
+              "score": 0,
+              "left": 501
+            },
+            {
+              "score": 45,
+              "left": 456
+            },
+            {
+              "score": 38,
+              "left": 418
+            },
+            {
+              "score": 28,
+              "left": 390
+            },
+            {
+              "score": 45,
+              "left": 345
+            },
+            {
+              "score": 140,
+              "left": 205
+            },
+            {
+              "score": 22,
+              "left": 183
+            },
+            {
+              "score": 40,
+              "left": 143
+            },
+            {
+              "score": 23,
+              "left": 120
+            }
+          ]
+        ],
+        "startTime": 1758055079,
+        "endTime": 1758055306
+      }
+    ],
+    "statsData": [
+      {
+        "name": "Faster Annas (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "8fb24ce8_1758053531226",
+        "tpid": "TU7N",
+        "order": [
+          {
+            "oid": "EYgd",
+            "opid": "",
+            "oname": "Ted  Åbom"
+          },
+          {
+            "oid": "RXcG",
+            "opid": "",
+            "oname": "Thomas Reher"
+          }
+        ],
+        "me": 0,
+        "winSets": 5,
+        "winLegs": 3,
+        "allScore": 2240,
+        "allDarts": 142
+      },
+      {
+        "name": "AIK Dart (2A)",
+        "tid": "",
+        "sname": "",
+        "fid": "",
+        "gid": "",
+        "country": "",
+        "pid": "56940fe5_1758053531226",
+        "tpid": "fQ08",
+        "order": [
+          {
+            "oid": "jaWY",
+            "opid": "",
+            "oname": "Cevin Svanemar"
+          },
+          {
+            "oid": "s8dT",
+            "opid": "",
+            "oname": "Alessio Tampella"
+          }
+        ],
+        "me": 0,
+        "winSets": 5,
+        "winLegs": 2,
+        "allScore": 2369,
+        "allDarts": 144
+      }
+    ],
+    "endSchedule": 1
+  }
+]

@@ -523,25 +523,25 @@ def get_player_throws(player_name):
             where_conditions = [
                 """(
                     -- Include direct matches for this player, but exclude mapped-away sub-matches
-                    (smp.player_id = ? AND p.name = ? 
+                    (smp.player_id = ? AND p.name = ?
                      AND smp.sub_match_id NOT IN (
-                         SELECT smpm.sub_match_id 
-                         FROM sub_match_player_mappings smpm 
+                         SELECT smpm.sub_match_id
+                         FROM sub_match_player_mappings smpm
                          WHERE smpm.original_player_id = ?
                      )
-                    ) 
-                    OR 
+                    )
+                    OR
                     -- Include sub-matches that are mapped TO this player
                     (smp.sub_match_id IN (
-                        SELECT smpm.sub_match_id 
-                        FROM sub_match_player_mappings smpm 
+                        SELECT smpm.sub_match_id
+                        FROM sub_match_player_mappings smpm
                         WHERE smpm.correct_player_name = ?
                     ) AND smp.player_id IN (
-                        SELECT DISTINCT smpm2.original_player_id 
-                        FROM sub_match_player_mappings smpm2 
+                        SELECT DISTINCT smpm2.original_player_id
+                        FROM sub_match_player_mappings smpm2
                         WHERE smpm2.correct_player_name = ?
                     ))
-                ) AND t.team_number = smp.team_number AND sm.match_type = 'Singles'"""
+                ) AND sm.match_type = 'Singles'"""
             ]
             params = [player_ids[0], player_name, player_ids[0], player_name, player_name]
             
@@ -583,6 +583,7 @@ def get_player_throws(player_name):
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id
                 WHERE {where_clause}
+                AND t.team_number = smp.team_number
                 ORDER BY m.match_date DESC, l.leg_number, t.round_number
             """, params)
             
@@ -690,8 +691,11 @@ def get_player_throws(player_name):
                 'throws': throws[:100],  # Limit to last 100 throws for performance
                 'statistics': statistics
             })
-            
+
     except Exception as e:
+        import traceback
+        print(f"ERROR in get_player_throws for '{player_name}': {str(e)}", flush=True)
+        print(f"Full traceback: {traceback.format_exc()}", flush=True)
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/sub_match/<int:sub_match_id>')
@@ -1076,7 +1080,11 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                         if checkout_result and checkout_result[0] >= 100:
                             high_finishes += 1
                             high_finishes_detail.append(checkout_result[0])
-                
+
+                # Sort details for proper display order
+                short_legs_detail.sort()  # Sort in ascending order
+                high_finishes_detail.sort(reverse=True)  # Sort high finishes in descending order
+
                 return {
                     'total_throws': total_throws,
                     'total_score': total_score,

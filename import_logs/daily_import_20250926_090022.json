@@ -1,0 +1,198 @@
+{
+  "import_id": "20250926_090022",
+  "start_time": "2025-09-26T09:00:22.184006",
+  "end_time": "2025-09-26T09:41:38.403541",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "2025-2026\\t_3VAf_1770_match_urls1FA.txt",
+      "division_id": "t_3VAf_1770",
+      "division_name": "1FA",
+      "status": "success",
+      "matches_imported": 8,
+      "players_processed": 136,
+      "processed_at": "2025-09-26T09:02:30.003456"
+    },
+    {
+      "file": "2025-2026\\t_4epA_9547_match_urls3FA.txt",
+      "division_id": "t_4epA_9547",
+      "division_name": "3FA",
+      "status": "success",
+      "matches_imported": 8,
+      "players_processed": 128,
+      "processed_at": "2025-09-26T09:04:22.626145"
+    },
+    {
+      "file": "2025-2026\\t_5L4C_6247_match_urlsSL4.txt",
+      "division_id": "t_5L4C_6247",
+      "division_name": "SL4",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 196,
+      "processed_at": "2025-09-26T09:07:31.537012"
+    },
+    {
+      "file": "2025-2026\\t_bmWG_5842_match_urls3FC.txt",
+      "division_id": "t_bmWG_5842",
+      "division_name": "3FC",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 203,
+      "processed_at": "2025-09-26T09:10:23.990159"
+    },
+    {
+      "file": "2025-2026\\t_fWIc_3015_match_urls2FB.txt",
+      "division_id": "t_fWIc_3015",
+      "division_name": "2FB",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 204,
+      "processed_at": "2025-09-26T09:13:15.677188"
+    },
+    {
+      "file": "2025-2026\\t_JIvx_1896_match_urls3FE.txt",
+      "division_id": "t_JIvx_1896",
+      "division_name": "3FE",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 200,
+      "processed_at": "2025-09-26T09:16:07.936427"
+    },
+    {
+      "file": "2025-2026\\t_jM8s_0341_match_urls2A.txt",
+      "division_id": "t_jM8s_0341",
+      "division_name": "2A",
+      "status": "success",
+      "matches_imported": 9,
+      "players_processed": 232,
+      "processed_at": "2025-09-26T09:18:44.963719"
+    },
+    {
+      "file": "2025-2026\\t_NcAX_0028_match_urls1FB.txt",
+      "division_id": "t_NcAX_0028",
+      "division_name": "1FB",
+      "status": "success",
+      "matches_imported": 10,
+      "players_processed": 160,
+      "processed_at": "2025-09-26T09:21:19.516068"
+    },
+    {
+      "file": "2025-2026\\t_OFlR_9185_match_urlsSL6.txt",
+      "division_id": "t_OFlR_9185",
+      "division_name": "SL6",
+      "status": "success",
+      "matches_imported": 8,
+      "players_processed": 204,
+      "processed_at": "2025-09-26T09:24:35.152247"
+    },
+    {
+      "file": "2025-2026\\t_rqTc_6259_match_urlsX1.txt",
+      "division_id": "t_rqTc_6259",
+      "division_name": "X1",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 117,
+      "processed_at": "2025-09-26T09:25:51.390075"
+    },
+    {
+      "file": "2025-2026\\t_RY0l_0196_match_urlsX2.txt",
+      "division_id": "t_RY0l_0196",
+      "division_name": "X2",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 117,
+      "processed_at": "2025-09-26T09:27:05.928939"
+    },
+    {
+      "file": "2025-2026\\t_UGYN_2596_match_urls3FD.txt",
+      "division_id": "t_UGYN_2596",
+      "division_name": "3FD",
+      "status": "success",
+      "matches_imported": 8,
+      "players_processed": 136,
+      "processed_at": "2025-09-26T09:29:01.473900"
+    },
+    {
+      "file": "2025-2026\\t_v6Vw_6773_match_urls3FB.txt",
+      "division_id": "t_v6Vw_6773",
+      "division_name": "3FB",
+      "status": "success",
+      "matches_imported": 10,
+      "players_processed": 170,
+      "processed_at": "2025-09-26T09:31:40.101638"
+    },
+    {
+      "file": "2025-2026\\t_Wjxm_8120_match_urls3A.txt",
+      "division_id": "t_Wjxm_8120",
+      "division_name": "3A",
+      "status": "success",
+      "matches_imported": 8,
+      "players_processed": 200,
+      "processed_at": "2025-09-26T09:33:57.522431"
+    },
+    {
+      "file": "2025-2026\\t_xo0C_7058_match_urls2FA.txt",
+      "division_id": "t_xo0C_7058",
+      "division_name": "2FA",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 192,
+      "processed_at": "2025-09-26T09:36:43.273363"
+    },
+    {
+      "file": "2025-2026\\t_XtZU_4873_match_urls2FC.txt",
+      "division_id": "t_XtZU_4873",
+      "division_name": "2FC",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 189,
+      "processed_at": "2025-09-26T09:39:30.794124"
+    },
+    {
+      "file": "2025-2026\\t_Y2RR_6468_match_urls1A.txt",
+      "division_id": "t_Y2RR_6468",
+      "division_name": "1A",
+      "status": "success",
+      "matches_imported": 8,
+      "players_processed": 204,
+      "processed_at": "2025-09-26T09:41:38.401511"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [
+    "Error importing players for sub_match 18741: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18742: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18743: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18744: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18745: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18746: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18747: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18748: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18749: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18768: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18769: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18770: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18771: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18772: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18773: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18774: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18775: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18776: 'SmartSeasonImporter' object has no attribute 'extract_club_name'",
+    "Error importing players for sub_match 18941: 'charmap' codec can't encode character '\\u014d' in position 28: character maps to <undefined>",
+    "Error importing players for sub_match 18943: 'charmap' codec can't encode character '\\u014d' in position 16: character maps to <undefined>"
+  ],
+  "statistics": {
+    "total_files": 17,
+    "successful_files": 17,
+    "failed_files": 0,
+    "total_matches_imported": 157,
+    "total_players_processed": 2988,
+    "auto_matched_high_confidence": 2940,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 48
+  }
+}

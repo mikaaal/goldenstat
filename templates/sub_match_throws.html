@@ -144,14 +144,34 @@ function displayMatchInfo(data) {
         team2_players: team2Players
     };
     
-    // Update the match overview display
+    // Update the match overview display with winner/loser color coding
     const matchOverview = document.getElementById('match-overview');
     if (matchOverview) {
+        // Determine winner - team with more legs wins
+        const team1Won = matchInfo.team1_legs > matchInfo.team2_legs;
+        const team2Won = matchInfo.team2_legs > matchInfo.team1_legs;
+        const isDraw = matchInfo.team1_legs === matchInfo.team2_legs;
+
+        // Set colors based on result
+        const team1Style = team1Won ? 'border-success bg-success bg-opacity-10' :
+                          team2Won ? 'border-danger bg-danger bg-opacity-10' :
+                          'border-warning bg-warning bg-opacity-10';
+        const team1TextColor = team1Won ? 'text-success' :
+                              team2Won ? 'text-danger' :
+                              'text-warning';
+
+        const team2Style = team2Won ? 'border-success bg-success bg-opacity-10' :
+                          team1Won ? 'border-danger bg-danger bg-opacity-10' :
+                          'border-warning bg-warning bg-opacity-10';
+        const team2TextColor = team2Won ? 'text-success' :
+                              team1Won ? 'text-danger' :
+                              'text-warning';
+
         matchOverview.innerHTML = `
             <div class="row text-center mb-4">
                 <div class="col-md-5">
-                    <div class="border border-primary rounded p-3">
-                        <h6 class="text-primary mb-2">${matchInfo.team1_name}</h6>
+                    <div class="border ${team1Style} rounded p-3">
+                        <h6 class="${team1TextColor} mb-2">${matchInfo.team1_name}${team1Won ? ' 🏆' : ''}</h6>
                         <div>${team1Players}</div>
                     </div>
                 </div>
@@ -162,8 +182,8 @@ function displayMatchInfo(data) {
                     </div>
                 </div>
                 <div class="col-md-5">
-                    <div class="border border-danger rounded p-3">
-                        <h6 class="text-danger mb-2">${matchInfo.team2_name}</h6>
+                    <div class="border ${team2Style} rounded p-3">
+                        <h6 class="${team2TextColor} mb-2">${matchInfo.team2_name}${team2Won ? ' 🏆' : ''}</h6>
                         <div>${team2Players}</div>
                     </div>
                 </div>
@@ -219,24 +239,9 @@ function displayThrowData(data) {
     }
 
     const matchInfoHtml = `
-        <div class="text-center mb-3">
-            <div class="badge bg-secondary fs-6 px-3 py-2">${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okänt datum'}</div>
-        </div>
-        <h5 class="card-title mb-3 text-center">📊 ${formatMatchName(matchInfo.match_name, matchInfo.match_type)}</h5>
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="text-center">
-                    <h6 class="text-primary mb-2">${window.matchTeamData.team1_name}</h6>
-                    <div>${makePlayerNameClickable(window.matchTeamData.team1_players)}</div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="text-center">
-                    <h6 class="text-danger mb-2">${window.matchTeamData.team2_name}</h6>
-                    <div>${makePlayerNameClickable(window.matchTeamData.team2_players)}</div>
-                </div>
-            </div>
-            <div class="col-12 text-center"><strong>Resultat:</strong> ${matchInfo.team1_legs}-${matchInfo.team2_legs}</div>
+        <div class="text-center">
+            <span class="badge bg-secondary fs-6 px-3 py-2 me-3">${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okänt datum'}</span>
+            <span class="badge bg-primary fs-6 px-3 py-2">${formatMatchName(matchInfo.match_name, matchInfo.match_type)}</span>
         </div>
     `;
     document.getElementById('match-info').querySelector('.card-body').innerHTML = matchInfoHtml;

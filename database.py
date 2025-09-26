@@ -46,20 +46,90 @@ class DartDatabase:
             )
             return cursor.lastrowid
     
+    def normalize_player_name(self, name: str) -> str:
+        """Normalisera spelarnamn för att förhindra case-variation dubletter"""
+        if not name:
+            return name
+
+        # Lista över klubbförkortningar som INTE ska normaliseras
+        club_abbreviations = {
+            'AC DC', 'ACDC', 'DK Pilo', 'VH Sportbar', 'HMT Dart', 'AIK Dart',
+            'TYO DC', 'SSDC', 'TTVH Dartclub', 'SpikKastarna', 'PK Pilsättarna',
+            'Cobra DC', 'Tyresö DC', 'Mitt i DC', 'Stockholm Bullseye',
+            'Belkin Power', 'Rockhangers', 'Nacka Wermdo', 'Sweden Capital',
+            'Oilers', 'Engelen', 'Bålsta', 'Oasen'
+        }
+
+        # Trimma whitespace
+        normalized = name.strip()
+
+        # Hantera parenteser separat - leta efter mönstret "... (...)"
+        if '(' in normalized and ')' in normalized:
+            # Hitta första parentess-början och sista parentess-slut
+            paren_start = normalized.find('(')
+            paren_end = normalized.rfind(')')
+
+            if paren_start < paren_end:
+                # Dela upp i: före_parenteser + parenteser + efter_parenteser
+                before_paren = normalized[:paren_start].strip()
+                paren_content = normalized[paren_start+1:paren_end]
+                after_paren = normalized[paren_end+1:].strip()
+
+                # Normalisera personnamnet (före parenteser)
+                normalized_before = ' '.join(word.capitalize() for word in before_paren.split() if word)
+
+                # Kontrollera om parentesinnehållet är en känd klubbförkortning
+                normalized_paren = paren_content
+
+                # Kolla om det matchar någon känd klubb (case-insensitive)
+                is_known_club = False
+                for club in club_abbreviations:
+                    if paren_content.lower() == club.lower():
+                        normalized_paren = club  # Behåll originalet
+                        is_known_club = True
+                        break
+
+                if not is_known_club:
+                    # Inte en känd klubb - normalisera som vanligt namn
+                    normalized_paren = ' '.join(word.capitalize() for word in paren_content.split() if word)
+
+                # Normalisera efter-parenteser (om det finns)
+                normalized_after = ' '.join(word.capitalize() for word in after_paren.split() if word)
+
+                # Sätt ihop igen
+                result_parts = []
+                if normalized_before:
+                    result_parts.append(normalized_before)
+                if normalized_paren:
+                    result_parts.append(f"({normalized_paren})")
+                if normalized_after:
+                    result_parts.append(normalized_after)
+
+                return ' '.join(result_parts)
+
+        # Ingen parentess - standard titel-case
+        words = normalized.split()
+        normalized_words = [word.capitalize() for word in words if word]
+
+        return ' '.join(normalized_words)
+
     def get_or_create_player(self, name: str) -> int:
         """Get player ID or create new player if it doesn't exist"""
+        # Normalisera namnet först för att förhindra case-variation dubletter
+        normalized_name = self.normalize_player_name(name)
+
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            
-            # Try to find existing player
-            cursor.execute("SELECT id FROM players WHERE name = ?", (name,))
+
+            # Try to find existing player med normalized namn
+            cursor.execute("SELECT id FROM players WHERE name = ?", (normalized_name,))
             result = cursor.fetchone()
-            
+
             if result:
                 return result[0]
-            
-            # Create new player
-            cursor.execute("INSERT INTO players (name) VALUES (?)", (name,))
+
+            # Create new player med normalized namn
+            cursor.execute("INSERT INTO players (name) VALUES (?)", (normalized_name,))
             return cursor.lastrowid
     
     def insert_match(self, match_data: Dict[str, Any]) -> int:

@@ -1,147 +1,93 @@
 #!/usr/bin/env python3
 """
-Fix player averages by recalculating from match data
+Fixa felaktiga player averages som inte matchar team averages
 """
-import requests
-import json
 import sqlite3
-import sys
-from typing import Optional, Dict, List
 
-class PlayerAverageFixer:
-    def __init__(self, db_path: str = "goldenstat.db"):
-        self.db_path = db_path
-        self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Language': 'en-US,en;q=0.9,sv;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'X-Requested-With': 'XMLHttpRequest'
-        })
+def fix_player_averages():
+    """Fixa player averages för att matcha korrekta team averages"""
+    print("=== FIXAR PLAYER AVERAGES ===")
 
-    def get_player_stats_from_api(self, match_url: str, player_name: str, match_name: str) -> Optional[float]:
-        """Get player average from API statsData for specific sub-match"""
-        try:
-            response = self.session.get(match_url, timeout=15)
-            if response.status_code != 200:
-                return None
-            
-            data = response.json()
-            if not data:
-                return None
-            
-            # Look for the specific sub-match
-            for sub_match in data:
-                # Match by the sub-match title/name
-                if match_name in sub_match.get('title', ''):
-                    stats_data = sub_match.get('statsData', [])
-                    if not isinstance(stats_data, list):
-                        continue
-                        
-                    for team_stats in stats_data:
-                        order = team_stats.get('order', [])
-                        for player_info in order:
-                            if player_info.get('oname') == player_name:
-                                # Calculate average from allScore and allDarts
-                                all_score = team_stats.get('allScore', 0)
-                                all_darts = team_stats.get('allDarts', 0)
-                                if all_darts > 0:
-                                    return (all_score / all_darts) * 3
-            
-            return None
-            
-        except Exception as e:
-            print(f"❌ Error fetching player stats for {player_name}: {str(e)}")
-            return None
+    with sqlite3.connect("goldenstat.db") as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
 
-    def fix_all_player_averages(self, limit: Optional[int] = None):
-        """Fix all player averages in database"""
-        print("🚀 Starting player average fixing...")
-        
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            # Get all sub_match_participants with NULL player_avg, skipping already processed
-            query = """
-                SELECT smp.id, smp.player_id, p.name, m.match_url, sm.match_name
-                FROM sub_match_participants smp
+        # Hitta alla sub_matches där participant averages inte matchar team averages
+        cursor.execute("""
+            SELECT sm.id, sm.team1_avg, sm.team2_avg,
+                   COUNT(CASE WHEN smp.team_number = 1 AND ABS(smp.player_avg - sm.team1_avg) > 0.01 THEN 1 END) as team1_mismatches,
+                   COUNT(CASE WHEN smp.team_number = 2 AND ABS(smp.player_avg - sm.team2_avg) > 0.01 THEN 1 END) as team2_mismatches
+            FROM sub_matches sm
+            JOIN matches m ON sm.match_id = m.id
+            JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+            WHERE m.season IN ('2024/2025', '2025/2026')
+            GROUP BY sm.id, sm.team1_avg, sm.team2_avg
+            HAVING team1_mismatches > 0 OR team2_mismatches > 0
+            ORDER BY sm.id
+        """)
+
+        problematic_subs = cursor.fetchall()
+        print(f"Hittade {len(problematic_subs)} sub_matches med felaktiga player averages")
+
+        fixes_applied = 0
+
+        for sub in problematic_subs:
+            sub_match_id = sub['id']
+            team1_avg = sub['team1_avg']
+            team2_avg = sub['team2_avg']
+
+            print(f"\nFixar sub_match {sub_match_id}:")
+            print(f"  Korrekt team1_avg: {team1_avg}")
+            print(f"  Korrekt team2_avg: {team2_avg}")
+            print(f"  Team1 mismatches: {sub['team1_mismatches']}")
+            print(f"  Team2 mismatches: {sub['team2_mismatches']}")
+
+            # Uppdatera team 1 players
+            cursor.execute("""
+                UPDATE sub_match_participants
+                SET player_avg = ?
+                WHERE sub_match_id = ? AND team_number = 1
+            """, (team1_avg, sub_match_id))
+
+            team1_updated = cursor.rowcount
+
+            # Uppdatera team 2 players
+            cursor.execute("""
+                UPDATE sub_match_participants
+                SET player_avg = ?
+                WHERE sub_match_id = ? AND team_number = 2
+            """, (team2_avg, sub_match_id))
+
+            team2_updated = cursor.rowcount
+
+            print(f"  Uppdaterade {team1_updated} spelare i team 1")
+            print(f"  Uppdaterade {team2_updated} spelare i team 2")
+
+            fixes_applied += 1
+
+        conn.commit()
+        print(f"\n[OK] Fixade player averages i {fixes_applied} sub_matches")
+
+        # Verifiera fix för de specifika sub_matches som nämndes
+        print("\n=== VERIFIERING ===")
+        for sub_match_id in [8321, 8322]:
+            cursor.execute("""
+                SELECT sm.id, sm.team1_avg, sm.team2_avg,
+                       smp.team_number, smp.player_avg, p.name
+                FROM sub_matches sm
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
                 JOIN players p ON smp.player_id = p.id
-                JOIN sub_matches sm ON smp.sub_match_id = sm.id
-                JOIN matches m ON sm.match_id = m.id
-                WHERE smp.player_avg IS NULL
-                ORDER BY smp.id
-            """
-            if limit:
-                query += f" LIMIT {limit}"
-                
-            cursor.execute(query)
-            participants = cursor.fetchall()
-            
-            print(f"📊 Found {len(participants)} participants needing average fixes")
-            
-            if not participants:
-                print("✅ No participants need average fixing")
-                return
-            
-            successful = 0
-            failed = 0
-            
-            for i, (participant_id, player_id, player_name, match_url, match_name) in enumerate(participants, 1):
-                print(f"\\n[{i}/{len(participants)}] Fixing {player_name} in {match_name}...")
-                
-                player_avg = self.get_player_stats_from_api(match_url, player_name, match_name)
-                
-                if player_avg is not None:
-                    # Update player average
-                    cursor.execute(
-                        "UPDATE sub_match_participants SET player_avg = ? WHERE id = ?",
-                        (player_avg, participant_id)
-                    )
-                    successful += 1
-                    print(f"✅ Updated: {player_avg:.2f}")
-                else:
-                    failed += 1
-                    print(f"❌ Failed to get average")
-                
-                # Progress update and commit less frequently
-                if i % 50 == 0:
-                    print(f"\\n📊 Progress: {i}/{len(participants)}")
-                    print(f"   ✅ Successful: {successful}")
-                    print(f"   ❌ Failed: {failed}")
-                    
-                    # Commit progress less frequently to avoid I/O errors
-                    try:
-                        conn.commit()
-                        print(f"   💾 Committed batch at {i}")
-                    except Exception as e:
-                        print(f"   ⚠️  Commit warning: {e}")
-                        # Continue without committing this batch
-            
-            # Final commit with error handling
-            try:
-                conn.commit()
-                print(f"   💾 Final commit successful")
-            except Exception as e:
-                print(f"   ⚠️  Final commit error: {e}")
-                print(f"   📊 Progress saved: {successful} successful updates")
-            
-            print(f"\\n🎉 Player average fixing completed!")
-            print(f"📊 Final statistics: {successful} successful, {failed} failed")
+                WHERE sm.id = ?
+                ORDER BY smp.team_number, p.name
+            """, (sub_match_id,))
 
-def main():
-    limit = None
-    if len(sys.argv) > 1:
-        try:
-            limit = int(sys.argv[1])
-            print(f"🔧 Processing first {limit} participants only")
-        except ValueError:
-            print("Usage: python fix_player_averages.py [limit]")
-            sys.exit(1)
-    
-    fixer = PlayerAverageFixer()
-    fixer.fix_all_player_averages(limit)
+            results = cursor.fetchall()
+            if results:
+                print(f"\nSub_match {sub_match_id}:")
+                for row in results:
+                    expected_avg = row['team1_avg'] if row['team_number'] == 1 else row['team2_avg']
+                    status = "OK" if abs(row['player_avg'] - expected_avg) < 0.01 else "FAIL"
+                    print(f"  {row['name']} (team {row['team_number']}): {row['player_avg']} (förväntat: {expected_avg}) [{status}]")
 
 if __name__ == "__main__":
-    main()
+    fix_player_averages()
