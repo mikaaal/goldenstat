@@ -1424,6 +1424,121 @@ def get_match_legs(match_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/top-matches')
+def get_top_matches():
+    """Get top 10 best matches based on dart averages, short sets, and high finishes"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Get all sub-matches with their statistics
+            cursor.execute("""
+                SELECT DISTINCT
+                    sm.id as sub_match_id,
+                    sm.match_name,
+                    sm.match_type,
+                    sm.team1_legs,
+                    sm.team2_legs,
+                    sm.team1_avg,
+                    sm.team2_avg,
+                    m.match_date,
+                    m.season,
+                    m.division,
+                    t1.name as team1_name,
+                    t2.name as team2_name,
+
+                    -- Calculate combined average
+                    ROUND((COALESCE(sm.team1_avg, 0) + COALESCE(sm.team2_avg, 0)) / 2, 2) as combined_avg,
+
+                    -- Count high finishes (100+ checkout throws)
+                    (SELECT COUNT(DISTINCT t.id)
+                     FROM throws t
+                     JOIN legs l ON t.leg_id = l.id
+                     WHERE l.sub_match_id = sm.id
+                     AND t.remaining_score = 0
+                     AND ABS(t.score) >= 100) as high_finishes,
+
+                    -- Count short sets (legs won in ≤18 darts)
+                    (SELECT COUNT(*)
+                     FROM (
+                         SELECT l.leg_number, SUM(COALESCE(t.darts_used, 3)) as total_darts
+                         FROM legs l
+                         JOIN throws t ON t.leg_id = l.id
+                         WHERE l.sub_match_id = sm.id
+                         AND t.remaining_score = 0
+                         GROUP BY l.leg_number
+                         HAVING total_darts <= 18
+                     )) as short_sets
+
+                FROM sub_matches sm
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE sm.team1_avg IS NOT NULL
+                AND sm.team2_avg IS NOT NULL
+                AND sm.match_type = 'Singles'
+                ORDER BY
+                    (combined_avg * 0.4 + high_finishes * 15 + short_sets * 10) DESC,
+                    combined_avg DESC
+                LIMIT 10
+            """)
+
+            matches = []
+            for row in cursor.fetchall():
+                # Get player names for this sub-match
+                cursor.execute("""
+                    SELECT
+                        p.name as player_name,
+                        smp.team_number,
+                        smp.player_avg
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    WHERE smp.sub_match_id = ?
+                    ORDER BY smp.team_number
+                """, (row['sub_match_id'],))
+
+                participants = cursor.fetchall()
+                team1_players = [p['player_name'] for p in participants if p['team_number'] == 1]
+                team2_players = [p['player_name'] for p in participants if p['team_number'] == 2]
+
+                # Calculate quality score
+                quality_score = (row['combined_avg'] * 0.4 +
+                               row['high_finishes'] * 15 +
+                               row['short_sets'] * 10)
+
+                matches.append({
+                    'sub_match_id': row['sub_match_id'],
+                    'match_name': row['match_name'],
+                    'match_type': row['match_type'],
+                    'match_date': str(row['match_date']),
+                    'season': row['season'],
+                    'division': row['division'],
+                    'team1_name': row['team1_name'],
+                    'team2_name': row['team2_name'],
+                    'team1_players': team1_players,
+                    'team2_players': team2_players,
+                    'team1_legs': row['team1_legs'],
+                    'team2_legs': row['team2_legs'],
+                    'team1_avg': row['team1_avg'],
+                    'team2_avg': row['team2_avg'],
+                    'combined_avg': row['combined_avg'],
+                    'high_finishes': row['high_finishes'],
+                    'short_sets': row['short_sets'],
+                    'quality_score': round(quality_score, 1)
+                })
+
+            return jsonify({
+                'top_matches': matches
+            })
+
+    except Exception as e:
+        import traceback
+        print(f"ERROR in get_top_matches: {str(e)}", flush=True)
+        print(f"Full traceback: {traceback.format_exc()}", flush=True)
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     print("Starting GoldenStat Web Application...")

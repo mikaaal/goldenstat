@@ -60,6 +60,48 @@
     </div>
 </div>
 
+<!-- Top 10 Bästa Matcherna -->
+<div class="row justify-content-center mb-5">
+    <div class="col-md-10 col-lg-9">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-gradient bg-primary text-white">
+                <div class="d-flex align-items-center">
+                    <h5 class="mb-0">🏆 Top 10 Bästa Matcherna Ever</h5>
+                    <small class="ms-auto opacity-75">Baserat på pilsnitt, korta set och höga utgångar</small>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="topMatchesLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Laddar...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Beräknar bästa matcherna...</p>
+                </div>
+                <div id="topMatchesContainer" style="display: none;">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="50">#</th>
+                                    <th>Match</th>
+                                    <th width="80">Snitt</th>
+                                    <th width="80">🔥 Höga</th>
+                                    <th width="80">⚡ Korta</th>
+                                    <th width="80">Poäng</th>
+                                    <th width="100">Datum</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topMatchesTableBody">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Söksektion -->
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
@@ -198,6 +240,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPlayerList();
     loadTeamList();
     loadFilters();
+    loadTopMatches();
     
     // Setup filter change handlers
     document.getElementById('seasonFilter').addEventListener('change', updateFilters);
@@ -272,6 +315,55 @@ async function loadTeamList() {
         allTeams = await response.json();
     } catch (error) {
         console.error('Kunde inte ladda lag:', error);
+    }
+}
+
+async function loadTopMatches() {
+    try {
+        const response = await fetch('/api/top-matches');
+        const data = await response.json();
+
+        const tableBody = document.getElementById('topMatchesTableBody');
+        tableBody.innerHTML = data.top_matches.map((match, index) => {
+            const player1 = match.team1_players[0] || 'Okänd';
+            const player2 = match.team2_players[0] || 'Okänd';
+            const shortDate = new Date(match.match_date).toLocaleDateString('sv-SE');
+
+            // Create click handler for match
+            const clickHandler = `onclick="window.open('/sub_match_throws?sub_match_id=${match.sub_match_id}&player_name=${encodeURIComponent(player1)}', '_blank')"`;
+
+            return `
+                <tr class="table-row-clickable" ${clickHandler} title="Klicka för att se kastomgångar">
+                    <td class="fw-bold text-primary">${index + 1}</td>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} me-2">S</span>
+                            <div>
+                                <div class="fw-semibold">${goldenStat.makePlayerNameClickable(player1, false)} vs ${goldenStat.makePlayerNameClickable(player2, false)}</div>
+                                <small class="text-muted">${match.team1_legs}-${match.team2_legs} | ${match.division}</small>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="fw-bold text-info">${match.combined_avg}</td>
+                    <td class="text-center">
+                        ${match.high_finishes > 0 ? `<span class="badge bg-danger">${match.high_finishes}</span>` : '—'}
+                    </td>
+                    <td class="text-center">
+                        ${match.short_sets > 0 ? `<span class="badge bg-warning">${match.short_sets}</span>` : '—'}
+                    </td>
+                    <td class="fw-bold text-success">${match.quality_score}</td>
+                    <td class="text-muted small">${shortDate}</td>
+                </tr>
+            `;
+        }).join('');
+
+        // Hide loading, show content
+        document.getElementById('topMatchesLoading').style.display = 'none';
+        document.getElementById('topMatchesContainer').style.display = 'block';
+
+    } catch (error) {
+        console.error('Kunde inte ladda top matches:', error);
+        document.getElementById('topMatchesLoading').innerHTML = '<div class="alert alert-danger">Kunde inte ladda bästa matcherna</div>';
     }
 }
 
