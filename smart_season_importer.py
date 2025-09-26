@@ -29,6 +29,48 @@ class SmartSeasonImporter(NewSeasonImporter):
             "errors": []
         }
 
+    def normalize_player_name(self, name: str) -> str:
+        """Normalisera spelarnamn för att förhindra case-variation dubletter"""
+        if not name:
+            return name
+
+        # Trimma whitespace
+        normalized = name.strip()
+
+        # Hantera parenteser separat - leta efter mönstret "... (...)"
+        if '(' in normalized and ')' in normalized:
+            # Hitta första parentess-början och sista parentess-slut
+            paren_start = normalized.find('(')
+            paren_end = normalized.rfind(')')
+
+            if paren_start < paren_end:
+                # Dela upp i: före_parenteser + parenteser + efter_parenteser
+                before_paren = normalized[:paren_start].strip()
+                paren_content = normalized[paren_start+1:paren_end]
+                after_paren = normalized[paren_end+1:].strip()
+
+                # Normalisera varje del
+                normalized_before = ' '.join(word.capitalize() for word in before_paren.split() if word)
+                normalized_paren = ' '.join(word.capitalize() for word in paren_content.split() if word)
+                normalized_after = ' '.join(word.capitalize() for word in after_paren.split() if word)
+
+                # Sätt ihop igen
+                result_parts = []
+                if normalized_before:
+                    result_parts.append(normalized_before)
+                if normalized_paren:
+                    result_parts.append(f"({normalized_paren})")
+                if normalized_after:
+                    result_parts.append(normalized_after)
+
+                return ' '.join(result_parts)
+
+        # Ingen parentess - standard titel-case
+        words = normalized.split()
+        normalized_words = [word.capitalize() for word in words if word]
+
+        return ' '.join(normalized_words)
+
     def import_players_smart(self, sub_match_id: int, stats_data: List[Dict], team1_id: int, team2_id: int, team1_name: str = None, team2_name: str = None):
         """Import players med INTELLIGENT AUTOMATISK mappning - ersätter original import_players"""
         try:
@@ -58,9 +100,12 @@ class SmartSeasonImporter(NewSeasonImporter):
                     if not raw_player_name or raw_player_name == 'Unknown':
                         continue
 
+                    # Normalisera spelarnamnet för att förhindra case-variation dubletter
+                    normalized_player_name = self.normalize_player_name(raw_player_name)
+
                     # 🧠 SMART PLAYER MATCHING - AUTOMATISK, GENERELL
                     final_player_id = self.get_smart_player_id(
-                        raw_player_name,
+                        normalized_player_name,
                         team_name,
                         sub_match_id
                     )
@@ -94,32 +139,18 @@ class SmartSeasonImporter(NewSeasonImporter):
 
         # Specialhantering för case-variationer
         if action == 'case_variation_mapping_needed':
-            # Skapa automatisk mappning enligt etablerat schema
+            # För intelligent import: använd target-spelaren direkt
+            # SKAPA INTE dubbletter under import-processen
             target_player_id = mapping_result['player_id']
-            target_player_name = mapping_result['player_name']
 
-            # Skapa ny spelare för case-varianten om den inte finns
-            incoming_player_id = self.db.get_or_create_player(raw_player_name)
-
-            # Skapa mappning i sub_match_player_mappings enligt schema
-            self.create_case_variation_mapping(
-                sub_match_id,
-                incoming_player_id,
-                target_player_id,
-                target_player_name,
-                raw_player_name
-            )
-
-            self.log_player_action("AUTO_CASE_VARIATION_MAPPED", raw_player_name, mapping_result)
+            self.log_player_action("AUTO_CASE_VARIATION_MATCHED", raw_player_name, mapping_result)
             self.import_log["statistics"]["auto_matched_high_confidence"] += 1
             return target_player_id
 
         elif action == 'first_name_mapping_found':
-            # Använd etablerad förnamn-mappning - skapa mappning för denna sub-match
+            # För intelligent import: använd target-spelaren direkt
+            # SKAPA INTE dubbletter under import-processen
             target_player_name = mapping_result['player_name']
-
-            # Skapa/hitta source player för förnamnet
-            source_player_id = self.db.get_or_create_player(raw_player_name)
 
             # Hitta target player ID baserat på namn
             with sqlite3.connect(self.db.db_path) as conn:
@@ -130,16 +161,7 @@ class SmartSeasonImporter(NewSeasonImporter):
                 if target_result:
                     target_player_id = target_result[0]
 
-                    # Skapa mappning enligt etablerat mönster
-                    self.create_first_name_mapping(
-                        sub_match_id,
-                        source_player_id,
-                        target_player_id,
-                        target_player_name,
-                        raw_player_name
-                    )
-
-                    self.log_player_action("AUTO_FIRST_NAME_MAPPED", raw_player_name, mapping_result)
+                    self.log_player_action("AUTO_FIRST_NAME_MATCHED", raw_player_name, mapping_result)
                     self.import_log["statistics"]["auto_matched_high_confidence"] += 1
                     return target_player_id
                 else:

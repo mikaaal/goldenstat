@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 🤖 AUTOMATISERAD DAGLIG IMPORT FÖR GOLDENSTAT
-🎯 EN STARTPUNKT - PROCESSA ALLA 2025-2026 DIVISIONER AUTOMATISKT
+[DIV] EN STARTPUNKT - PROCESSA ALLA 2025-2026 DIVISIONER AUTOMATISKT
 
 Usage: python daily_import.py
 """
@@ -50,8 +50,8 @@ class AutomatedDailyImport:
             }
         }
 
-        print(f"🚀 STARTAR AUTOMATISERAD DAGLIG IMPORT {self.timestamp}")
-        print(f"📝 Loggfil: {self.log_file}")
+        print(f"[START] STARTAR AUTOMATISERAD DAGLIG IMPORT {self.timestamp}")
+        print(f"[LOG] Loggfil: {self.log_file}")
 
     def run_full_import(self):
         """Kör fullständig automatiserad import av alla 2025-2026 divisioner"""
@@ -60,22 +60,22 @@ class AutomatedDailyImport:
             url_files = list(Path("2025-2026").glob("*_match_urls*.txt"))
 
             if not url_files:
-                print("❌ Inga match-url filer hittades i 2025-2026 katalogen")
+                print("[ERROR] Inga match-url filer hittades i 2025-2026 katalogen")
                 return
 
-            print(f"📁 Hittade {len(url_files)} URL-filer att processa")
+            print(f"[FILES] Hittade {len(url_files)} URL-filer att processa")
             self.import_log["statistics"]["total_files"] = len(url_files)
 
             # Processa varje fil
             for i, url_file in enumerate(url_files, 1):
-                print(f"\\n📂 [{i}/{len(url_files)}] Processar {url_file.name}")
+                print(f"\\n[FILE] [{i}/{len(url_files)}] Processar {url_file.name}")
                 self.process_url_file(url_file)
 
             # Slutför loggen
             self.finalize_import()
 
         except Exception as e:
-            print(f"❌ KRITISKT FEL: {str(e)}")
+            print(f"[ERROR] KRITISKT FEL: {str(e)}")
             print(traceback.format_exc())
             self.import_log["errors"].append(f"Critical error: {str(e)}")
             self.import_log["status"] = "failed"
@@ -87,7 +87,7 @@ class AutomatedDailyImport:
         file_info = self.parse_filename(url_file.name)
 
         try:
-            print(f"  🎯 Division: {file_info['division_id']} ({file_info['division_name']})")
+            print(f"  [DIV] Division: {file_info['division_id']} ({file_info['division_name']})")
 
             # Skapa smart importer
             smart_importer = SmartSeasonImporter("goldenstat.db")
@@ -118,11 +118,11 @@ class AutomatedDailyImport:
             self.import_log["statistics"]["total_matches_imported"] += result.get("matches_imported", 0)
             self.import_log["statistics"]["total_players_processed"] += result.get("players_processed", 0)
 
-            print(f"  ✅ Framgång: {result.get('matches_imported', 0)} matcher, {result.get('players_processed', 0)} spelare")
+            print(f"  [OK] Framgång: {result.get('matches_imported', 0)} matcher, {result.get('players_processed', 0)} spelare")
 
         except Exception as e:
             error_msg = f"Fel vid import av {url_file.name}: {str(e)}"
-            print(f"  ❌ {error_msg}")
+            print(f"  [ERROR] {error_msg}")
 
             # Logga felet
             file_error = {
@@ -158,8 +158,8 @@ class AutomatedDailyImport:
 
         stats = self.import_log["statistics"]
 
-        print(f"\\n🎉 AUTOMATISERAD IMPORT SLUTFÖRD")
-        print(f"📊 STATISTIK:")
+        print(f"\\n[DONE] AUTOMATISERAD IMPORT SLUTFÖRD")
+        print(f"[STATS] STATISTIK:")
         print(f"   • Totalt filer: {stats['total_files']}")
         print(f"   • Framgångsrika: {stats['successful_files']}")
         print(f"   • Misslyckade: {stats['failed_files']}")
@@ -175,12 +175,12 @@ class AutomatedDailyImport:
 
         if self.import_log["errors"]:
             print(f"   • Fel: {len(self.import_log['errors'])}")
-            print("❌ FEL UNDER IMPORT:")
+            print("[ERROR] FEL UNDER IMPORT:")
             for error in self.import_log["errors"][:5]:  # Visa första 5
                 print(f"     • {error}")
 
         self.save_log()
-        print(f"📝 Detaljerad logg sparad: {self.log_file}")
+        print(f"[LOG] Detaljerad logg sparad: {self.log_file}")
 
     def merge_statistics(self, stats: dict):
         """Slå samman statistik från smart importer"""
@@ -202,22 +202,22 @@ class AutomatedDailyImport:
             with open(self.log_file, 'w', encoding='utf-8') as f:
                 json.dump(self.import_log, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print(f"❌ Kunde inte spara logg: {e}")
+            print(f"[ERROR] Kunde inte spara logg: {e}")
 
 
 
 def main():
     """Huvudfunktion - EN STARTPUNKT FÖR ALLT"""
     print("=" * 60)
-    print("🤖 GOLDENSTAT AUTOMATISERAD DAGLIG IMPORT")
-    print("🎯 Processar alla 2025-2026 divisioner automatiskt")
+    print("[ROBOT] GOLDENSTAT AUTOMATISERAD DAGLIG IMPORT")
+    print("[TARGET] Processar alla 2025-2026 divisioner automatiskt")
     print("=" * 60)
 
     # Kör automatiserad import
     importer = AutomatedDailyImport()
     importer.run_full_import()
 
-    print("\\n🏁 IMPORT SLUTFÖRD")
+    print("\\n[FINISH] IMPORT SLUTFÖRD")
 
 
 if __name__ == "__main__":

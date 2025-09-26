@@ -9,7 +9,12 @@
       "Read(//c/Users/K97965/**)",
       "Bash(curl:*)",
       "Bash(dir:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(for file in t_5L4C_6247_match_urlsSL4.txt t_bmWG_5842_match_urls3FC.txt t_fWIc_3015_match_urls2FB.txt)",
+      "Bash(do echo \"=== Importing $file ===\")",
+      "Bash(done)",
+      "Bash(for:*)",
+      "Bash(timeout 120 python single_file_import.py $file)"
     ],
     "deny": [],
     "ask": []
