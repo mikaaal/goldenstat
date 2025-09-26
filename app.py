@@ -604,16 +604,32 @@ def get_player_throws(player_name):
                 scores = [t['score'] for t in dedup_throws if t['score'] > 0]  # For max and ranges
                 
                 # Use player_avg from database to match main stats exactly
-                # Get unique matches and their player_avg values
+                # Get unique matches and their player_avg values, separated by won/lost
                 unique_matches = {}
+                unique_won_matches = {}
+                unique_lost_matches = {}
+
                 for throw in dedup_throws:
                     match_key = f"{throw['match_date']}_{throw['match_name']}"
                     if match_key not in unique_matches and throw['player_avg'] is not None:
                         unique_matches[match_key] = throw['player_avg']
-                
+
+                        # Separate by won/lost status
+                        if throw['won_match'] == 1:
+                            unique_won_matches[match_key] = throw['player_avg']
+                        else:
+                            unique_lost_matches[match_key] = throw['player_avg']
+
                 # Calculate average of player_avg values (same as main stats)
                 match_averages = list(unique_matches.values())
                 avg_score = sum(match_averages) / len(match_averages) if match_averages else 0
+
+                # Calculate separate averages for won and lost matches
+                won_averages = list(unique_won_matches.values())
+                avg_score_won = sum(won_averages) / len(won_averages) if won_averages else 0
+
+                lost_averages = list(unique_lost_matches.values())
+                avg_score_lost = sum(lost_averages) / len(lost_averages) if lost_averages else 0
                 max_score = max(scores) if scores else 0
                 
                 # Count different score ranges
@@ -664,6 +680,10 @@ def get_player_throws(player_name):
                 statistics = {
                     'total_throws': len(dedup_throws),
                     'average_score': round(avg_score, 2),
+                    'average_score_won': round(avg_score_won, 2),
+                    'average_score_lost': round(avg_score_lost, 2),
+                    'won_matches_count': len(won_averages),
+                    'lost_matches_count': len(lost_averages),
                     'max_score': max_score,
                     'score_ranges': score_ranges,
                     'total_checkouts': len(checkouts),

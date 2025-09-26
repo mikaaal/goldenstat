@@ -469,11 +469,24 @@ async function showPlayerStats(stats) {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-6 col-md-3">
-                            <div class="card text-center bg-light h-100">
+                        <div class="col-12 col-md-6">
+                            <div class="card bg-light h-100">
                                 <div class="card-body py-2">
-                                    <h5 class="text-info mb-1">${stats.singles.average_score}</h5>
-                                    <small class="card-text">Snitt-average</small>
+                                    <h6 class="card-title mb-2">Pilsnitt</h6>
+                                    <div class="row g-1 text-center">
+                                        <div class="col-4">
+                                            <h6 class="text-info mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score : stats.singles.average_score}</h6>
+                                            <small class="text-muted">Totalt</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6 class="text-success mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score_won || '—' : '—'}</h6>
+                                            <small class="text-muted">I vinstmatcher</small>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6 class="text-danger mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score_lost || '—' : '—'}</h6>
+                                            <small class="text-muted">I förlustmatcher</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
