@@ -923,8 +923,9 @@ def get_sub_match_player_throws(sub_match_id, player_name):
 
             # Get all throws for both players in this sub-match
             # Filter out starting throw (score=0, remaining_score=501)
+            # Use DISTINCT to eliminate duplicates that may exist in the database
             cursor.execute("""
-                SELECT 
+                SELECT DISTINCT
                     t.score,
                     t.remaining_score,
                     t.darts_used,

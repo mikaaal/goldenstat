@@ -419,8 +419,35 @@ class DartDatabase:
                 
                 if match['match_type'] == 'Singles':
                     match['opponent'] = opponents[0] if opponents else 'Unknown'
+                    match['teammate'] = None
                 else:  # Doubles
                     match['opponent'] = ' + '.join(opponents) if opponents else 'Unknown'
+
+                    # Get teammate for doubles matches (from the same team, excluding the current player)
+                    cursor.execute("""
+                        SELECT p.name as original_name, smp2.player_id
+                        FROM sub_match_participants smp2
+                        JOIN players p ON smp2.player_id = p.id
+                        WHERE smp2.sub_match_id = ? AND smp2.team_number = ? AND smp2.player_id != ?
+                        ORDER BY p.name
+                    """, (match['sub_match_id'], match['team_number'], player_id))
+
+                    teammate_data = cursor.fetchall()
+                    teammates = []
+
+                    for teammate in teammate_data:
+                        # Check for mapping
+                        cursor.execute("""
+                            SELECT correct_player_name
+                            FROM sub_match_player_mappings
+                            WHERE sub_match_id = ? AND original_player_id = ?
+                        """, (match['sub_match_id'], teammate['player_id']))
+
+                        mapping_result = cursor.fetchone()
+                        display_name = mapping_result['correct_player_name'] if mapping_result else teammate['original_name']
+                        teammates.append(display_name)
+
+                    match['teammate'] = teammates[0] if teammates else None
             
             # Calculate summary stats - separate by match type
             singles_matches = [m for m in matches if m['match_type'] == 'Singles']

@@ -649,7 +649,15 @@ async function showPlayerStats(stats) {
                                     <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                                         <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
                                         <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
-                                        <td><small>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))} <span class="text-muted">(${match.opponent_team || match.match_type})</span><br><span class="text-muted" style="font-size: 0.8em;">(${match.player_team}${match.season ? ', ' + match.season : ''}${match.division && match.division !== 'Unknown' ? ', ' + match.division : ''})</span></small></td>
+                                        <td><small>
+                                            ${match.match_type === 'Doubles' && match.teammate ?
+                                                `<div><strong>Du spelade med:</strong> ${goldenStat.makePlayerNameClickable(match.teammate, false)}</div>` :
+                                                ''
+                                            }
+                                            <div><strong>Motståndare:</strong> ${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))}</div>
+                                            <span class="text-muted">(${match.opponent_team || match.match_type})</span><br>
+                                            <span class="text-muted" style="font-size: 0.8em;">(${match.player_team}${match.season ? ', ' + match.season : ''}${match.division && match.division !== 'Unknown' ? ', ' + match.division : ''})</span>
+                                        </small></td>
                                         <td><small>${match.team1_legs} - ${match.team2_legs}</small></td>
                                         <td><small>${match.player_avg ? match.player_avg.toFixed(2) : 'N/A'}</small></td>
                                         <td>
@@ -873,7 +881,11 @@ function updateMatchesDisplay(matches) {
                                         <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
                                         <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span>
                                     </div>
-                                    <div><strong>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
+                                    ${match.match_type === 'Doubles' && match.teammate ?
+                                        `<div><small><strong>Med:</strong> ${goldenStat.makePlayerNameClickable(match.teammate, false)}</small></div>` :
+                                        ''
+                                    }
+                                    <div><strong>Ni mötte:</strong> ${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))} <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
                                     <div><small class="text-muted" style="font-size: 0.8em;">(${match.player_team}${match.season ? ', ' + match.season : ''}${match.division && match.division !== 'Unknown' ? ', ' + match.division : ''})</small></div>
                                     <div>
                                         <span class="fw-bold">${match.team1_legs} - ${match.team2_legs}</span>
