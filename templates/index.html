@@ -1,37 +1,58 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Filtreringssektion -->
-<div class="row justify-content-center mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body py-2">
-                <div class="row align-items-center">
-                    <div class="col-md-4">
-                        <label for="seasonFilter" class="form-label small mb-1">Säsong</label>
-                        <select id="seasonFilter" class="form-select form-select-sm">
-                            <option value="">Alla säsonger</option>
-                        </select>
-                    </div>
-                    <div class="col-md-8 text-end">
-                        <small class="text-muted" id="filterInfo">Visar data för alla säsonger</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Informationssektion -->
-<div class="row justify-content-center mb-4">
-    <div class="col-md-10 col-lg-8">
-        <div class="alert alert-primary" role="alert">
-            <div class="d-flex align-items-start">
-                <div>
-                    <h6 class="alert-heading mb-2">Statistik för spelade seriematcher (n01darts.com)</h6>
-                    <p class="mb-1"> <strong>Observera:</strong> Jag har försökt mappa alla kombinationer av namn som en spelare registrerat vid matchtillfället för att kunna visa en helhetsbild. </p>
+<div class="row justify-content-center mb-5">
+    <div class="col-md-10 col-lg-9">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="row align-items-center mb-3">
+                    <div class="col-auto">
+                    </div>
+                </div>
+
+                <div class="alert alert-warning alert-dismissible d-flex align-items-center py-2 mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <div class="flex-grow-1">
+                        <p class="text-muted mb-0">Statistik för spelade seriematcher baserat på data från nakka.com</p>
+                        <strong>Betaversion:</strong> Det kan förekomma fel i hur data visas.
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-person-badge text-info me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1 text-info">Namnmappning</h6>
+                                <small class="text-muted">
+                                    Jag har försökt mappa olika namnvarianter för att visa en samlad spelarbild.
+                                    Om ditt namn stavats olika kommer det visas som separata spelare.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-people text-success me-2 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1 text-success">Förnamnsmappning</h6>
+                                <small class="text-muted">
+                                    I många fall när bara förnamn angetts har jag mappat det till klubb,
+                                    t.ex. "Jocke (Oilers)".
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="text-center">
                     <small class="text-muted">
-                        Om ditt namn har ändrats eller stavats olika mellan matcher kan det ändå visas som separata spelare.
+                        <i class="bi bi-tools me-1"></i>
+                        Mappningen förbättras kontinuerligt för bättre noggrannhet
                     </small>
                 </div>
             </div>
@@ -60,12 +81,12 @@
                 
                 <!-- Player search (existing) -->
                 <div id="playerSearchSection">
-                    <h5 class="text-center mb-3">Hitta spelarstatistik</h5>
+                    <h5 class="text-center mb-3">Sök efter spelare</h5>
                 <div class="input-group input-group-lg">
                     <input type="text" 
                            id="playerSearch" 
                            class="form-control" 
-                           placeholder="Skriv spelarens namn..."
+                           placeholder="Namn..."
                            autocomplete="off">
                     <button class="btn btn-primary" type="button" onclick="searchByText()">
                         <i class="bi bi-search">🔍</i> Sök
@@ -87,7 +108,7 @@
                         <input type="text" 
                                id="teamSearch" 
                                class="form-control" 
-                               placeholder="Skriv lagnamn..."
+                               placeholder="Lagnamn..."
                                autocomplete="off">
                         <button class="btn btn-success" type="button" onclick="searchTeamByText()">
                             <i class="bi bi-search">🔍</i> Sök
@@ -99,6 +120,27 @@
                     <div id="teamSearchResultsList" class="mt-3" style="display: none;">
                         <h6 class="text-muted mb-2">Sökresultat:</h6>
                         <div id="teamSearchResultsContent" class="list-group"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtreringssektion för spelare -->
+<div id="playerFilterSection" class="row justify-content-center mt-4" style="display: none;">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <label for="seasonFilter" class="form-label small mb-1">Säsong</label>
+                        <select id="seasonFilter" class="form-select form-select-sm">
+                            <option value="">Alla säsonger</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8 text-end">
+                        <small class="text-muted" id="filterInfo">Visar data för alla säsonger</small>
                     </div>
                 </div>
             </div>
@@ -356,7 +398,8 @@ async function showPlayerStats(stats) {
         </div>
     `;
     
-    // Show the results section
+    // Show the filter section and results section
+    document.getElementById('playerFilterSection').style.display = 'block';
     document.getElementById('playerResultsSection').style.display = 'block';
     
     // Scroll to the results section
@@ -712,12 +755,19 @@ function storeMatchesData(matches) {
 // Filter matches by type
 function filterMatches() {
     const filterValue = document.getElementById('matchTypeFilter').value;
-    
+
     // Apply filter and then current sort
     let filteredMatches = originalMatchesData.slice();
-    
+
     if (filterValue !== 'all') {
-        filteredMatches = filteredMatches.filter(match => match.match_type === filterValue);
+        filteredMatches = filteredMatches.filter(match => {
+            // For Singles filter: exclude AD (Avgörande Dubbel) matches
+            if (filterValue === 'Singles') {
+                return match.match_type === 'Singles' && !(match.match_name && match.match_name.includes(' AD'));
+            }
+            // For Doubles filter: include all Doubles (including AD)
+            return match.match_type === filterValue;
+        });
     }
     
     // Apply current sort order
@@ -732,12 +782,19 @@ function filterMatches() {
 function sortMatches() {
     const sortOrder = document.getElementById('matchSortOrder').value;
     const filterValue = document.getElementById('matchTypeFilter').value;
-    
+
     // Apply current filter first
     let filteredMatches = originalMatchesData.slice();
-    
+
     if (filterValue !== 'all') {
-        filteredMatches = filteredMatches.filter(match => match.match_type === filterValue);
+        filteredMatches = filteredMatches.filter(match => {
+            // For Singles filter: exclude AD (Avgörande Dubbel) matches
+            if (filterValue === 'Singles') {
+                return match.match_type === 'Singles' && !(match.match_name && match.match_name.includes(' AD'));
+            }
+            // For Doubles filter: include all Doubles (including AD)
+            return match.match_type === filterValue;
+        });
     }
     
     // Apply sort
@@ -955,7 +1012,8 @@ function showTeamLineup(data) {
     document.getElementById('teamResultsSection').style.display = 'block';
     document.getElementById('teamResultsTitle').textContent = `${data.team_name} - Trolig uppställning`;
     
-    // Hide player results if showing
+    // Hide player results and filter if showing
+    document.getElementById('playerFilterSection').style.display = 'none';
     document.getElementById('playerResultsSection').style.display = 'none';
     
     document.getElementById('teamResultsBody').innerHTML = `
@@ -1087,6 +1145,7 @@ function clearTeamResults() {
 
 // Funktion för att rensa spelarresultat
 function clearPlayerResults() {
+    document.getElementById('playerFilterSection').style.display = 'none';
     document.getElementById('playerResultsSection').style.display = 'none';
     document.getElementById('playerResultsBody').innerHTML = '';
     document.getElementById('searchResultsList').style.display = 'none';

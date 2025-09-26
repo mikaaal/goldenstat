@@ -583,6 +583,7 @@ def get_player_throws(player_name):
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id
                 WHERE {where_clause}
+                AND t.team_number = smp.team_number
                 ORDER BY m.match_date DESC, l.leg_number, t.round_number
             """, params)
             
@@ -1079,7 +1080,11 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                         if checkout_result and checkout_result[0] >= 100:
                             high_finishes += 1
                             high_finishes_detail.append(checkout_result[0])
-                
+
+                # Sort details for proper display order
+                short_legs_detail.sort()  # Sort in ascending order
+                high_finishes_detail.sort(reverse=True)  # Sort high finishes in descending order
+
                 return {
                     'total_throws': total_throws,
                     'total_score': total_score,
