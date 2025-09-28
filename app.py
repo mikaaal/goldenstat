@@ -1424,6 +1424,124 @@ def get_match_legs(match_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/player/<int:player_id>/memorable-matches')
+def get_memorable_matches(player_id):
+    """Hämta de tre mest minnesvärda matcherna för en spelare baserat på pilsnitt, korta set och höga utgångar"""
+    try:
+        with sqlite3.connect("goldenstat.db") as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Hämta alla singelmatcher för spelaren med detaljerad statistik
+            cursor.execute("""
+                SELECT DISTINCT
+                    sm.id as sub_match_id,
+                    sm.match_id,
+                    m.match_date as date,
+                    m.season,
+                    m.division,
+                    home_team.name as home_team,
+                    away_team.name as away_team,
+                    smp.team_number,
+                    sm.team1_legs,
+                    sm.team2_legs,
+                    CASE
+                        WHEN smp.team_number = 1 THEN away_team.name
+                        ELSE home_team.name
+                    END as opponent_team,
+                    CASE
+                        WHEN (smp.team_number = 1 AND sm.team1_legs > sm.team2_legs)
+                          OR (smp.team_number = 2 AND sm.team2_legs > sm.team1_legs) THEN 1
+                        ELSE 0
+                    END as won_match
+                FROM sub_matches sm
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams home_team ON m.team1_id = home_team.id
+                JOIN teams away_team ON m.team2_id = away_team.id
+                WHERE smp.player_id = ? AND sm.match_type = 'Singles'
+                ORDER BY m.match_date DESC
+            """, (player_id,))
+
+            matches = cursor.fetchall()
+            memorable_matches = []
+
+            for match in matches:
+                sub_match_id = match['sub_match_id']
+
+                # Hämta kastdata för denna match
+                cursor.execute("""
+                    SELECT DISTINCT
+                        t.score,
+                        t.remaining_score,
+                        t.leg_id,
+                        t.round_number
+                    FROM throws t
+                    JOIN legs l ON t.leg_id = l.id
+                    JOIN sub_match_participants smp ON l.sub_match_id = smp.sub_match_id
+                    WHERE l.sub_match_id = ? AND smp.player_id = ? AND t.team_number = smp.team_number
+                    ORDER BY t.leg_id, t.round_number
+                """, (sub_match_id, player_id))
+
+                throws = cursor.fetchall()
+
+                if not throws:
+                    continue
+
+                # Beräkna statistik för denna match
+                total_score = sum(t['score'] for t in throws)
+                total_throws = len(throws)
+                average_score = total_score / total_throws if total_throws > 0 else 0
+
+                # Räkna höga utgångar (100+)
+                high_finishes = len([t for t in throws if t['remaining_score'] == 0 and t['score'] >= 100])
+
+                # Räkna korta set (≤18 kast per leg)
+                leg_throws = {}
+                for throw in throws:
+                    leg_id = throw['leg_id']
+                    if leg_id not in leg_throws:
+                        leg_throws[leg_id] = 0
+                    leg_throws[leg_id] += 1
+
+                short_sets = sum(1 for count in leg_throws.values() if count <= 18)
+
+                # Beräkna "minnesvärdhet" - kombinera pilsnitt, korta set och höga utgångar
+                # Normalisera värdena och ge dem vikter
+                memorability_score = (
+                    (average_score / 50.0) * 0.4 +  # Pilsnitt (normaliserat mot 50)
+                    (short_sets * 2.0) * 0.3 +       # Korta set (2 poäng per kort set)
+                    (high_finishes * 3.0) * 0.3      # Höga utgångar (3 poäng per hög utgång)
+                )
+
+                memorable_matches.append({
+                    'sub_match_id': sub_match_id,
+                    'match_id': match['match_id'],
+                    'date': match['date'],
+                    'season': match['season'],
+                    'division': match['division'],
+                    'home_team': match['home_team'],
+                    'away_team': match['away_team'],
+                    'opponent_team': match['opponent_team'],
+                    'won_match': bool(match['won_match']),
+                    'average_score': round(average_score, 2),
+                    'high_finishes': high_finishes,
+                    'short_sets': short_sets,
+                    'memorability_score': round(memorability_score, 2),
+                    'total_throws': total_throws
+                })
+
+            # Sortera efter minnesvärdhet och ta de tre bästa
+            memorable_matches.sort(key=lambda x: x['memorability_score'], reverse=True)
+            top_3_matches = memorable_matches[:3]
+
+            return jsonify({
+                'memorable_matches': top_3_matches
+            })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     print("Starting GoldenStat Web Application...")

@@ -471,6 +471,7 @@ class DartDatabase:
             doubles_losses = doubles_total - doubles_wins
             
             return {
+                'player_id': player_id,
                 'player_name': player_name,
                 'total_matches': total_matches,
                 'wins': wins,
