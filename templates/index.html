@@ -436,7 +436,7 @@ async function showPlayerStats(stats) {
                 <div class="alert alert-info alert-sm mb-3" role="alert">
                     <div class="d-flex align-items-center">
                         <span class="me-2">💡</span>
-                        <small><strong>Tips:</strong> Klicka på "Matcher"-korten nedan eller växla till fliken "Matcher" för att se alla spelade matcher. Klicka sedan på en matchrad för detaljerade kastomgångar.</small>
+                        <small><strong>Tips:</strong>Klicka på "Matcher"-korten nedan eller växla till fliken "Matcher" för att se alla spelade matcher. Klicka sedan på en matchrad för detaljerade kastomgångar.</small>
                     </div>
                 </div>
                 
@@ -444,12 +444,31 @@ async function showPlayerStats(stats) {
                 <div class="mb-3">
                     <h6 class="text-muted mb-2">🎯 Singlar</h6>
                     <div class="row g-2">
-                        <div class="col-6 col-md-3">
-                            <div class="card text-center bg-light h-100 card-clickable" onclick="switchToMatchesTab()" style="cursor: pointer;" title="Klicka för att se alla matcher">
+                        <div class="col-12 col-md-6">
+                            <div class="card bg-light h-100 card-clickable" onclick="switchToMatchesTab()" style="cursor: pointer;" title="Klicka för att se alla matcher">
                                 <div class="card-body py-2">
-                                    <h5 class="text-primary mb-1">${stats.singles.total_matches}</h5>
-                                    <small class="card-text">Matcher</small>
-                                    <div><small class="text-muted">📋 Visa alla</small></div>
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="card-title mb-0">🎯 Matcher & Pilsnitt</h6>
+                                        <small class="text-muted">📋 Visa alla</small>
+                                    </div>
+                                    <div class="row g-2 text-center">
+                                        <div class="col-3">
+                                            <h6 class="text-primary mb-0">${stats.singles.total_matches}</h6>
+                                            <small class="text-muted">Matcher</small>
+                                        </div>
+                                        <div class="col-3">
+                                            <h6 class="text-info mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score : stats.singles.average_score}</h6>
+                                            <small class="text-muted">Totalt</small>
+                                        </div>
+                                        <div class="col-3">
+                                            <h6 class="text-success mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score_won || '—' : '—'}</h6>
+                                            <small class="text-muted">Vunna</small>
+                                        </div>
+                                        <div class="col-3">
+                                            <h6 class="text-danger mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score_lost || '—' : '—'}</h6>
+                                            <small class="text-muted">Förlorade</small>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -466,27 +485,6 @@ async function showPlayerStats(stats) {
                                 <div class="card-body py-2">
                                     <h5 class="text-warning mb-1">${stats.singles.win_percentage.toFixed(1)}%</h5>
                                     <small class="card-text">Vinstprocent</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <div class="card bg-light h-100">
-                                <div class="card-body py-2">
-                                    <h6 class="card-title mb-2">Pilsnitt</h6>
-                                    <div class="row g-1 text-center">
-                                        <div class="col-4">
-                                            <h6 class="text-info mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score : stats.singles.average_score}</h6>
-                                            <small class="text-muted">Totalt</small>
-                                        </div>
-                                        <div class="col-4">
-                                            <h6 class="text-success mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score_won || '—' : '—'}</h6>
-                                            <small class="text-muted">I vinstmatcher</small>
-                                        </div>
-                                        <div class="col-4">
-                                            <h6 class="text-danger mb-0">${throwData && throwData.statistics ? throwData.statistics.average_score_lost || '—' : '—'}</h6>
-                                            <small class="text-muted">I förlustmatcher</small>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -605,7 +603,8 @@ async function showPlayerStats(stats) {
                         </div>
                     </div>
                 </div>
-                
+
+
             </div>
             <!-- Matcherflik -->
             <div class="tab-pane fade" id="matches" role="tabpanel">
@@ -688,6 +687,10 @@ async function showPlayerStats(stats) {
                                                     <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
                                                     <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span>
                                                 </div>
+                                                ${match.match_type === 'Doubles' && match.teammate ?
+                                                    `<div><small><strong>Med:</strong> ${goldenStat.makePlayerNameClickable(match.teammate, false)}</small></div>` :
+                                                    ''
+                                                }
                                                 <div><strong>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles'))}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
                                                 <div><small class="text-muted" style="font-size: 0.8em;">(${match.player_team}${match.season ? ', ' + match.season : ''}${match.division && match.division !== 'Unknown' ? ', ' + match.division : ''})</small></div>
                                                 <div>
@@ -730,6 +733,71 @@ async function showPlayerStats(stats) {
         const positionStats = goldenStat.calculateMatchPositions(stats.recent_matches);
         goldenStat.createMatchPositionChart('matchPositionChart', positionStats);
     }, 100);
+}
+
+// Ladda och visa minnesvärda matcher
+async function loadMemorableMatches(playerId) {
+    try {
+        const response = await fetch(`/api/player/${playerId}/memorable-matches`);
+        const data = await response.json();
+
+        if (response.ok && data.memorable_matches && data.memorable_matches.length > 0) {
+            displayMemorableMatches(data.memorable_matches);
+            document.getElementById('memorableMatchesSection').style.display = 'block';
+        } else {
+            // Dölj sektionen om inga matcher finns
+            document.getElementById('memorableMatchesSection').style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Fel vid hämtning av minnesvärda matcher:', error);
+        document.getElementById('memorableMatchesSection').style.display = 'none';
+    }
+}
+
+// Visa minnesvärda matcher
+function displayMemorableMatches(matches) {
+    const container = document.getElementById('memorableMatchesList');
+
+    if (!matches || matches.length === 0) {
+        container.innerHTML = '<div class="text-muted text-center py-3">Inga minnesvärda matcher hittades</div>';
+        return;
+    }
+
+    const matchItems = matches.map((match, index) => {
+        const date = new Date(match.date).toLocaleDateString('sv-SE');
+        const resultIcon = match.won_match ? '🟢' : '🔴';
+        const resultText = match.won_match ? 'Vinst' : 'Förlust';
+
+        // Skapa statistikikoner
+        const stats = [];
+        if (match.average_score >= 45) stats.push(`🎯 ${match.average_score}`);
+        if (match.short_sets > 0) stats.push(`⚡ ${match.short_sets} kort set`);
+        if (match.high_finishes > 0) stats.push(`🔥 ${match.high_finishes} hög utgång`);
+
+        const statsText = stats.length > 0 ? stats.join(' • ') : 'Bra prestanda';
+
+        return `
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-start"
+                 style="cursor: pointer;" onclick="showSubMatchThrows(${match.sub_match_id})">
+                <div class="ms-2 me-auto">
+                    <div class="d-flex align-items-center mb-1">
+                        <span class="badge bg-primary rounded-pill me-2">#${index + 1}</span>
+                        <div class="fw-bold">${match.opponent_team}</div>
+                        <span class="ms-2">${resultIcon} ${resultText}</span>
+                    </div>
+                    <small class="text-muted d-block">${date} • ${match.season || 'Okänd säsong'}</small>
+                    <small class="text-info">${statsText}</small>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-warning text-dark" title="Minnesvärdighetspoäng">
+                        ${match.memorability_score}
+                    </span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = matchItems;
 }
 
 // Hantera Enter-tangent i sökning
