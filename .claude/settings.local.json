@@ -14,7 +14,8 @@
       "Bash(do echo \"=== Importing $file ===\")",
       "Bash(done)",
       "Bash(for:*)",
-      "Bash(timeout 120 python single_file_import.py $file)"
+      "Bash(timeout 120 python single_file_import.py $file)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

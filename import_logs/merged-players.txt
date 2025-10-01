@@ -1,0 +1,60 @@
+Ted �bom (3 kopior)
+       ID 298: 47 matcher
+       ID 1240: 15 matcher
+       ID 1465: 5 matcher
+
+     Alessio Tampella (2 kopior)
+       ID 16: 50 matcher
+       ID 1981: 24 matcher
+
+     Benny �stlund (2 kopior)
+       ID 1117: 42 matcher
+       ID 1507: 25 matcher
+
+     Christer �gren (2 kopior)
+       ID 1320: 4 matcher
+       ID 1852: 41 matcher
+
+     Gustav �str�m (2 kopior)
+       ID 362: 29 matcher
+       ID 1057: 7 matcher
+
+     Kim �rnfj�rd (2 kopior)
+       ID 992: 2 matcher
+       ID 1063: 29 matcher
+
+     Magda Kuhl (2 kopior)
+       ID 281: 30 matcher
+       ID 2407: 3 matcher
+
+     Martin Ross-langley (2 kopior)
+       ID 20: 13 matcher
+       ID 1985: 11 matcher
+
+     Patrik �brink (2 kopior)
+       ID 207: 6 matcher
+       ID 1765: 14 matcher
+
+     Peo �kergren (2 kopior)
+       ID 439: 12 matcher
+       ID 445: 72 matcher
+
+     Per �sterberg (2 kopior)
+       ID 1027: 39 matcher
+       ID 2008: 28 matcher
+
+     Ricky Dun�r (2 kopior)
+       ID 180: 4 matcher
+       ID 1251: 98 matcher
+
+     Robert Kaliszczak (2 kopior)
+       ID 1588: 18 matcher
+       ID 1999: 22 matcher
+
+     Sebastian Caris (Mitt i DC) (2 kopior)
+       ID 192: 80 matcher [HAR 39 MAPPNINGAR]
+       ID 2331: 0 matcher [HAR 37 MAPPNINGAR]
+
+     Stefan �gren (2 kopior)
+       ID 910: 34 matcher
+       ID 2370: 3 matcher

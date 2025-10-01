@@ -71,6 +71,14 @@ class SmartSeasonImporter(NewSeasonImporter):
 
         return ' '.join(normalized_words)
 
+    def extract_club_name(self, team_name: str) -> str:
+        """Extract club name from 'Club (Division)' format"""
+        if not team_name:
+            return ""
+        if '(' in team_name:
+            return team_name.split('(')[0].strip()
+        return team_name.strip()
+
     def import_players_smart(self, sub_match_id: int, stats_data: List[Dict], team1_id: int, team2_id: int, team1_name: str = None, team2_name: str = None):
         """Import players med INTELLIGENT AUTOMATISK mappning - ersätter original import_players"""
         try:

@@ -513,11 +513,14 @@ def get_player_throws(player_name):
             
             # Get player ID and build query with sub-match mappings
             player_ids = get_effective_player_ids(cursor, player_name)
-            
+
             if not player_ids:
                 return jsonify({'error': 'Player not found'}), 404
-                
-            print(f"DEBUG: Found player ID for '{player_name}': {player_ids[0]}", flush=True)
+
+            try:
+                print(f"DEBUG: Found player ID for '{player_name}': {player_ids[0]}", flush=True)
+            except (OSError, UnicodeEncodeError):
+                print(f"DEBUG: Found player ID: {player_ids[0]}", flush=True)
             
             # Build WHERE clause that handles sub-match mappings correctly
             where_conditions = [
@@ -714,7 +717,10 @@ def get_player_throws(player_name):
 
     except Exception as e:
         import traceback
-        print(f"ERROR in get_player_throws for '{player_name}': {str(e)}", flush=True)
+        try:
+            print(f"ERROR in get_player_throws for '{player_name}': {str(e)}", flush=True)
+        except (OSError, UnicodeEncodeError):
+            print(f"ERROR in get_player_throws: {str(e)}", flush=True)
         print(f"Full traceback: {traceback.format_exc()}", flush=True)
         return jsonify({'error': str(e)}), 500
 
