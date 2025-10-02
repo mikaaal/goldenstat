@@ -1,6 +1,31 @@
 {% extends "base.html" %}
 
+{% block sticky_tabs %}
+<!-- Sticky Tab Navigation -->
+<div class="sticky-tabs">
+    <div class="container">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="players-main-tab" data-bs-toggle="tab" data-bs-target="#players-tab-content" type="button" role="tab">
+                    🎯 Spelare
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="teams-main-tab" data-bs-toggle="tab" data-bs-target="#teams-tab-content" type="button" role="tab">
+                    👥 Lag
+                </button>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
+
+<!-- Tab Content -->
+<div class="tab-content" id="mainTabContent">
+    <!-- Players Tab -->
+    <div class="tab-pane fade show active" id="players-tab-content" role="tabpanel">
 
 <!-- Informationssektion -->
 <div class="row justify-content-center mb-5">
@@ -60,67 +85,31 @@
     </div>
 </div>
 
-<!-- Söksektion -->
+<!-- Söksektion för spelare -->
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <div class="card shadow-lg">
             <div class="card-body p-4">
-                <!-- Search type tabs -->
-                <ul class="nav nav-pills nav-fill mb-4" id="searchTypeTabs">
-                    <li class="nav-item">
-                        <button class="nav-link active" id="player-search-tab" onclick="switchSearchType('player')">
-                            🎯 Sök Spelare
-                        </button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link" id="team-search-tab" onclick="switchSearchType('team')">
-                            👥 Sök Lag
-                        </button>
-                    </li>
-                </ul>
-                
-                <!-- Player search (existing) -->
-                <div id="playerSearchSection">
-                    <h5 class="text-center mb-3">Sök efter spelare</h5>
+                <h5 class="text-center mb-3">Sök efter spelare</h5>
                 <div class="input-group input-group-lg">
-                    <input type="text" 
-                           id="playerSearch" 
-                           class="form-control" 
+                    <input type="text"
+                           id="playerSearch"
+                           class="form-control"
                            placeholder="Namn..."
                            autocomplete="off">
+                    <button class="btn btn-outline-secondary" type="button" onclick="clearPlayerSearch()" id="clearPlayerBtn" style="display: none;">
+                        ✕
+                    </button>
                     <button class="btn btn-primary" type="button" onclick="searchByText()">
-                        <i class="bi bi-search">🔍</i> Sök
+                        🔍 Sök
                     </button>
                 </div>
                 <div id="searchSuggestions" class="list-group mt-2" style="display: none; position: relative; z-index: 1050;"></div>
-                
+
                 <!-- Search Results List (for text search) -->
                 <div id="searchResultsList" class="mt-3" style="display: none;">
                     <h6 class="text-muted mb-2">Sökresultat:</h6>
                     <div id="searchResultsContent" class="list-group"></div>
-                </div>
-                </div>
-                
-                <!-- Team search (new) -->
-                <div id="teamSearchSection" style="display: none;">
-                    <h5 class="text-center mb-3">Hitta laguppställning</h5>
-                    <div class="input-group input-group-lg">
-                        <input type="text" 
-                               id="teamSearch" 
-                               class="form-control" 
-                               placeholder="Lagnamn..."
-                               autocomplete="off">
-                        <button class="btn btn-success" type="button" onclick="searchTeamByText()">
-                            <i class="bi bi-search">🔍</i> Sök
-                        </button>
-                    </div>
-                    <div id="teamSearchSuggestions" class="list-group mt-2" style="display: none; position: relative; z-index: 1050;"></div>
-                    
-                    <!-- Team Search Results List -->
-                    <div id="teamSearchResultsList" class="mt-3" style="display: none;">
-                        <h6 class="text-muted mb-2">Sökresultat:</h6>
-                        <div id="teamSearchResultsContent" class="list-group"></div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -181,6 +170,81 @@
         </div>
     </div>
 </div>
+
+    </div>
+    <!-- End Players Tab -->
+
+    <!-- Teams Tab -->
+    <div class="tab-pane fade" id="teams-tab-content" role="tabpanel">
+
+        <!-- Informationssektion för lag -->
+        <div class="row justify-content-center mb-5 mt-4">
+            <div class="col-md-10 col-lg-9">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4">
+                        <h5 class="text-center mb-3">👥 Lagsökning</h5>
+                        <p class="text-muted text-center">
+                            Hitta trolig laguppställning baserat på tidigare matcher
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Söksektion för lag -->
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-lg">
+                    <div class="card-body p-4">
+                        <h5 class="text-center mb-3">Hitta laguppställning</h5>
+                        <div class="input-group input-group-lg">
+                            <input type="text"
+                                   id="teamSearch"
+                                   class="form-control"
+                                   placeholder="Lagnamn..."
+                                   autocomplete="off">
+                            <button class="btn btn-outline-secondary" type="button" onclick="clearTeamSearch()" id="clearTeamBtn" style="display: none;">
+                                ✕
+                            </button>
+                            <button class="btn btn-success" type="button" onclick="searchTeamByText()">
+                                🔍 Sök
+                            </button>
+                        </div>
+                        <div id="teamSearchSuggestions" class="list-group mt-2" style="display: none; position: relative; z-index: 1050;"></div>
+
+                        <!-- Team Search Results List -->
+                        <div id="teamSearchResultsList" class="mt-3" style="display: none;">
+                            <h6 class="text-muted mb-2">Sökresultat:</h6>
+                            <div id="teamSearchResultsContent" class="list-group"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lagresultatsektion i lagfliken -->
+        <div id="teamResultsSectionTab" class="row justify-content-center mt-4" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0" id="teamResultsTitleTab">Laguppställning</h5>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearTeamResults()">
+                            <i class="bi bi-x-lg"></i> Stäng
+                        </button>
+                    </div>
+                    <div class="card-body" id="teamResultsBodyTab">
+                        <!-- Team lineup will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- End Teams Tab -->
+
+</div>
+<!-- End Tab Content -->
+
 {% endblock %}
 
 {% block scripts %}
@@ -191,7 +255,6 @@ let currentFilters = {
     season: ''
 };
 let allTeams = [];
-let currentSearchType = 'player';
 
 // Load player list on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -199,17 +262,24 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTeamList();
     loadFilters();
     loadLastImport();
-    
-    // Setup filter change handlers
-    document.getElementById('seasonFilter').addEventListener('change', updateFilters);
-    
-    // Check for URL parameter for automatic player search
+
+    // Check URL parameters
     const urlParams = new URLSearchParams(window.location.search);
+
+    // Check if we should activate teams tab from URL
+    if (urlParams.get('tab') === 'teams') {
+        document.getElementById('teams-main-tab').click();
+    }
+
+    // Check for URL parameter for automatic player search
     const playerParam = urlParams.get('player');
     if (playerParam) {
         document.getElementById('playerSearch').value = playerParam;
         searchPlayer();
     }
+
+    // Setup filter change handlers
+    document.getElementById('seasonFilter').addEventListener('change', updateFilters);
 });
 
 async function loadFilters() {
@@ -269,20 +339,48 @@ async function loadPlayerList() {
 
 async function loadTeamList() {
     try {
-        const response = await fetch('/api/teams');
+        const response = await fetch('/api/teams', {
+            cache: 'no-cache'  // Disable cache
+        });
         allTeams = await response.json();
+        console.log(`Loaded ${allTeams.length} teams from API`);
+
+        // Debug: Show some Dartanjang teams
+        const dartanjangTeams = allTeams.filter(t => t.includes('Dartanjang'));
+        console.log('Dartanjang teams:', dartanjangTeams);
     } catch (error) {
         console.error('Kunde inte ladda lag:', error);
     }
 }
 
+// Clear player search
+function clearPlayerSearch() {
+    document.getElementById('playerSearch').value = '';
+    document.getElementById('clearPlayerBtn').style.display = 'none';
+    document.getElementById('searchSuggestions').style.display = 'none';
+    document.getElementById('searchResultsList').style.display = 'none';
+    clearPlayerResults();
+}
+
+// Clear team search
+function clearTeamSearch() {
+    document.getElementById('teamSearch').value = '';
+    document.getElementById('clearTeamBtn').style.display = 'none';
+    document.getElementById('teamSearchSuggestions').style.display = 'none';
+    document.getElementById('teamSearchResultsList').style.display = 'none';
+    clearTeamResults();
+}
+
 // Sökfunktionalitet
 document.getElementById('playerSearch').addEventListener('input', function(e) {
     const query = e.target.value.toLowerCase();
-    
+
+    // Show/hide clear button
+    document.getElementById('clearPlayerBtn').style.display = query.length > 0 ? 'block' : 'none';
+
     // Hide search results list when typing
     document.getElementById('searchResultsList').style.display = 'none';
-    
+
     if (query.length < 2) {
         document.getElementById('searchSuggestions').style.display = 'none';
         return;
@@ -986,30 +1084,17 @@ function updateMatchesDisplay(matches) {
     }
 }
 
-// Switch between search types
-function switchSearchType(type) {
-    currentSearchType = type;
-    
-    // Update tab appearance
-    document.getElementById('player-search-tab').classList.toggle('active', type === 'player');
-    document.getElementById('team-search-tab').classList.toggle('active', type === 'team');
-    
-    // Show/hide search sections
-    document.getElementById('playerSearchSection').style.display = type === 'player' ? 'block' : 'none';
-    document.getElementById('teamSearchSection').style.display = type === 'team' ? 'block' : 'none';
-    
-    // Clear previous results
-    clearPlayerResults();
-    clearTeamResults();
-}
 
 // Team search functionality
 document.getElementById('teamSearch').addEventListener('input', function(e) {
     const query = e.target.value.toLowerCase();
-    
+
+    // Show/hide clear button
+    document.getElementById('clearTeamBtn').style.display = query.length > 0 ? 'block' : 'none';
+
     // Hide search results list when typing
     document.getElementById('teamSearchResultsList').style.display = 'none';
-    
+
     if (query.length < 2) {
         document.getElementById('teamSearchSuggestions').style.display = 'none';
         return;
@@ -1109,15 +1194,11 @@ async function searchTeam() {
 }
 
 function showTeamLineup(data) {
-    // Show the team results section
-    document.getElementById('teamResultsSection').style.display = 'block';
-    document.getElementById('teamResultsTitle').textContent = `${data.team_name} - Trolig uppställning`;
-    
-    // Hide player results and filter if showing
-    document.getElementById('playerFilterSection').style.display = 'none';
-    document.getElementById('playerResultsSection').style.display = 'none';
-    
-    document.getElementById('teamResultsBody').innerHTML = `
+    // Show the team results section in teams tab
+    document.getElementById('teamResultsSectionTab').style.display = 'block';
+    document.getElementById('teamResultsTitleTab').textContent = `${data.team_name} - Trolig uppställning`;
+
+    document.getElementById('teamResultsBodyTab').innerHTML = `
         <div class="text-center mb-4">
             <h6 class="text-muted">Baserat på ${data.total_matches} matcher${data.season ? ` i ${data.season}` : ''}${data.division ? ` (${data.division})` : ''}${!data.season && !data.division ? ' från alla säsonger' : ''}</h6>
         </div>
@@ -1211,11 +1292,11 @@ function showTeamLineup(data) {
             </div>
         ` : ''}
     `;
-    
+
     // Scroll to results
-    document.getElementById('teamResultsSection').scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'start' 
+    document.getElementById('teamResultsSectionTab').scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
     });
 }
 
@@ -1238,8 +1319,8 @@ document.getElementById('teamSearch').addEventListener('keypress', function(e) {
 
 // Funktion för att rensa lagresultat
 function clearTeamResults() {
-    document.getElementById('teamResultsSection').style.display = 'none';
-    document.getElementById('teamResultsBody').innerHTML = '';
+    document.getElementById('teamResultsSectionTab').style.display = 'none';
+    document.getElementById('teamResultsBodyTab').innerHTML = '';
     document.getElementById('teamSearchResultsList').style.display = 'none';
     document.getElementById('teamSearch').value = '';
 }
@@ -1262,7 +1343,7 @@ async function loadLastImport() {
 
         if (response.ok && data.end_time) {
             const badge = document.createElement('div');
-            badge.style.cssText = 'position: fixed; top: 15px; right: 15px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 3px; font-size: 10px; z-index: 1000; white-space: nowrap;';
+            badge.className = 'last-update-badge';
             badge.textContent = `Uppdaterad ${data.end_time.split(' ')[0]}`;
             document.body.appendChild(badge);
         }

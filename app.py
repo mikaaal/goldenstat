@@ -110,52 +110,30 @@ def get_teams():
             cursor = conn.cursor()
             
             # Get all team names with their seasons and divisions
+            # Only show combinations that have at least 1 match
+            # Filter out Unknown divisions
             cursor.execute("""
-                WITH team_seasons AS (
-                    SELECT DISTINCT 
-                        t.name as team_name,
-                        m.season,
-                        m.division,
-                        COUNT(m.id) as matches_count
-                    FROM teams t 
-                    JOIN matches m ON (t.id = m.team1_id OR t.id = m.team2_id)
-                    WHERE m.season IS NOT NULL AND m.division IS NOT NULL
-                    GROUP BY t.name, m.season, m.division
-                ),
-                team_total_matches AS (
-                    SELECT 
-                        team_name,
-                        SUM(matches_count) as total_matches
-                    FROM team_seasons
-                    GROUP BY team_name
-                    HAVING SUM(matches_count) >= 1  -- Show all teams with at least 1 match
-                ),
-                team_display AS (
-                    SELECT 
-                        ts.team_name,
-                        COUNT(DISTINCT ts.season) as season_count
-                    FROM team_seasons ts
-                    JOIN team_total_matches ttm ON ts.team_name = ttm.team_name
-                    GROUP BY ts.team_name
-                )
-                SELECT 
-                    ts.team_name,
-                    ts.season,
-                    ts.division,
-                    ts.matches_count,
-                    td.season_count,
-                    CASE 
-                        WHEN ts.team_name LIKE '%(%' THEN 
+                SELECT DISTINCT
+                    t.name as team_name,
+                    m.season,
+                    m.division,
+                    COUNT(m.id) as matches_count,
+                    CASE
+                        WHEN t.name LIKE '%(%' THEN
                             -- Team name already contains division, just add season
-                            ts.team_name || ' (' || REPLACE(ts.season, '/', '-') || ')'
-                        ELSE 
+                            t.name || ' (' || REPLACE(m.season, '/', '-') || ')'
+                        ELSE
                             -- Team name doesn't contain division, add both division and season
-                            ts.team_name || ' (' || ts.division || ') (' || REPLACE(ts.season, '/', '-') || ')'
+                            t.name || ' (' || m.division || ') (' || REPLACE(m.season, '/', '-') || ')'
                     END as display_name
-                FROM team_seasons ts
-                JOIN team_display td ON ts.team_name = td.team_name
-                JOIN team_total_matches ttm ON ts.team_name = ttm.team_name
-                ORDER BY ts.team_name, ts.season DESC, ts.division
+                FROM teams t
+                JOIN matches m ON (t.id = m.team1_id OR t.id = m.team2_id)
+                WHERE m.season IS NOT NULL
+                    AND m.division IS NOT NULL
+                    AND m.division != 'Unknown'
+                GROUP BY t.name, m.season, m.division
+                HAVING COUNT(m.id) >= 1
+                ORDER BY t.name, m.season DESC, m.division
             """)
             
             teams = []
@@ -1224,27 +1202,51 @@ def get_team_lineup(team_name):
                 division_from_name = new_format_match.group(2)
                 season = new_format_match.group(3).replace('-', '/')  # Convert back to 2024/2025 format
                 
-                # Check if team exists with division in name
+                # Check if team exists with division in name AND has matches for this season/division
                 team_name_with_division = f"{base_team_name} ({division_from_name})"
                 cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name_with_division,))
-                team_result = cursor.fetchone()
+                team_with_div_result = cursor.fetchone()
 
-                if team_result:
+                # If team with division exists, check if it has matches for this season/division
+                matches_with_div_team = 0
+                if team_with_div_result:
+                    cursor.execute("""
+                        SELECT COUNT(*) as count
+                        FROM matches m
+                        WHERE (m.team1_id = ? OR m.team2_id = ?)
+                            AND m.season = ?
+                            AND m.division = ?
+                    """, (team_with_div_result['id'], team_with_div_result['id'], season, division_from_name))
+                    matches_with_div_team = cursor.fetchone()['count']
+
+                if team_with_div_result and matches_with_div_team > 0:
+                    # Use team with division in name
                     team_name = team_name_with_division
+                    division = division_from_name
+                    team_result = team_with_div_result
                 else:
-                    # Fallback: try to find teams that end with the same pattern
-                    cursor.execute("SELECT name FROM teams WHERE name LIKE ? AND name LIKE ?",
-                                 (f"{base_team_name}%", f"%({division_from_name})"))
-                    potential_matches = cursor.fetchall()
-                    if potential_matches:
-                        team_name = potential_matches[0][0]  # Use first match
-                        cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
-                        team_result = cursor.fetchone()
-                    else:
-                        # Final fallback to base team name
+                    # Fallback: try base team name with division filter
+                    cursor.execute("SELECT id FROM teams WHERE name = ?", (base_team_name,))
+                    base_result = cursor.fetchone()
+
+                    if base_result:
+                        # Team exists without division in name, use division as filter
                         team_name = base_team_name
-                
-                division = division_from_name
+                        division = division_from_name
+                        team_result = base_result
+                    else:
+                        # Try to find similar teams
+                        cursor.execute("SELECT name FROM teams WHERE name LIKE ? AND name LIKE ?",
+                                     (f"{base_team_name}%", f"%({division_from_name})"))
+                        potential_matches = cursor.fetchall()
+                        if potential_matches:
+                            team_name = potential_matches[0][0]
+                            division = division_from_name
+                            cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
+                            team_result = cursor.fetchone()
+                        else:
+                            team_name = base_team_name
+                            division = division_from_name
             else:
                 # Try old format: "Team Name (YYYY-YYYY)"
                 old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
