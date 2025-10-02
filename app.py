@@ -68,6 +68,38 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/last-import')
+def get_last_import():
+    """API endpoint to get last import info"""
+    try:
+        import os
+        import json
+        import glob
+        from datetime import datetime
+
+        log_dir = 'import_logs'
+        files = glob.glob(os.path.join(log_dir, 'daily_import_*.json'))
+
+        if not files:
+            return jsonify({'error': 'No import logs found'}), 404
+
+        latest_file = max(files, key=os.path.getmtime)
+
+        with open(latest_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        end_time = datetime.fromisoformat(data['end_time'])
+
+        return jsonify({
+            'import_id': data['import_id'],
+            'status': data['status'],
+            'end_time': end_time.strftime('%Y-%m-%d %H:%M'),
+            'total_matches': data['statistics']['total_matches_imported'],
+            'total_files': data['statistics']['total_files']
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/teams')
 def get_teams():
     """API endpoint to get all team names with season info for autocomplete"""

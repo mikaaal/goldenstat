@@ -1,0 +1,69 @@
+{
+  "import_id": "20251002_083057",
+  "start_time": "2025-10-02T08:30:57.007632",
+  "end_time": "2025-10-02T08:43:18.886722",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "2025-2026\\t_3VAf_1770_match_urls1FA.txt",
+      "division_id": "t_3VAf_1770",
+      "division_name": "1FA",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 204,
+      "processed_at": "2025-10-02T08:32:53.991921"
+    },
+    {
+      "file": "2025-2026\\t_5L4C_6247_match_urlsSL4.txt",
+      "division_id": "t_5L4C_6247",
+      "division_name": "SL4",
+      "status": "success",
+      "matches_imported": 18,
+      "players_processed": 292,
+      "processed_at": "2025-10-02T08:35:40.363940"
+    },
+    {
+      "file": "2025-2026\\t_NcAX_0028_match_urls1FB.txt",
+      "division_id": "t_NcAX_0028",
+      "division_name": "1FB",
+      "status": "success",
+      "matches_imported": 15,
+      "players_processed": 240,
+      "processed_at": "2025-10-02T08:37:59.687569"
+    },
+    {
+      "file": "2025-2026\\t_OFlR_9185_match_urlsSL6.txt",
+      "division_id": "t_OFlR_9185",
+      "division_name": "SL6",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 312,
+      "processed_at": "2025-10-02T08:41:15.683702"
+    },
+    {
+      "file": "2025-2026\\t_Y2RR_6468_match_urls1A.txt",
+      "division_id": "t_Y2RR_6468",
+      "division_name": "1A",
+      "status": "success",
+      "matches_imported": 12,
+      "players_processed": 304,
+      "processed_at": "2025-10-02T08:43:18.885316"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 5,
+    "successful_files": 5,
+    "failed_files": 0,
+    "total_matches_imported": 69,
+    "total_players_processed": 1352,
+    "auto_matched_high_confidence": 1348,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 4
+  }
+}
