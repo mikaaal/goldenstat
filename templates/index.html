@@ -7,12 +7,17 @@
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="players-main-tab" data-bs-toggle="tab" data-bs-target="#players-tab-content" type="button" role="tab">
-                    🎯 Spelare
+                    👤 Spelare
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="teams-main-tab" data-bs-toggle="tab" data-bs-target="#teams-tab-content" type="button" role="tab">
                     👥 Lag
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="stats-main-tab" data-bs-toggle="tab" data-bs-target="#stats-tab-content" type="button" role="tab">
+                    🎯 Topplistor
                 </button>
             </li>
         </ul>
@@ -242,6 +247,109 @@
     </div>
     <!-- End Teams Tab -->
 
+    <!-- Stats Tab -->
+    <div class="tab-pane fade" id="stats-tab-content" role="tabpanel">
+
+        <div class="row justify-content-center mb-4 mt-4">
+            <div class="col-md-10">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4 text-center">
+                        <!-- Season toggle buttons -->
+                        <div class="btn-group mb-3" role="group" aria-label="Säsongsfilter">
+                            <button type="button" class="btn btn-outline-primary active" id="currentSeasonBtn" onclick="switchToCurrentSeason()">
+                                Säsongen 2025/2026
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="allSeasonsBtn" onclick="switchToAllSeasons()">
+                                Alla säsonger
+                            </button>
+                        </div>
+
+                        <p class="text-muted mb-0 mt-3" id="statsDescription">De mest imponerande prestationerna under säsongen 2025/2026</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="statsLoading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laddar statistik...</span>
+            </div>
+            <p class="mt-2 text-muted">Laddar statistik...</p>
+        </div>
+
+        <!-- Stats content -->
+        <div id="statsContent" style="display: none;">
+
+            <!-- Highest Average in a Match -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">🔥 Högsta pilsnitt i en match (Singel)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="topAverages" class="list-group list-group-flush">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Highest Checkout -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">🎯 Högsta utgång</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="topCheckouts" class="list-group list-group-flush">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shortest Sets -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚡ Kortast leg</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="topShortestSets" class="list-group list-group-flush">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Most 180s in a Match -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">💯 Flest gjorda 180 i en match</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="topMost180s" class="list-group list-group-flush">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+    <!-- End Stats Tab -->
+
 </div>
 <!-- End Tab Content -->
 
@@ -269,7 +377,19 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if we should activate teams tab from URL
     if (urlParams.get('tab') === 'teams') {
         document.getElementById('teams-main-tab').click();
+    } else if (urlParams.get('tab') === 'stats') {
+        document.getElementById('stats-main-tab').click();
+        loadCurrentSeasonStats();
     }
+
+    // Load stats when stats tab is clicked
+    document.getElementById('stats-main-tab').addEventListener('click', function() {
+        if (currentStatsView === 'season') {
+            loadCurrentSeasonStats();
+        } else {
+            loadTopStats();
+        }
+    });
 
     // Check for URL parameter for automatic player search
     const playerParam = urlParams.get('player');
@@ -1333,6 +1453,171 @@ function clearPlayerResults() {
     document.getElementById('searchResultsList').style.display = 'none';
     document.getElementById('playerSearch').value = '';
     originalMatchesData = []; // Clear stored data
+}
+
+// Load top stats
+let statsLoaded = false;
+let seasonStatsLoaded = false;
+let currentStatsView = 'season'; // Track current view: 'all' or 'season' - default to season
+let cachedAllSeasonsData = null;
+let cachedCurrentSeasonData = null;
+
+function switchToAllSeasons() {
+    if (currentStatsView === 'all') return; // Already showing all seasons
+
+    // Update button states
+    document.getElementById('allSeasonsBtn').classList.add('active');
+    document.getElementById('currentSeasonBtn').classList.remove('active');
+
+    // Update description
+    document.getElementById('statsDescription').textContent = 'De mest imponerande prestationerna i alla inlästa säsonger';
+
+    currentStatsView = 'all';
+
+    // If we have cached data, use it immediately
+    if (cachedAllSeasonsData) {
+        populateStatsWithData(cachedAllSeasonsData);
+        document.getElementById('statsLoading').style.display = 'none';
+        document.getElementById('statsContent').style.display = 'block';
+    } else {
+        // Show loading and fetch data
+        document.getElementById('statsLoading').style.display = 'block';
+        document.getElementById('statsContent').style.display = 'none';
+        loadTopStats();
+    }
+}
+
+function switchToCurrentSeason() {
+    if (currentStatsView === 'season') return; // Already showing current season
+
+    // Update button states
+    document.getElementById('allSeasonsBtn').classList.remove('active');
+    document.getElementById('currentSeasonBtn').classList.add('active');
+
+    // Update description
+    document.getElementById('statsDescription').textContent = 'De mest imponerande prestationerna under säsongen 2025/2026';
+
+    currentStatsView = 'season';
+
+    // If we have cached data, use it immediately
+    if (cachedCurrentSeasonData) {
+        populateStatsWithData(cachedCurrentSeasonData);
+        document.getElementById('statsLoading').style.display = 'none';
+        document.getElementById('statsContent').style.display = 'block';
+    } else {
+        // Show loading and fetch data
+        document.getElementById('statsLoading').style.display = 'block';
+        document.getElementById('statsContent').style.display = 'none';
+        loadCurrentSeasonStats();
+    }
+}
+
+function populateStatsWithData(data) {
+    // Populate top averages
+    document.getElementById('topAverages').innerHTML = data.top_averages.map((item, index) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-primary rounded-pill me-2">${index + 1}</span>
+                    <strong>${item.player_name}</strong>
+                    <br>
+                    <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
+                    <br>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                </div>
+                <span class="badge bg-primary rounded-pill fs-5">${item.average.toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        // Populate top checkouts
+        document.getElementById('topCheckouts').innerHTML = data.top_checkouts.map((item, index) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-success rounded-pill me-2">${index + 1}</span>
+                    <strong>${item.player_name}</strong>
+                    <br>
+                    <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
+                    <br>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                </div>
+                <span class="badge bg-success rounded-pill fs-5">${item.checkout}</span>
+            </div>
+        `).join('');
+
+        // Populate shortest sets
+        document.getElementById('topShortestSets').innerHTML = data.shortest_sets.map((item, index) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-warning text-dark rounded-pill me-2">${index + 1}</span>
+                    <strong>${item.player_name}</strong>
+                    <br>
+                    <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
+                    <br>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                </div>
+                <span class="badge bg-warning text-dark rounded-pill fs-5">${item.darts} pilar</span>
+            </div>
+        `).join('');
+
+    // Populate most 180s
+    document.getElementById('topMost180s').innerHTML = data.most_180s.map((item, index) => `
+        <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+                <span class="badge bg-info rounded-pill me-2">${index + 1}</span>
+                <strong>${item.player_name}</strong>
+                <br>
+                <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
+                <br>
+                <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+            </div>
+            <span class="badge bg-info rounded-pill fs-5">${item.count_180} st</span>
+        </div>
+    `).join('');
+}
+
+async function loadCurrentSeasonStats() {
+    try {
+        const response = await fetch('/api/top-stats?season=2025/2026');
+        const data = await response.json();
+
+        // Cache the data
+        cachedCurrentSeasonData = data;
+
+        // Hide loading, show content
+        document.getElementById('statsLoading').style.display = 'none';
+        document.getElementById('statsContent').style.display = 'block';
+
+        // Populate with data
+        populateStatsWithData(data);
+
+        seasonStatsLoaded = true;
+    } catch (error) {
+        console.error('Kunde inte ladda säsongstatistik:', error);
+        document.getElementById('statsLoading').innerHTML = '<p class="text-danger">Kunde inte ladda statistik</p>';
+    }
+}
+
+async function loadTopStats() {
+    if (statsLoaded) return; // Only load once
+
+    try {
+        const response = await fetch('/api/top-stats');
+        const data = await response.json();
+
+        // Cache the data
+        cachedAllSeasonsData = data;
+
+        // Hide loading, show content
+        document.getElementById('statsLoading').style.display = 'none';
+        document.getElementById('statsContent').style.display = 'block';
+
+        // Populate with data
+        populateStatsWithData(data);
+
+        statsLoaded = true;
+    } catch (error) {
+        console.error('Kunde inte ladda statistik:', error);
+        document.getElementById('statsLoading').innerHTML = '<p class="text-danger">Kunde inte ladda statistik</p>';
+    }
 }
 
 // Load last import info

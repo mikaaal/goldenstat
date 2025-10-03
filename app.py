@@ -145,6 +145,179 @@ def get_teams():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/top-stats')
+def get_top_stats():
+    """API endpoint to get top statistics"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Get optional season filter from query parameter
+            season = request.args.get('season')
+            season_filter = ""
+            if season:
+                season_filter = f"AND m.season = '{season}'"
+
+            # Top 10 highest averages in a single match (Singles only)
+            # Calculate average from actual throws data, excluding 0-score throws (misses)
+            cursor.execute(f"""
+                WITH match_averages AS (
+                    SELECT
+                        smp.player_id,
+                        sm.id as sub_match_id,
+                        smp.team_number,
+                        (CAST(SUM(CASE WHEN t.score > 0 THEN t.score ELSE 0 END) AS FLOAT) /
+                         SUM(CASE WHEN t.score > 0 THEN (CASE WHEN t.darts_used IS NOT NULL THEN t.darts_used ELSE 3 END) ELSE 0 END)) * 3 as calculated_avg
+                    FROM sub_match_participants smp
+                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                    JOIN legs l ON l.sub_match_id = sm.id
+                    JOIN throws t ON t.leg_id = l.id AND t.team_number = smp.team_number
+                    WHERE sm.match_type = 'Singles'
+                    GROUP BY smp.player_id, sm.id, smp.team_number
+                    HAVING SUM(CASE WHEN t.score > 0 THEN (CASE WHEN t.darts_used IS NOT NULL THEN t.darts_used ELSE 3 END) ELSE 0 END) > 0
+                )
+                SELECT
+                    p.name as player_name,
+                    ma.calculated_avg as average,
+                    t1.name as team_name,
+                    t2.name as opponent_name,
+                    DATE(m.match_date) as match_date,
+                    ma.sub_match_id
+                FROM match_averages ma
+                JOIN players p ON ma.player_id = p.id
+                JOIN sub_matches sm ON ma.sub_match_id = sm.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON (CASE WHEN ma.team_number = 1 THEN m.team1_id ELSE m.team2_id END) = t1.id
+                JOIN teams t2 ON (CASE WHEN ma.team_number = 1 THEN m.team2_id ELSE m.team1_id END) = t2.id
+                WHERE ma.calculated_avg > 0
+                {season_filter}
+                ORDER BY ma.calculated_avg DESC
+                LIMIT 10
+            """)
+            top_averages = [dict(row) for row in cursor.fetchall()]
+
+            # Top 10 highest checkouts
+            # Checkout value is the remaining_score from the PREVIOUS throw
+            cursor.execute(f"""
+                SELECT
+                    p.name as player_name,
+                    prev.remaining_score as checkout,
+                    CASE WHEN curr.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
+                    CASE WHEN curr.team_number = 1 THEN t2.name ELSE t1.name END as opponent_name,
+                    DATE(m.match_date) as match_date,
+                    sm.id as sub_match_id
+                FROM throws curr
+                JOIN throws prev ON curr.leg_id = prev.leg_id
+                    AND curr.team_number = prev.team_number
+                    AND prev.round_number = curr.round_number - 1
+                JOIN legs l ON curr.leg_id = l.id
+                JOIN sub_matches sm ON l.sub_match_id = sm.id
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id AND smp.team_number = curr.team_number
+                JOIN players p ON smp.player_id = p.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE curr.remaining_score = 0
+                    AND prev.remaining_score > 0
+                    AND curr.team_number = l.winner_team
+                    AND sm.match_type = 'Singles'
+                    {season_filter}
+                ORDER BY prev.remaining_score DESC, m.match_date DESC
+                LIMIT 10
+            """)
+            top_checkouts = [dict(row) for row in cursor.fetchall()]
+
+            # Top 10 shortest legs (minimum darts)
+            # Count total darts for winning team, only for completed legs
+            cursor.execute(f"""
+                WITH completed_legs AS (
+                    SELECT DISTINCT l.id
+                    FROM legs l
+                    JOIN throws t ON l.id = t.leg_id
+                    WHERE t.remaining_score = 0
+                ),
+                leg_darts AS (
+                    SELECT
+                        l.id as leg_id,
+                        l.winner_team,
+                        sm.id as sub_match_id,
+                        SUM(CASE WHEN t.darts_used IS NOT NULL THEN t.darts_used ELSE 3 END) as total_darts
+                    FROM legs l
+                    JOIN completed_legs cl ON l.id = cl.id
+                    JOIN throws t ON l.id = t.leg_id AND t.team_number = l.winner_team
+                    JOIN sub_matches sm ON l.sub_match_id = sm.id
+                    WHERE NOT (t.score = 0 AND t.remaining_score = 501)
+                    GROUP BY l.id, l.winner_team, sm.id
+                )
+                SELECT
+                    p.name as player_name,
+                    ld.total_darts as darts,
+                    t1.name as team_name,
+                    t2.name as opponent_name,
+                    DATE(m.match_date) as match_date,
+                    ld.sub_match_id
+                FROM leg_darts ld
+                JOIN sub_matches sm ON ld.sub_match_id = sm.id
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id AND smp.team_number = ld.winner_team
+                JOIN players p ON smp.player_id = p.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON (CASE WHEN smp.team_number = 1 THEN m.team1_id ELSE m.team2_id END) = t1.id
+                JOIN teams t2 ON (CASE WHEN smp.team_number = 1 THEN m.team2_id ELSE m.team1_id END) = t2.id
+                WHERE ld.total_darts > 0
+                    AND sm.match_type = 'Singles'
+                    {season_filter}
+                ORDER BY ld.total_darts ASC, m.match_date DESC
+                LIMIT 10
+            """)
+            shortest_sets = [dict(row) for row in cursor.fetchall()]
+
+            # Top 10 most 180s in a single match
+            # Note: throws table doesn't have player_id, we need to infer from team_number
+            cursor.execute(f"""
+                WITH match_180s AS (
+                    SELECT
+                        sm.id as sub_match_id,
+                        t.team_number,
+                        COUNT(*) as count_180
+                    FROM throws t
+                    JOIN legs l ON t.leg_id = l.id
+                    JOIN sub_matches sm ON l.sub_match_id = sm.id
+                    WHERE t.score = 180
+                    GROUP BY sm.id, t.team_number
+                )
+                SELECT
+                    p.name as player_name,
+                    m180.count_180,
+                    t1.name as team_name,
+                    t2.name as opponent_name,
+                    DATE(m.match_date) as match_date,
+                    sm.id as sub_match_id
+                FROM match_180s m180
+                JOIN sub_matches sm ON m180.sub_match_id = sm.id
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id AND smp.team_number = m180.team_number
+                JOIN players p ON smp.player_id = p.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON (CASE WHEN smp.team_number = 1 THEN m.team1_id ELSE m.team2_id END) = t1.id
+                JOIN teams t2 ON (CASE WHEN smp.team_number = 1 THEN m.team2_id ELSE m.team1_id END) = t2.id
+                WHERE sm.match_type = 'Singles'
+                {season_filter}
+                ORDER BY m180.count_180 DESC, m.match_date DESC
+                LIMIT 10
+            """)
+            most_180s = [dict(row) for row in cursor.fetchall()]
+
+            return jsonify({
+                'top_averages': top_averages,
+                'top_checkouts': top_checkouts,
+                'shortest_sets': shortest_sets,
+                'most_180s': most_180s
+            })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/players')
 def get_players():
     """API endpoint to get all player names for autocomplete"""
