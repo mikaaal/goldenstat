@@ -598,32 +598,34 @@ class GoldenStat {
         // Set flag to prevent double history entry
         window.isNavigatingHistory = true;
 
-        // Update URL with player parameter
-        const url = new URL(window.location);
-        url.searchParams.set('player', playerName);
-        url.searchParams.delete('tab'); // Players tab is default
-        url.searchParams.delete('team');
-        window.history.pushState({ tab: 'players', player: playerName }, '', url);
-
-        // Switch to players tab
+        // Switch to players tab first
         const playersTab = document.getElementById('players-main-tab');
         if (playersTab) {
             playersTab.click();
         }
 
-        // Reset flag after tab switch
-        setTimeout(() => { window.isNavigatingHistory = false; }, 100);
+        // Reset flag after tab switch completes
+        setTimeout(() => {
+            window.isNavigatingHistory = false;
 
-        // Set the player name in search field
-        const searchField = document.getElementById('playerSearch');
-        if (searchField) {
-            searchField.value = playerName;
-        }
+            // Now update URL and trigger search
+            const url = new URL(window.location);
+            url.searchParams.set('player', playerName);
+            url.searchParams.delete('tab'); // Players tab is default
+            url.searchParams.delete('team');
+            window.history.pushState({ tab: 'players', player: playerName }, '', url);
 
-        // Trigger search
-        if (window.searchPlayer) {
-            window.searchPlayer();
-        }
+            // Set the player name in search field
+            const searchField = document.getElementById('playerSearch');
+            if (searchField) {
+                searchField.value = playerName;
+            }
+
+            // Trigger search
+            if (window.searchPlayer) {
+                window.searchPlayer();
+            }
+        }, 50);
     }
 
     // Make player name clickable
