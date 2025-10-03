@@ -16,7 +16,16 @@
       "Bash(for:*)",
       "Bash(timeout 120 python single_file_import.py $file)",
       "Bash(timeout:*)",
-      "Bash(md5sum:*)"
+      "Bash(md5sum:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(git log:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,25 +1,91 @@
 /* GoldenStat Custom Styles */
 
 :root {
-    --primary-color: #007bff;
-    --secondary-color: #6c757d;
-    --success-color: #28a745;
-    --warning-color: #ffc107;
-    --danger-color: #dc3545;
-    --info-color: #17a2b8;
-    --dark-color: #343a40;
-    --light-color: #f8f9fa;
-    --header-bg: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    --footer-bg: linear-gradient(135deg, #232526 0%, #414345 100%);
-    --accent-gold: #ffd700;
+    --primary-color: #2563eb;
+    --secondary-color: #64748b;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --info-color: #06b6d4;
+    --dark-color: #1e293b;
+    --light-color: #f8fafc;
+    --header-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    --footer-bg: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    --accent-gold: #fbbf24;
+    --tab-bg: #ffffff;
+    --tab-hover: #f1f5f9;
+    --tab-active: #2563eb;
 }
 
 body {
-    background-color: #f5f6fa;
+    background-color: #f1f5f9;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+}
+
+/* Sticky Tab Navigation */
+.sticky-tabs {
+    position: sticky;
+    top: 80px;
+    z-index: 1000;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-bottom: 2px solid var(--light-color);
+}
+
+/* Last update badge */
+.last-update-badge {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(37, 99, 235, 0.9);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    z-index: 1050;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    font-weight: 500;
+}
+
+@media (max-width: 767px) {
+    .last-update-badge {
+        font-size: 10px;
+        padding: 4px 8px;
+        top: 8px;
+        right: 8px;
+    }
+}
+
+.sticky-tabs .nav-tabs {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.sticky-tabs .nav-link {
+    color: var(--secondary-color);
+    font-weight: 600;
+    font-size: 1.1rem;
+    padding: 1rem 2rem;
+    border: none;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    border-radius: 0;
+}
+
+.sticky-tabs .nav-link:hover {
+    color: var(--primary-color);
+    background-color: var(--tab-hover);
+    border-bottom-color: var(--primary-color);
+}
+
+.sticky-tabs .nav-link.active {
+    color: var(--tab-active);
+    background-color: white;
+    border-bottom-color: var(--tab-active);
 }
 
 .container.mt-4 {
@@ -352,7 +418,7 @@ body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 1001;
 }
 
 .header-modern .navbar {
@@ -568,13 +634,15 @@ body {
 .footer-minimal {
     background: var(--header-bg);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-    min-height: 80px;
-    position: relative;
+    min-height: 64px;
+    position: sticky;
+    bottom: 0;
     overflow: hidden;
     display: flex;
     align-items: center;
     margin-top: auto;
     flex-shrink: 0;
+    z-index: 1000;
 }
 
 .footer-minimal::before {
@@ -592,7 +660,7 @@ body {
 }
 
 .footer-gif-minimal {
-    max-height: 50px;
+    max-height: 40px;
     width: auto;
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
@@ -605,54 +673,93 @@ body {
     filter: brightness(1.1);
 }
 
-/* ========== RESPONSIVE HEADER & FOOTER ========== */
-@media (max-width: 992px) {
+/* ========== MOBILE FIRST RESPONSIVE DESIGN ========== */
+
+/* Base mobile styles (already defined above) */
+
+/* Tablet and up */
+@media (min-width: 768px) {
+    .sticky-tabs .nav-link {
+        font-size: 1.2rem;
+        padding: 1.25rem 2.5rem;
+    }
+}
+
+/* Desktop */
+@media (min-width: 992px) {
     .header-modern .navbar {
         padding: 0.75rem 0;
         min-height: 70px;
     }
-    
+
     .brand-title {
         font-size: 1.5rem;
     }
-    
+
     .logo-icon {
         width: 45px;
         height: 45px;
     }
-    
+
     .dart-icon {
         font-size: 20px;
     }
-    
-    /* Footer responsive */
+
     .footer-minimal {
-        min-height: 70px;
+        min-height: 56px;
     }
-    
+
     .footer-gif-minimal {
-        max-height: 45px;
+        max-height: 36px;
     }
 }
 
-@media (max-width: 768px) {
+/* Mobile overrides */
+@media (max-width: 767px) {
+    .sticky-tabs .nav-link {
+        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
+    }
+
     .header-modern .navbar-nav {
         margin-top: 1rem;
         padding-top: 1rem;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
+
     .header-modern .nav-link {
         text-align: center;
         margin: 0.25rem 0;
     }
-    
-    /* Footer mobile adjustments */
+
     .footer-minimal {
-        min-height: 60px;
+        min-height: 48px;
     }
-    
+
     .footer-gif-minimal {
-        max-height: 40px;
+        max-height: 32px;
+    }
+
+    .card {
+        border-radius: 12px;
+    }
+
+    .card-body {
+        padding: 1rem;
     }
 }
+/* Player name clickable links */
+.player-name-link {
+    color: #2563eb;
+    cursor: pointer;
+    text-decoration: none;
+    border-bottom: 1px dotted #2563eb;
+    transition: all 0.2s ease;
+}
+
+.player-name-link:hover {
+    color: #1d4ed8;
+    border-bottom: 1px solid #1d4ed8;
+    background-color: rgba(37, 99, 235, 0.05);
+}
+

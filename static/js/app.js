@@ -120,16 +120,16 @@ class GoldenStat {
                 datasets: [{
                     label: 'Snitt per singelmatch',
                     data: averages,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
                     borderWidth: 2,
                     fill: false,
                     tension: 0.1
                 }, {
                     label: '3-matchers pilsnitt över tid',
                     data: movingAvg,
-                    borderColor: '#28a745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.3
@@ -267,13 +267,13 @@ class GoldenStat {
         const labels = Object.keys(scoreRanges);
         const data = Object.values(scoreRanges);
 
-        // Modern gradient colors from low to high scores
+        // Professional gradient colors from low to high scores
         const colors = [
-            '#EF4444',  // Red - 0-20
-            '#F97316',  // Orange - 21-40  
-            '#F59E0B',  // Amber - 41-60
-            '#84CC16',  // Lime - 61-80
-            '#10B981',  // Emerald - 81-99
+            '#ef4444',  // Red - 0-20
+            '#f97316',  // Orange - 21-40
+            '#f59e0b',  // Amber - 41-60
+            '#84cc16',  // Lime - 61-80
+            '#10b981',  // Emerald - 81-99
             '#059669'   // Dark emerald - 100+
         ];
 
@@ -449,23 +449,23 @@ class GoldenStat {
         const labels = Object.keys(positionStats);
         const data = Object.values(positionStats);
 
-        // Modern, clean color scheme - sorted to match typical positions
+        // Professional color scheme - sorted to match typical positions
         const getPositionColor = (position) => {
             const colorMap = {
-                'S1': '#3B82F6',  // Blue
-                'S2': '#06B6D4',  // Cyan
-                'S3': '#10B981',  // Emerald
-                'S4': '#84CC16',  // Lime
-                'S5': '#F59E0B',  // Amber
-                'S6': '#F97316',  // Orange
-                'D1': '#8B5CF6',  // Violet
-                'D2': '#A855F7',  // Purple
-                'D3': '#EC4899',  // Pink
-                'AD': '#EF4444',  // Red
-                'S': '#64748B',   // Slate (fallback)
-                'D': '#64748B'    // Slate (fallback)
+                'S1': '#2563eb',  // Blue
+                'S2': '#06b6d4',  // Cyan
+                'S3': '#10b981',  // Emerald
+                'S4': '#84cc16',  // Lime
+                'S5': '#f59e0b',  // Amber
+                'S6': '#f97316',  // Orange
+                'D1': '#8b5cf6',  // Violet
+                'D2': '#a855f7',  // Purple
+                'D3': '#ec4899',  // Pink
+                'AD': '#ef4444',  // Red
+                'S': '#64748b',   // Slate (fallback)
+                'D': '#64748b'    // Slate (fallback)
             };
-            return colorMap[position] || '#64748B';
+            return colorMap[position] || '#64748b';
         };
 
         const backgroundColor = labels.map(label => getPositionColor(label));
@@ -593,6 +593,41 @@ class GoldenStat {
         }
     }
 
+    // Search and show player statistics
+    searchAndShowPlayer(playerName) {
+        // Set flag to prevent double history entry
+        window.isNavigatingHistory = true;
+
+        // Switch to players tab first
+        const playersTab = document.getElementById('players-main-tab');
+        if (playersTab) {
+            playersTab.click();
+        }
+
+        // Reset flag after tab switch completes
+        setTimeout(() => {
+            window.isNavigatingHistory = false;
+
+            // Now update URL and trigger search
+            const url = new URL(window.location);
+            url.searchParams.set('player', playerName);
+            url.searchParams.delete('tab'); // Players tab is default
+            url.searchParams.delete('team');
+            window.history.pushState({ tab: 'players', player: playerName }, '', url);
+
+            // Set the player name in search field
+            const searchField = document.getElementById('playerSearch');
+            if (searchField) {
+                searchField.value = playerName;
+            }
+
+            // Trigger search
+            if (window.searchPlayer) {
+                window.searchPlayer();
+            }
+        }, 50);
+    }
+
     // Make player name clickable
     makePlayerNameClickable(playerName, isDoubles = false) {
         const escapedName = playerName.replace(/'/g, "\\'");
@@ -601,11 +636,11 @@ class GoldenStat {
             const separator = playerName.includes(' + ') ? ' + ' : ' / ';
             const players = playerName.split(separator);
             const newSeparator = ' / ';
-            return players.map(player => 
-                `<span ${player.trim()}">${player.trim()}</span>`
+            return players.map(player =>
+                `<span class="player-name-link" onclick="goldenStat.searchAndShowPlayer('${player.trim().replace(/'/g, "\\'")}')">${player.trim()}</span>`
             ).join(newSeparator);
         } else {
-            return `<span ${playerName}">${playerName}</span>`;
+            return `<span class="player-name-link" onclick="goldenStat.searchAndShowPlayer('${escapedName}')">${playerName}</span>`;
         }
     }
 

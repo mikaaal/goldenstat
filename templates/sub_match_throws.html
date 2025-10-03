@@ -2,6 +2,31 @@
 
 {% block title %}Kastomgångar{% endblock %}
 
+{% block sticky_tabs %}
+<!-- Sticky Tab Navigation -->
+<div class="sticky-tabs">
+    <div class="container">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" href="/">
+                    👤 Spelare
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" href="/?tab=teams">
+                    👥 Lag
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" href="/?tab=stats">
+                    🎯 Topplistor
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
