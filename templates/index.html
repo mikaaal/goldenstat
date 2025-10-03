@@ -189,7 +189,7 @@
                     <div class="card-body p-4">
                         <h5 class="text-center mb-3">👥 Lagsökning</h5>
                         <p class="text-muted text-center">
-                            Hitta trolig laguppställning baserat på tidigare matcher
+                            Se information om ett lag i en division
                         </p>
                     </div>
                 </div>
@@ -363,6 +363,7 @@ let currentFilters = {
     season: ''
 };
 let allTeams = [];
+let isNavigatingHistory = false;
 
 // Load player list on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -400,7 +401,72 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Setup filter change handlers
     document.getElementById('seasonFilter').addEventListener('change', updateFilters);
+
+    // Setup browser history navigation
+    setupHistoryNavigation();
 });
+
+// Browser history navigation
+function setupHistoryNavigation() {
+    // Add click listeners to tab buttons to update URL
+    document.getElementById('players-main-tab').addEventListener('click', function() {
+        if (!isNavigatingHistory) {
+            const url = new URL(window.location);
+            url.searchParams.delete('tab');
+            url.searchParams.delete('team');
+            window.history.pushState({ tab: 'players' }, '', url);
+        }
+    });
+
+    document.getElementById('teams-main-tab').addEventListener('click', function() {
+        if (!isNavigatingHistory) {
+            const url = new URL(window.location);
+            url.searchParams.set('tab', 'teams');
+            url.searchParams.delete('player');
+            window.history.pushState({ tab: 'teams' }, '', url);
+        }
+    });
+
+    document.getElementById('stats-main-tab').addEventListener('click', function() {
+        if (!isNavigatingHistory) {
+            const url = new URL(window.location);
+            url.searchParams.set('tab', 'stats');
+            url.searchParams.delete('player');
+            url.searchParams.delete('team');
+            window.history.pushState({ tab: 'stats' }, '', url);
+        }
+    });
+
+    // Handle back/forward buttons
+    window.addEventListener('popstate', function(event) {
+        isNavigatingHistory = true;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const tab = urlParams.get('tab');
+        const player = urlParams.get('player');
+        const team = urlParams.get('team');
+
+        if (tab === 'teams') {
+            document.getElementById('teams-main-tab').click();
+            if (team) {
+                // Restore team search
+                document.getElementById('teamSearch').value = team;
+                searchTeam();
+            }
+        } else if (tab === 'stats') {
+            document.getElementById('stats-main-tab').click();
+        } else {
+            document.getElementById('players-main-tab').click();
+            if (player) {
+                // Restore player search
+                document.getElementById('playerSearch').value = player;
+                searchPlayer();
+            }
+        }
+
+        setTimeout(() => { isNavigatingHistory = false; }, 100);
+    });
+}
 
 async function loadFilters() {
     try {
@@ -869,10 +935,10 @@ async function showPlayerStats(stats) {
                                         <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                                         <td><small>
                                             ${(match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))) && match.teammate ?
-                                                `<div><strong>Du spelade med:</strong> ${goldenStat.makePlayerNameClickable(match.teammate, false)}</div>` :
+                                                `<div><strong>Du spelade med:</strong> ${match.teammate}</div>` :
                                                 ''
                                             }
-                                            <div><strong>Motståndare:</strong> ${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))))}</div>
+                                            <div><strong>Motståndare:</strong> ${match.opponent || match.team1_name + ' vs ' + match.team2_name}</div>
                                             <span class="text-muted">(${match.opponent_team || match.match_type})</span><br>
                                             <span class="text-muted" style="font-size: 0.8em;">(${match.player_team}${match.season ? ', ' + match.season : ''}${match.division && match.division !== 'Unknown' ? ', ' + match.division : ''})</span>
                                         </small></td>
@@ -907,10 +973,10 @@ async function showPlayerStats(stats) {
                                                     <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span>
                                                 </div>
                                                 ${(match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))) && match.teammate ?
-                                                    `<div><small><strong>Med:</strong> ${goldenStat.makePlayerNameClickable(match.teammate, false)}</small></div>` :
+                                                    `<div><small><strong>Med:</strong> ${match.teammate}</small></div>` :
                                                     ''
                                                 }
-                                                <div><strong>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))))}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
+                                                <div><strong>${match.opponent || match.team1_name + ' vs ' + match.team2_name}</strong> <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
                                                 <div><small class="text-muted" style="font-size: 0.8em;">(${match.player_team}${match.season ? ', ' + match.season : ''}${match.division && match.division !== 'Unknown' ? ', ' + match.division : ''})</small></div>
                                                 <div>
                                                     <span class="fw-bold">${match.team1_legs} - ${match.team2_legs}</span>
@@ -1143,10 +1209,10 @@ function updateMatchesDisplay(matches) {
                 <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                 <td><small>
                     ${(match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))) && match.teammate ?
-                        `<div><strong>Du spelade med:</strong> ${goldenStat.makePlayerNameClickable(match.teammate, false)}</div>` :
+                        `<div><strong>Du spelade med:</strong> ${match.teammate}</div>` :
                         ''
                     }
-                    <div>${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))))} <span class="text-muted">(${match.opponent_team || match.match_type})</span></div>
+                    <div>${match.opponent || match.team1_name + ' vs ' + match.team2_name} <span class="text-muted">(${match.opponent_team || match.match_type})</span></div>
                     <span class="text-muted" style="font-size: 0.8em;">(${match.player_team}${match.season ? ', ' + match.season : ''}${match.division && match.division !== 'Unknown' ? ', ' + match.division : ''})</span>
                 </small></td>
                 <td><small>${match.team1_legs} - ${match.team2_legs}</small></td>
@@ -1176,10 +1242,10 @@ function updateMatchesDisplay(matches) {
                                         <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${match.match_name && match.match_name.includes(' AD') ? 'AD' : (match.match_type === 'Singles' ? 'S' : 'D')}</span>
                                     </div>
                                     ${(match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))) && match.teammate ?
-                                        `<div><small><strong>Med:</strong> ${goldenStat.makePlayerNameClickable(match.teammate, false)}</small></div>` :
+                                        `<div><small><strong>Med:</strong> ${match.teammate}</small></div>` :
                                         ''
                                     }
-                                    <div><strong>Ni mötte:</strong> ${goldenStat.makePlayerNameClickable(match.opponent || match.team1_name + ' vs ' + match.team2_name, (match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))))} <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
+                                    <div><strong>Ni mötte:</strong> ${match.opponent || match.team1_name + ' vs ' + match.team2_name} <small class="text-muted">(${match.opponent_team || match.match_type})</small></div>
                                     <div><small class="text-muted" style="font-size: 0.8em;">(${match.player_team}${match.season ? ', ' + match.season : ''}${match.division && match.division !== 'Unknown' ? ', ' + match.division : ''})</small></div>
                                     <div>
                                         <span class="fw-bold">${match.team1_legs} - ${match.team2_legs}</span>
@@ -1220,9 +1286,20 @@ document.getElementById('teamSearch').addEventListener('input', function(e) {
         return;
     }
     
-    const suggestions = allTeams.filter(team => 
+    const suggestions = allTeams.filter(team =>
         team.toLowerCase().includes(query)
-    ).slice(0, 10);
+    ).sort((a, b) => {
+        // Extract season from team name (e.g., "Team (DIV) (2025-2026)" -> "2025-2026")
+        const seasonRegex = /\((\d{4}-\d{4})\)$/;
+        const seasonA = a.match(seasonRegex)?.[1] || '';
+        const seasonB = b.match(seasonRegex)?.[1] || '';
+
+        // Sort by season descending (newest first), then alphabetically by team name
+        if (seasonA !== seasonB) {
+            return seasonB.localeCompare(seasonA);
+        }
+        return a.localeCompare(b);
+    }).slice(0, 10);
     
     const suggestionsContainer = document.getElementById('teamSearchSuggestions');
     if (suggestions.length > 0) {
@@ -1290,27 +1367,220 @@ function selectTeam(teamName) {
 async function searchTeam() {
     const teamName = document.getElementById('teamSearch').value.trim();
     if (!teamName) return;
-    
+
+    // Update URL with team parameter (only if not navigating via history)
+    if (!isNavigatingHistory) {
+        const url = new URL(window.location);
+        url.searchParams.set('tab', 'teams');
+        url.searchParams.set('team', teamName);
+        url.searchParams.delete('player');
+        window.history.pushState({ tab: 'teams', team: teamName }, '', url);
+    }
+
     try {
         // Build query parameters with filters
         const params = new URLSearchParams();
         if (currentFilters.season) params.append('season', currentFilters.season);
-        
+
         const queryString = params.toString();
-        const url = `/api/team/${encodeURIComponent(teamName)}/lineup${queryString ? '?' + queryString : ''}`;
-        
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (response.ok) {
-            showTeamLineup(data);
+
+        // Fetch both players and lineup data
+        const [playersResponse, lineupResponse] = await Promise.all([
+            fetch(`/api/team/${encodeURIComponent(teamName)}/players${queryString ? '?' + queryString : ''}`),
+            fetch(`/api/team/${encodeURIComponent(teamName)}/lineup${queryString ? '?' + queryString : ''}`)
+        ]);
+
+        const playersData = await playersResponse.json();
+        const lineupData = await lineupResponse.json();
+
+        if (playersResponse.ok && lineupResponse.ok) {
+            showTeamData(playersData, lineupData);
         } else {
-            alert(`Lag hittades inte: ${data.error}`);
+            alert(`Lag hittades inte: ${playersData.error || lineupData.error}`);
         }
     } catch (error) {
         console.error('Sökning misslyckades:', error);
         alert('Sökfel');
     }
+}
+
+function showTeamData(playersData, lineupData) {
+    // Show the team results section in teams tab
+    document.getElementById('teamResultsSectionTab').style.display = 'block';
+    document.getElementById('teamResultsTitleTab').textContent = `${playersData.team_name}`;
+
+    document.getElementById('teamResultsBodyTab').innerHTML = `
+        <!-- Nav tabs for switching between views -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="players-list-tab" data-bs-toggle="tab" data-bs-target="#players-list" type="button">
+                    📋 Alla spelare
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="lineup-tab" data-bs-toggle="tab" data-bs-target="#lineup" type="button">
+                    🎯 Trolig uppställning
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab content -->
+        <div class="tab-content">
+            <!-- Players list tab -->
+            <div class="tab-pane fade show active" id="players-list" role="tabpanel">
+                <div class="text-center mb-4">
+                    <h6 class="text-muted">
+                        ${playersData.player_count} spelare har spelat i ${playersData.total_matches} matcher
+                        ${playersData.season ? ` under ${playersData.season}` : ''}
+                        ${playersData.division ? ` (${playersData.division})` : ''}
+                        ${!playersData.season && !playersData.division ? ' från alla säsonger' : ''}
+                    </h6>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="teamPlayersTable">
+                        <thead>
+                            <tr>
+                                <th style="cursor: pointer;" onclick="sortTeamPlayersTable(0)">Spelare <span class="sort-arrow">↕</span></th>
+                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(1)">Matcher <span class="sort-arrow">↕</span></th>
+                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(2)">Singlar <span class="sort-arrow">↕</span></th>
+                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(3)">Dubblar <span class="sort-arrow">↕</span></th>
+                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(4)">Vunna legs <span class="sort-arrow">↕</span></th>
+                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(5)">Förlorade legs <span class="sort-arrow">↕</span></th>
+                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(6)">Snitt <span class="sort-arrow">↕</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${playersData.players.map(player => `
+                                <tr>
+                                    <td><strong>${goldenStat.makePlayerNameClickable(player.name)}</strong></td>
+                                    <td class="text-center" data-value="${player.matches_played}">${player.matches_played}</td>
+                                    <td class="text-center" data-value="${player.singles_played}">${player.singles_played}</td>
+                                    <td class="text-center" data-value="${player.doubles_played}">${player.doubles_played}</td>
+                                    <td class="text-center text-success" data-value="${player.legs_won}">${player.legs_won}</td>
+                                    <td class="text-center text-danger" data-value="${player.legs_lost}">${player.legs_lost}</td>
+                                    <td class="text-center" data-value="${player.average || 0}"><strong>${player.average ? player.average.toFixed(2) : '-'}</strong></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Lineup tab -->
+            <div class="tab-pane fade" id="lineup" role="tabpanel">
+                ${generateLineupHTML(lineupData)}
+            </div>
+        </div>
+    `;
+
+    // Scroll to results
+    document.getElementById('teamResultsSectionTab').scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+    });
+}
+
+function generateLineupHTML(data) {
+    return `
+        <div class="text-center mb-4">
+            <h6 class="text-muted">Baserat på ${data.total_matches} matcher${data.season ? ` i ${data.season}` : ''}${data.division ? ` (${data.division})` : ''}${!data.season && !data.division ? ' från alla säsonger' : ''}</h6>
+        </div>
+
+        <!-- Doubles positions -->
+        <div class="mb-4">
+            <h6 class="text-muted mb-3">👥 Dubblar</h6>
+            <div class="row g-3">
+                ${['D1', 'D2', 'D3'].map(position => {
+                    const posData = data.positions[position];
+                    return posData ? `
+                        <div class="col-md-4">
+                            <div class="card text-center h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">${position}</h6>
+                                    <div class="mb-2">
+                                        ${posData.players.map(p =>
+                                            `<div><strong>${goldenStat.makePlayerNameClickable(p.name)}</strong></div>
+                                             <small class="text-muted">${p.percentage}% (${p.matches} matcher)</small>`
+                                        ).join('<hr class="my-2">')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="col-md-4">
+                            <div class="card text-center h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title text-muted">${position}</h6>
+                                    <small class="text-muted">Ingen data</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+
+        <!-- Singles positions -->
+        <div class="mb-4">
+            <h6 class="text-muted mb-3">🎯 Singlar</h6>
+            <div class="row g-3">
+                ${['S1', 'S2', 'S3', 'S4', 'S5', 'S6'].map(position => {
+                    const posData = data.positions[position];
+                    return posData ? `
+                        <div class="col-md-4 col-lg-2">
+                            <div class="card text-center h-100">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title text-success">${position}</h6>
+                                    <div>
+                                        <strong>${goldenStat.makePlayerNameClickable(posData.top_player.name)}</strong>
+                                    </div>
+                                    <small class="text-muted">${posData.top_player.percentage}%</small>
+                                    <div><small class="text-muted">${posData.top_player.matches} matcher</small></div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="col-md-4 col-lg-2">
+                            <div class="card text-center h-100">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title text-muted">${position}</h6>
+                                    <small class="text-muted">Ingen data</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+
+        <!-- AD position if exists -->
+        ${data.positions['AD'] ? `
+            <div class="mb-4">
+                <h6 class="text-muted mb-3">⚡ Avgörande dubbel (AD)</h6>
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6 class="card-title text-warning">AD</h6>
+                                <div class="mb-2">
+                                    ${data.positions['AD'].players.map(p =>
+                                        `<div><strong>${goldenStat.makePlayerNameClickable(p.name)}</strong></div>
+                                         <small class="text-muted">${p.percentage}% (${p.matches} matcher)</small>`
+                                    ).join('<hr class="my-2">')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ` : ''}
+    `;
+}
+
+function showTeamPlayers(data) {
+    // Legacy function - keeping for compatibility
+    showTeamData(data, {positions: {}, total_matches: 0});
 }
 
 function showTeamLineup(data) {
@@ -1443,6 +1713,56 @@ function clearTeamResults() {
     document.getElementById('teamResultsBodyTab').innerHTML = '';
     document.getElementById('teamSearchResultsList').style.display = 'none';
     document.getElementById('teamSearch').value = '';
+}
+
+let teamPlayersTableSortOrder = {};
+
+function sortTeamPlayersTable(columnIndex) {
+    const table = document.getElementById('teamPlayersTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    // Toggle sort order for this column
+    if (!teamPlayersTableSortOrder[columnIndex]) {
+        teamPlayersTableSortOrder[columnIndex] = 'asc';
+    } else if (teamPlayersTableSortOrder[columnIndex] === 'asc') {
+        teamPlayersTableSortOrder[columnIndex] = 'desc';
+    } else {
+        teamPlayersTableSortOrder[columnIndex] = 'asc';
+    }
+
+    const isAscending = teamPlayersTableSortOrder[columnIndex] === 'asc';
+
+    rows.sort((a, b) => {
+        let aValue, bValue;
+
+        if (columnIndex === 0) {
+            // Name column - sort alphabetically
+            aValue = a.cells[columnIndex].textContent.trim();
+            bValue = b.cells[columnIndex].textContent.trim();
+            return isAscending
+                ? aValue.localeCompare(bValue, 'sv')
+                : bValue.localeCompare(aValue, 'sv');
+        } else {
+            // Numeric columns - use data-value attribute
+            aValue = parseFloat(a.cells[columnIndex].getAttribute('data-value')) || 0;
+            bValue = parseFloat(b.cells[columnIndex].getAttribute('data-value')) || 0;
+            return isAscending ? aValue - bValue : bValue - aValue;
+        }
+    });
+
+    // Clear tbody and append sorted rows
+    tbody.innerHTML = '';
+    rows.forEach(row => tbody.appendChild(row));
+
+    // Update sort arrows
+    table.querySelectorAll('th .sort-arrow').forEach((arrow, idx) => {
+        if (idx === columnIndex) {
+            arrow.textContent = isAscending ? '↑' : '↓';
+        } else {
+            arrow.textContent = '↕';
+        }
+    });
 }
 
 // Funktion för att rensa spelarresultat

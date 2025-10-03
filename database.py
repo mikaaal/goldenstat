@@ -132,21 +132,21 @@ class DartDatabase:
             cursor.execute("INSERT INTO players (name) VALUES (?)", (normalized_name,))
             return cursor.lastrowid
     
-    def insert_match(self, match_data: Dict[str, Any]) -> int:
-        """Insert a new match and return its ID. Returns existing ID if match already exists."""
+    def insert_match(self, match_data: Dict[str, Any]) -> tuple:
+        """Insert a new match and return (ID, is_new). Returns (existing_ID, False) if match already exists."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            
+
             # Check if match already exists based on match_url
             if 'match_url' in match_data and match_data['match_url']:
                 cursor.execute("SELECT id FROM matches WHERE match_url = ?", (match_data['match_url'],))
                 result = cursor.fetchone()
                 if result:
-                    return result[0]  # Return existing match ID
-            
+                    return (result[0], False)  # Return existing match ID and False (not new)
+
             cursor.execute("""
-                INSERT INTO matches 
-                (match_url, team1_id, team2_id, team1_score, team2_score, 
+                INSERT INTO matches
+                (match_url, team1_id, team2_id, team1_score, team2_score,
                  team1_avg, team2_avg, division, season, match_date)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
@@ -161,8 +161,8 @@ class DartDatabase:
                 match_data.get('season'),
                 match_data.get('match_date')
             ))
-            
-            return cursor.lastrowid
+
+            return (cursor.lastrowid, True)  # Return new match ID and True (is new)
     
     def insert_sub_match(self, sub_match_data: Dict[str, Any]) -> int:
         """Insert a sub-match and return its ID. Returns existing ID if sub-match already exists."""
@@ -417,10 +417,12 @@ class DartDatabase:
                     display_name = mapping_result['correct_player_name'] if mapping_result else opponent['original_name']
                     opponents.append(display_name)
                 
-                if match['match_type'] == 'Singles':
-                    match['opponent'] = opponents[0] if opponents else 'Unknown'
-                    match['teammate'] = None
-                else:  # Doubles
+                # Check if this is AD (Avgörande Dubbel) - treat it as Doubles
+                is_ad = match['match_name'] and (' AD' in match['match_name'] or match['match_name'].endswith(' AD'))
+                is_doubles = match['match_type'] == 'Doubles' or is_ad
+
+                if is_doubles:
+                    # Doubles or AD - show both opponents
                     match['opponent'] = ' + '.join(opponents) if opponents else 'Unknown'
 
                     # Get teammate for doubles matches (from the same team, excluding the current player)
@@ -448,6 +450,10 @@ class DartDatabase:
                         teammates.append(display_name)
 
                     match['teammate'] = teammates[0] if teammates else None
+                else:
+                    # Singles - only one opponent, no teammate
+                    match['opponent'] = opponents[0] if opponents else 'Unknown'
+                    match['teammate'] = None
             
             # Calculate summary stats - separate by match type
             singles_matches = [m for m in matches if m['match_type'] == 'Singles']

@@ -1,0 +1,42 @@
+{
+  "import_id": "20251003_160603",
+  "start_time": "2025-10-03T16:06:03.766682",
+  "end_time": "2025-10-03T16:09:28.597138",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "2025-2026\\t_v6Vw_6773_match_urls3FB.txt",
+      "division_id": "t_v6Vw_6773",
+      "division_name": "3FB",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2025-10-03T16:07:53.250644"
+    },
+    {
+      "file": "2025-2026\\t_Wjxm_8120_match_urls3A.txt",
+      "division_id": "t_Wjxm_8120",
+      "division_name": "3A",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 96,
+      "processed_at": "2025-10-03T16:09:28.595664"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 2,
+    "successful_files": 2,
+    "failed_files": 0,
+    "total_matches_imported": 4,
+    "total_players_processed": 96,
+    "auto_matched_high_confidence": 92,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 4
+  }
+}

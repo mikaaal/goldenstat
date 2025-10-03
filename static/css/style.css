@@ -748,3 +748,18 @@ body {
         padding: 1rem;
     }
 }
+/* Player name clickable links */
+.player-name-link {
+    color: #2563eb;
+    cursor: pointer;
+    text-decoration: none;
+    border-bottom: 1px dotted #2563eb;
+    transition: all 0.2s ease;
+}
+
+.player-name-link:hover {
+    color: #1d4ed8;
+    border-bottom: 1px solid #1d4ed8;
+    background-color: rgba(37, 99, 235, 0.05);
+}
+

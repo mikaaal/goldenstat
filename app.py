@@ -161,39 +161,25 @@ def get_top_stats():
                 season_filter = f"AND m.season = '{season}'"
 
             # Top 10 highest averages in a single match (Singles only)
-            # Calculate average from actual throws data, excluding 0-score throws (misses)
+            # Use player_avg from sub_match_participants (already calculated correctly)
             cursor.execute(f"""
-                WITH match_averages AS (
-                    SELECT
-                        smp.player_id,
-                        sm.id as sub_match_id,
-                        smp.team_number,
-                        (CAST(SUM(CASE WHEN t.score > 0 THEN t.score ELSE 0 END) AS FLOAT) /
-                         SUM(CASE WHEN t.score > 0 THEN (CASE WHEN t.darts_used IS NOT NULL THEN t.darts_used ELSE 3 END) ELSE 0 END)) * 3 as calculated_avg
-                    FROM sub_match_participants smp
-                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
-                    JOIN legs l ON l.sub_match_id = sm.id
-                    JOIN throws t ON t.leg_id = l.id AND t.team_number = smp.team_number
-                    WHERE sm.match_type = 'Singles'
-                    GROUP BY smp.player_id, sm.id, smp.team_number
-                    HAVING SUM(CASE WHEN t.score > 0 THEN (CASE WHEN t.darts_used IS NOT NULL THEN t.darts_used ELSE 3 END) ELSE 0 END) > 0
-                )
                 SELECT
                     p.name as player_name,
-                    ma.calculated_avg as average,
-                    t1.name as team_name,
-                    t2.name as opponent_name,
+                    smp.player_avg as average,
+                    CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
+                    CASE WHEN smp.team_number = 1 THEN t2.name ELSE t1.name END as opponent_name,
                     DATE(m.match_date) as match_date,
-                    ma.sub_match_id
-                FROM match_averages ma
-                JOIN players p ON ma.player_id = p.id
-                JOIN sub_matches sm ON ma.sub_match_id = sm.id
+                    sm.id as sub_match_id
+                FROM sub_match_participants smp
+                JOIN players p ON smp.player_id = p.id
+                JOIN sub_matches sm ON smp.sub_match_id = sm.id
                 JOIN matches m ON sm.match_id = m.id
-                JOIN teams t1 ON (CASE WHEN ma.team_number = 1 THEN m.team1_id ELSE m.team2_id END) = t1.id
-                JOIN teams t2 ON (CASE WHEN ma.team_number = 1 THEN m.team2_id ELSE m.team1_id END) = t2.id
-                WHERE ma.calculated_avg > 0
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE sm.match_type = 'Singles'
+                    AND smp.player_avg > 0
                 {season_filter}
-                ORDER BY ma.calculated_avg DESC
+                ORDER BY smp.player_avg DESC
                 LIMIT 10
             """)
             top_averages = [dict(row) for row in cursor.fetchall()]
@@ -1374,52 +1360,31 @@ def get_team_lineup(team_name):
                 base_team_name = new_format_match.group(1)
                 division_from_name = new_format_match.group(2)
                 season = new_format_match.group(3).replace('-', '/')  # Convert back to 2024/2025 format
-                
-                # Check if team exists with division in name AND has matches for this season/division
+
+                # Try to find team with division in name
                 team_name_with_division = f"{base_team_name} ({division_from_name})"
                 cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name_with_division,))
                 team_with_div_result = cursor.fetchone()
 
-                # If team with division exists, check if it has matches for this season/division
-                matches_with_div_team = 0
                 if team_with_div_result:
-                    cursor.execute("""
-                        SELECT COUNT(*) as count
-                        FROM matches m
-                        WHERE (m.team1_id = ? OR m.team2_id = ?)
-                            AND m.season = ?
-                            AND m.division = ?
-                    """, (team_with_div_result['id'], team_with_div_result['id'], season, division_from_name))
-                    matches_with_div_team = cursor.fetchone()['count']
-
-                if team_with_div_result and matches_with_div_team > 0:
-                    # Use team with division in name
+                    # Use team with division in name, but don't filter by division
+                    # (teams may play in different divisions across seasons)
                     team_name = team_name_with_division
-                    division = division_from_name
+                    division = None
                     team_result = team_with_div_result
                 else:
-                    # Fallback: try base team name with division filter
+                    # Fallback: try base team name without division filter
                     cursor.execute("SELECT id FROM teams WHERE name = ?", (base_team_name,))
                     base_result = cursor.fetchone()
 
                     if base_result:
-                        # Team exists without division in name, use division as filter
+                        # Team exists without division in name, don't use division filter
                         team_name = base_team_name
-                        division = division_from_name
+                        division = None
                         team_result = base_result
                     else:
-                        # Try to find similar teams
-                        cursor.execute("SELECT name FROM teams WHERE name LIKE ? AND name LIKE ?",
-                                     (f"{base_team_name}%", f"%({division_from_name})"))
-                        potential_matches = cursor.fetchall()
-                        if potential_matches:
-                            team_name = potential_matches[0][0]
-                            division = division_from_name
-                            cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
-                            team_result = cursor.fetchone()
-                        else:
-                            team_name = base_team_name
-                            division = division_from_name
+                        # Team not found
+                        team_result = None
             else:
                 # Try old format: "Team Name (YYYY-YYYY)"
                 old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
@@ -1564,6 +1529,151 @@ def get_team_lineup(team_name):
                 'positions': formatted_positions
             })
             
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/team/<team_name>/players')
+def get_team_players(team_name):
+    """Get all players who have played for a team"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Get filter parameters
+            season = request.args.get('season')
+            division = None
+
+            # Handle team name format with season/division
+            import re
+
+            # Try new format first: "Team (Division) (YYYY-YYYY)"
+            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}-\d{4})\)$', team_name)
+            if new_format_match:
+                base_team_name = new_format_match.group(1)
+                division_from_name = new_format_match.group(2)
+                season = new_format_match.group(3).replace('-', '/')
+
+                # Try with division in name first
+                team_name_with_division = f"{base_team_name} ({division_from_name})"
+                cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name_with_division,))
+                team_result = cursor.fetchone()
+
+                if team_result:
+                    team_name = team_name_with_division
+                    # Don't use division filter - teams may be registered in different divisions
+                    # even though the team name contains a division
+                    division = None
+                else:
+                    team_name = base_team_name
+                    division = None
+            else:
+                # Try old format: "Team Name (YYYY-YYYY)"
+                old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
+                if old_format_match:
+                    team_name = old_format_match.group(1)
+                    season = old_format_match.group(2).replace('-', '/')
+
+            # Get team ID
+            cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
+            team_result = cursor.fetchone()
+            if not team_result:
+                return jsonify({'error': f'Lag hittades inte: {team_name}'}), 404
+
+            team_id = team_result['id']
+
+            # Build WHERE clause for filtering
+            where_conditions = ["(m.team1_id = ? OR m.team2_id = ?)"]
+            params = [team_id, team_id]
+
+            if season:
+                where_conditions.append("m.season = ?")
+                params.append(season)
+
+            if division:
+                where_conditions.append("m.division = ?")
+                params.append(division)
+
+            where_clause = " AND ".join(where_conditions)
+
+            # Get all players who have played for this team with singles/doubles breakdown, average, and win/loss
+            cursor.execute(f"""
+                WITH player_legs AS (
+                    SELECT
+                        p.id as player_id,
+                        p.name as player_name,
+                        sm.id as sub_match_id,
+                        sm.match_name,
+                        CASE
+                            WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' THEN 'Doubles'
+                            ELSE sm.match_type
+                        END as corrected_match_type,
+                        m.id as match_id,
+                        m.season,
+                        smp.team_number,
+                        smp.player_avg,
+                        CASE
+                            WHEN legs.winner_team = smp.team_number THEN 1
+                            ELSE 0
+                        END as won
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                    JOIN matches m ON sm.match_id = m.id
+                    JOIN teams t1 ON m.team1_id = t1.id
+                    JOIN teams t2 ON m.team2_id = t2.id
+                    LEFT JOIN legs ON legs.sub_match_id = sm.id
+                    WHERE {where_clause}
+                      AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
+                )
+                SELECT
+                    player_name,
+                    COUNT(DISTINCT match_id) as matches_played,
+                    COUNT(DISTINCT CASE WHEN corrected_match_type = 'Singles' THEN sub_match_id END) as singles_played,
+                    COUNT(DISTINCT CASE WHEN corrected_match_type = 'Doubles' THEN sub_match_id END) as doubles_played,
+                    COUNT(DISTINCT sub_match_id) as sub_matches_played,
+                    SUM(CASE WHEN won = 1 THEN 1 ELSE 0 END) as legs_won,
+                    COUNT(*) - SUM(CASE WHEN won = 1 THEN 1 ELSE 0 END) as legs_lost,
+                    ROUND(AVG(CASE WHEN player_avg > 0 THEN player_avg END), 2) as average,
+                    GROUP_CONCAT(DISTINCT season) as seasons
+                FROM player_legs
+                GROUP BY player_name
+                ORDER BY matches_played DESC, player_name ASC
+            """, params + [team_name])
+
+            players = []
+            for row in cursor.fetchall():
+                players.append({
+                    'name': row['player_name'],
+                    'matches_played': row['matches_played'],
+                    'sub_matches_played': row['sub_matches_played'],
+                    'singles_played': row['singles_played'],
+                    'doubles_played': row['doubles_played'],
+                    'legs_won': row['legs_won'],
+                    'legs_lost': row['legs_lost'],
+                    'average': row['average'] if row['average'] else None,
+                    'seasons': row['seasons']
+                })
+
+            # Get total team matches
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT m.id) as total_team_matches
+                FROM matches m
+                WHERE {where_clause}
+            """, params)
+
+            total_matches = cursor.fetchone()['total_team_matches']
+
+            return jsonify({
+                'team_name': team_name,
+                'total_matches': total_matches,
+                'season': season,
+                'division': division,
+                'players': players,
+                'player_count': len(players)
+            })
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

@@ -106,7 +106,7 @@ class MultiLeagueImporter:
         
         try:
             # Import into database with league info
-            match_id = self.importer.db.insert_match({
+            match_id, is_new = self.importer.db.insert_match({
                 'team1_name': match_info['team1']['name'],
                 'team2_name': match_info['team2']['name'],
                 'team1_legs': match_info['team1_legs'],

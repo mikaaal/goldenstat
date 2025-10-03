@@ -240,7 +240,7 @@ class NewSeasonImporter:
                 'match_date': match_info['match_date']
             }
             
-            match_id = self.db.insert_match(match_data)
+            match_id, is_new = self.db.insert_match(match_data)
             
             # Process each sub-match
             for submatch in match_info['sub_matches']:

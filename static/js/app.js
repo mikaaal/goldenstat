@@ -593,6 +593,39 @@ class GoldenStat {
         }
     }
 
+    // Search and show player statistics
+    searchAndShowPlayer(playerName) {
+        // Set flag to prevent double history entry
+        window.isNavigatingHistory = true;
+
+        // Update URL with player parameter
+        const url = new URL(window.location);
+        url.searchParams.set('player', playerName);
+        url.searchParams.delete('tab'); // Players tab is default
+        url.searchParams.delete('team');
+        window.history.pushState({ tab: 'players', player: playerName }, '', url);
+
+        // Switch to players tab
+        const playersTab = document.getElementById('players-main-tab');
+        if (playersTab) {
+            playersTab.click();
+        }
+
+        // Reset flag after tab switch
+        setTimeout(() => { window.isNavigatingHistory = false; }, 100);
+
+        // Set the player name in search field
+        const searchField = document.getElementById('playerSearch');
+        if (searchField) {
+            searchField.value = playerName;
+        }
+
+        // Trigger search
+        if (window.searchPlayer) {
+            window.searchPlayer();
+        }
+    }
+
     // Make player name clickable
     makePlayerNameClickable(playerName, isDoubles = false) {
         const escapedName = playerName.replace(/'/g, "\\'");
@@ -601,11 +634,11 @@ class GoldenStat {
             const separator = playerName.includes(' + ') ? ' + ' : ' / ';
             const players = playerName.split(separator);
             const newSeparator = ' / ';
-            return players.map(player => 
-                `<span ${player.trim()}">${player.trim()}</span>`
+            return players.map(player =>
+                `<span class="player-name-link" onclick="goldenStat.searchAndShowPlayer('${player.trim().replace(/'/g, "\\'")}')">${player.trim()}</span>`
             ).join(newSeparator);
         } else {
-            return `<span ${playerName}">${playerName}</span>`;
+            return `<span class="player-name-link" onclick="goldenStat.searchAndShowPlayer('${escapedName}')">${playerName}</span>`;
         }
     }
 

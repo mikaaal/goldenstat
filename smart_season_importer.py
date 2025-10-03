@@ -542,12 +542,12 @@ class SmartSeasonImporter(NewSeasonImporter):
                         match_info = self.extract_match_info(match_data, "2025/2026")
 
                         if match_info:
-                            success = self.import_match_with_smart_players(match_info)
-                            if success:
+                            success, is_new = self.import_match_with_smart_players(match_info)
+                            if success and is_new:
                                 matches_imported += 1
 
-                        if matches_imported % 3 == 0:
-                            print(f"    {matches_imported} matcher importerade...")
+                        if matches_imported % 3 == 0 and matches_imported > 0:
+                            print(f"    {matches_imported} nya matcher importerade...")
 
                 # Rate limiting
                 time.sleep(0.5)
@@ -566,8 +566,9 @@ class SmartSeasonImporter(NewSeasonImporter):
             "errors": self.import_log["errors"]
         }
 
-    def import_match_with_smart_players(self, match_info: dict) -> bool:
-        """Exakt samma som NewSeasonImporter.import_match() men med smart spelarmappning"""
+    def import_match_with_smart_players(self, match_info: dict) -> tuple:
+        """Exakt samma som NewSeasonImporter.import_match() men med smart spelarmappning
+        Returns (success: bool, is_new: bool)"""
         try:
             # Get or create teams (samma som NewSeasonImporter)
             team1_id = self.db.get_or_create_team(match_info['team1_name'], match_info['division'])
@@ -587,20 +588,21 @@ class SmartSeasonImporter(NewSeasonImporter):
                 'match_date': match_info['match_date']
             }
 
-            match_id = self.db.insert_match(match_data)
+            match_id, is_new = self.db.insert_match(match_data)
 
-            # Process each sub-match MED SMART SPELARMAPPNING
-            for submatch in match_info['sub_matches']:
-                self.import_submatch_with_smart_players(match_id, submatch, team1_id, team2_id,
-                                                      match_info['team1_name'], match_info['team2_name'])
+            # Process each sub-match MED SMART SPELARMAPPNING (only if new match)
+            if is_new:
+                for submatch in match_info['sub_matches']:
+                    self.import_submatch_with_smart_players(match_id, submatch, team1_id, team2_id,
+                                                          match_info['team1_name'], match_info['team2_name'])
 
-            return True
+            return (True, is_new)
 
         except Exception as e:
             error_msg = f"Error importing match: {str(e)}"
             print(f"ERROR: {error_msg}")
             self.import_log["errors"].append(error_msg)
-            return False
+            return (False, False)
 
     def import_submatch_with_smart_players(self, match_id: int, submatch_data: dict, team1_id: int, team2_id: int, team1_name: str, team2_name: str):
         """Exakt samma som NewSeasonImporter.import_submatch() men med smart spelarmappning"""
@@ -680,7 +682,7 @@ class SmartSeasonImporter(NewSeasonImporter):
                 'match_url': match_info.get('match_url', '')
             }
 
-            match_id = self.db.insert_match(match_record)
+            match_id, is_new = self.db.insert_match(match_record)
 
             # Import sub-matches med smart player handling
             sub_matches = match_data.get('subMatches', [match_data])  # Handle both formats
