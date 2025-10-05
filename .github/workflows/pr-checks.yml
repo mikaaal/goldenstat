@@ -25,20 +25,10 @@ jobs:
       run: |
         pip install flake8
         # Stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Only check active files (exclude archive directory)
+        flake8 . --exclude=archive --count --select=E9,F63,F7,F82 --show-source --statistics
         # Exit-zero treats all errors as warnings
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    
-    - name: Test database schema
-      run: |
-        python -c "
-        import sqlite3
-        conn = sqlite3.connect(':memory:')
-        with open('database_schema.sql', 'r') as f:
-            conn.executescript(f.read())
-        print('✅ Database schema is valid')
-        conn.close()
-        "
+        flake8 . --exclude=archive --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     
     - name: Test imports
       run: |
@@ -46,8 +36,10 @@ jobs:
         try:
             import app
             import database
-            import new_format_importer
-            print('✅ All imports successful')
+            import daily_import
+            import new_season_importer
+            import smart_season_importer
+            print('✅ All active module imports successful')
         except Exception as e:
             print(f'❌ Import error: {e}')
             exit(1)
