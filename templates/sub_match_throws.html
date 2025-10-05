@@ -691,5 +691,25 @@ function isShortSet(totalDarts) {
 function isHighFinish(score) {
     return Math.abs(score) >= 100;
 }
+
+// Load last import info
+async function loadLastImport() {
+    try {
+        const response = await fetch('/api/last-import');
+        const data = await response.json();
+
+        if (response.ok && data.end_time) {
+            const badge = document.createElement('div');
+            badge.className = 'last-update-badge';
+            badge.textContent = `Uppdaterad\n${data.end_time.split(' ')[0]}`;
+            document.body.appendChild(badge);
+        }
+    } catch (error) {
+        console.error('Kunde inte ladda importinfo:', error);
+    }
+}
+
+// Load last import on page load
+loadLastImport();
 </script>
 {% endblock %}

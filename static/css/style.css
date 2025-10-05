@@ -46,9 +46,11 @@ body {
     border-radius: 6px;
     font-size: 11px;
     z-index: 1050;
-    white-space: nowrap;
+    white-space: pre-line;
+    text-align: center;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     font-weight: 500;
+    line-height: 1.4;
 }
 
 @media (max-width: 767px) {

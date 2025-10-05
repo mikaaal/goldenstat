@@ -268,9 +268,9 @@ class DartDatabase:
         """Insert a throw"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            
+
             cursor.execute("""
-                INSERT INTO throws 
+                INSERT INTO throws
                 (leg_id, team_number, round_number, score, remaining_score, darts_used)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (
@@ -281,6 +281,68 @@ class DartDatabase:
                 throw_data['remaining_score'],
                 throw_data.get('darts_used')
             ))
+
+    def _calculate_weighted_average(self, matches: List[Dict]) -> float:
+        """Calculate weighted average for matches, weighting by number of darts used.
+
+        This is the CORRECT way to calculate overall average - not simply averaging the averages.
+        """
+        if not matches:
+            return 0.0
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+
+            total_score = 0.0
+            total_darts = 0
+
+            for match in matches:
+                sub_match_id = match.get('sub_match_id')
+                player_avg = match.get('player_avg')
+                team_number = match.get('team_number')
+
+                if not sub_match_id or not player_avg or not team_number:
+                    continue
+
+                # Count darts for this match (using correct checkout logic)
+                cursor.execute('''
+                    SELECT l.leg_number, t.score, t.darts_used, t.remaining_score
+                    FROM legs l
+                    JOIN throws t ON t.leg_id = l.id
+                    WHERE l.sub_match_id = ? AND t.team_number = ?
+                    ORDER BY l.leg_number, t.id
+                ''', (sub_match_id, team_number))
+
+                all_throws = cursor.fetchall()
+                match_darts = 0
+                last_remaining = {}
+
+                for leg_num, score, darts_used, remaining in all_throws:
+                    # Skip starting throw (score=0, remaining=501)
+                    if score == 0 and remaining == 501:
+                        continue
+
+                    if remaining == 0:
+                        # Checkout - detect format based on score value
+                        if score <= 3:
+                            # Standard format: score = number of darts
+                            checkout_darts = score if score else 3
+                        else:
+                            # Alternative format: score = points, use darts_used
+                            checkout_darts = darts_used if darts_used else 3
+                        match_darts += checkout_darts
+                    else:
+                        # Regular throw: always count darts (even if score=0 for missed throws)
+                        match_darts += (darts_used if darts_used else 3)
+                        if score > 0:
+                            last_remaining[leg_num] = remaining
+
+                # Calculate score from player_avg and darts
+                match_score = (player_avg * match_darts) / 3.0
+                total_score += match_score
+                total_darts += match_darts
+
+            return (total_score / total_darts * 3.0) if total_darts > 0 else 0.0
     
     def get_effective_player_name(self, player_name: str) -> str:
         """Get the effective (canonical) name for a player - simplified for clean database"""
@@ -469,7 +531,9 @@ class DartDatabase:
             singles_wins = sum(1 for match in singles_matches if match['won'])
             singles_losses = singles_total - singles_wins
             singles_avg_matches = [m for m in singles_matches if m['player_avg']]
-            singles_avg_score = sum(match['player_avg'] for match in singles_avg_matches) / max(1, len(singles_avg_matches)) if singles_avg_matches else 0
+
+            # Calculate weighted average for singles (weight by number of darts)
+            singles_avg_score = self._calculate_weighted_average(singles_avg_matches)
             
             # Doubles stats  
             doubles_total = len(doubles_matches)

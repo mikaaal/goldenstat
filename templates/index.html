@@ -363,7 +363,9 @@ let currentFilters = {
     season: ''
 };
 let allTeams = [];
-let isNavigatingHistory = false;
+// Use window.isNavigatingHistory to share state with app.js
+window.isNavigatingHistory = false;
+let isNavigatingHistory = false; // Keep for backward compatibility, but sync with window
 
 // Load player list on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -410,7 +412,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupHistoryNavigation() {
     // Add click listeners to tab buttons to update URL
     document.getElementById('players-main-tab').addEventListener('click', function() {
-        if (!isNavigatingHistory) {
+        if (!window.isNavigatingHistory && !isNavigatingHistory) {
             const url = new URL(window.location);
             url.searchParams.delete('tab');
             url.searchParams.delete('team');
@@ -419,7 +421,7 @@ function setupHistoryNavigation() {
     });
 
     document.getElementById('teams-main-tab').addEventListener('click', function() {
-        if (!isNavigatingHistory) {
+        if (!window.isNavigatingHistory && !isNavigatingHistory) {
             const url = new URL(window.location);
             url.searchParams.set('tab', 'teams');
             url.searchParams.delete('player');
@@ -428,7 +430,7 @@ function setupHistoryNavigation() {
     });
 
     document.getElementById('stats-main-tab').addEventListener('click', function() {
-        if (!isNavigatingHistory) {
+        if (!window.isNavigatingHistory && !isNavigatingHistory) {
             const url = new URL(window.location);
             url.searchParams.set('tab', 'stats');
             url.searchParams.delete('player');
@@ -439,6 +441,7 @@ function setupHistoryNavigation() {
 
     // Handle back/forward buttons
     window.addEventListener('popstate', function(event) {
+        window.isNavigatingHistory = true;
         isNavigatingHistory = true;
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -464,7 +467,10 @@ function setupHistoryNavigation() {
             }
         }
 
-        setTimeout(() => { isNavigatingHistory = false; }, 100);
+        setTimeout(() => {
+            window.isNavigatingHistory = false;
+            isNavigatingHistory = false;
+        }, 100);
     });
 }
 

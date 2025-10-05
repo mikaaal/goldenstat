@@ -83,7 +83,9 @@ def get_last_import():
         if not files:
             return jsonify({'error': 'No import logs found'}), 404
 
-        latest_file = max(files, key=os.path.getmtime)
+        # Sort by filename (which contains timestamp) instead of file modification time
+        # This is important in Docker where all files get the same mtime during build
+        latest_file = max(files)
 
         with open(latest_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -1599,7 +1601,7 @@ def get_team_players(team_name):
 
             # Get all players who have played for this team with singles/doubles breakdown, average, and win/loss
             cursor.execute(f"""
-                WITH player_legs AS (
+                WITH player_data AS (
                     SELECT
                         p.id as player_id,
                         p.name as player_name,
@@ -1612,47 +1614,137 @@ def get_team_players(team_name):
                         m.id as match_id,
                         m.season,
                         smp.team_number,
-                        smp.player_avg,
-                        CASE
-                            WHEN legs.winner_team = smp.team_number THEN 1
-                            ELSE 0
-                        END as won
+                        smp.player_avg
                     FROM sub_match_participants smp
                     JOIN players p ON smp.player_id = p.id
                     JOIN sub_matches sm ON smp.sub_match_id = sm.id
                     JOIN matches m ON sm.match_id = m.id
                     JOIN teams t1 ON m.team1_id = t1.id
                     JOIN teams t2 ON m.team2_id = t2.id
-                    LEFT JOIN legs ON legs.sub_match_id = sm.id
                     WHERE {where_clause}
                       AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
+                ),
+                player_legs AS (
+                    SELECT
+                        pd.player_id,
+                        pd.player_name,
+                        pd.sub_match_id,
+                        pd.corrected_match_type,
+                        pd.match_id,
+                        pd.season,
+                        pd.team_number,
+                        pd.player_avg,
+                        CASE
+                            WHEN legs.winner_team = pd.team_number THEN 1
+                            ELSE 0
+                        END as won
+                    FROM player_data pd
+                    LEFT JOIN legs ON legs.sub_match_id = pd.sub_match_id
                 )
                 SELECT
                     player_name,
+                    player_id,
                     COUNT(DISTINCT match_id) as matches_played,
                     COUNT(DISTINCT CASE WHEN corrected_match_type = 'Singles' THEN sub_match_id END) as singles_played,
                     COUNT(DISTINCT CASE WHEN corrected_match_type = 'Doubles' THEN sub_match_id END) as doubles_played,
                     COUNT(DISTINCT sub_match_id) as sub_matches_played,
                     SUM(CASE WHEN won = 1 THEN 1 ELSE 0 END) as legs_won,
                     COUNT(*) - SUM(CASE WHEN won = 1 THEN 1 ELSE 0 END) as legs_lost,
-                    ROUND(AVG(CASE WHEN player_avg > 0 THEN player_avg END), 2) as average,
                     GROUP_CONCAT(DISTINCT season) as seasons
                 FROM player_legs
-                GROUP BY player_name
+                GROUP BY player_name, player_id
                 ORDER BY matches_played DESC, player_name ASC
             """, params + [team_name])
 
             players = []
             for row in cursor.fetchall():
+                player_id = row['player_id']
+                player_name = row['player_name']
+
+                # Calculate weighted average for singles matches only
+                # Use the same method as database.py get_player_stats
+                singles_avg = None
+                if row['singles_played'] > 0:
+                    # Get singles matches for this player
+                    cursor.execute(f"""
+                        SELECT sm.id as sub_match_id, smp.player_avg, smp.team_number
+                        FROM sub_match_participants smp
+                        JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                        JOIN matches m ON sm.match_id = m.id
+                        JOIN teams t1 ON m.team1_id = t1.id
+                        JOIN teams t2 ON m.team2_id = t2.id
+                        WHERE smp.player_id = ?
+                          AND {where_clause}
+                          AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
+                          AND CASE
+                              WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' THEN 'Doubles'
+                              ELSE sm.match_type
+                          END = 'Singles'
+                          AND smp.player_avg > 0
+                    """, [player_id] + params + [team_name])
+
+                    singles_matches = cursor.fetchall()
+
+                    # Calculate weighted average
+                    total_score = 0.0
+                    total_darts = 0
+
+                    for match in singles_matches:
+                        sub_match_id = match['sub_match_id']
+                        player_avg = match['player_avg']
+                        team_number = match['team_number']
+
+                        # Count darts for this match (same logic as database.py)
+                        cursor.execute('''
+                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score
+                            FROM legs l
+                            JOIN throws t ON t.leg_id = l.id
+                            WHERE l.sub_match_id = ? AND t.team_number = ?
+                            ORDER BY l.leg_number, t.id
+                        ''', (sub_match_id, team_number))
+
+                        all_throws = cursor.fetchall()
+                        match_darts = 0
+                        last_remaining = {}
+
+                        for throw in all_throws:
+                            leg_num = throw['leg_number']
+                            score = throw['score']
+                            darts_used = throw['darts_used']
+                            remaining = throw['remaining_score']
+
+                            # Skip starting throw
+                            if score == 0 and remaining == 501:
+                                continue
+
+                            if remaining == 0:
+                                # Checkout
+                                if score <= 3:
+                                    checkout_darts = score if score else 3
+                                else:
+                                    checkout_darts = darts_used if darts_used else 3
+                                match_darts += checkout_darts
+                            else:
+                                match_darts += (darts_used if darts_used else 3)
+                                if score > 0:
+                                    last_remaining[leg_num] = remaining
+
+                        match_score = (player_avg * match_darts) / 3.0
+                        total_score += match_score
+                        total_darts += match_darts
+
+                    if total_darts > 0:
+                        singles_avg = round((total_score / total_darts * 3.0), 2)
+
                 players.append({
-                    'name': row['player_name'],
+                    'name': player_name,
                     'matches_played': row['matches_played'],
                     'sub_matches_played': row['sub_matches_played'],
                     'singles_played': row['singles_played'],
                     'doubles_played': row['doubles_played'],
                     'legs_won': row['legs_won'],
                     'legs_lost': row['legs_lost'],
-                    'average': row['average'] if row['average'] else None,
+                    'average': singles_avg,
                     'seasons': row['seasons']
                 })
 
