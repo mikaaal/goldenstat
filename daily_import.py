@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 🤖 AUTOMATISERAD DAGLIG IMPORT FÖR GOLDENSTAT
-[DIV] EN STARTPUNKT - PROCESSA ALLA 2025-2026 DIVISIONER AUTOMATISKT
+[DIV] EN STARTPUNKT - PROCESSA ALLA DIVISIONER FÖR AKTUELL SÄSONG AUTOMATISKT
 
 Usage: python daily_import.py
 """
@@ -54,13 +54,13 @@ class AutomatedDailyImport:
         print(f"[LOG] Loggfil: {self.log_file}")
 
     def run_full_import(self):
-        """Kör fullständig automatiserad import av alla 2025-2026 divisioner"""
+        """Kör fullständig automatiserad import av alla divisioner för aktuell säsong"""
         try:
-            # Hitta alla match-url filer i 2025-2026 katalogen
-            url_files = list(Path("2025-2026").glob("*_match_urls*.txt"))
+            # Hitta alla match-url filer i current_match_urls katalogen
+            url_files = list(Path("current_match_urls").glob("*_match_urls*.txt"))
 
             if not url_files:
-                print("[ERROR] Inga match-url filer hittades i 2025-2026 katalogen")
+                print("[ERROR] Inga match-url filer hittades i current_match_urls katalogen")
                 return
 
             print(f"[FILES] Hittade {len(url_files)} URL-filer att processa")
@@ -210,7 +210,7 @@ def main():
     """Huvudfunktion - EN STARTPUNKT FÖR ALLT"""
     print("=" * 60)
     print("[ROBOT] GOLDENSTAT AUTOMATISERAD DAGLIG IMPORT")
-    print("[TARGET] Processar alla 2025-2026 divisioner automatiskt")
+    print("[TARGET] Processar alla divisioner för aktuell säsong automatiskt")
     print("=" * 60)
 
     # Kör automatiserad import
