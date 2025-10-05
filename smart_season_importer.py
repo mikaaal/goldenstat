@@ -488,11 +488,18 @@ class SmartSeasonImporter(NewSeasonImporter):
             submatch_data = match_data
 
             # Create sub-match record med match_number (samma som NewSeasonImporter)
+            game_name = submatch_data.get('gameName', 'Unknown')
+            game_mode = submatch_data.get('gameMode', 'Singles')
+
+            # AD (Avgörande Dubbel) should always be Doubles, regardless of gameMode
+            if ' AD' in game_name or game_name.endswith('AD'):
+                game_mode = 'Doubles'
+
             sub_match_info = {
                 'match_id': match_id,
                 'match_number': match_number,
-                'match_type': submatch_data.get('gameMode', 'Singles'),
-                'match_name': submatch_data.get('gameName', 'Unknown'),
+                'match_type': game_mode,
+                'match_name': game_name,
                 'team1_legs': submatch_data.get('t1SetCnt', 0),
                 'team2_legs': submatch_data.get('t2SetCnt', 0)
             }
@@ -609,7 +616,11 @@ class SmartSeasonImporter(NewSeasonImporter):
         try:
             # Extract sub-match info (samma som NewSeasonImporter)
             title = submatch_data.get('title', '')
-            match_type = 'Doubles' if 'Doubles' in title else 'Singles'
+            # AD (Avgörande Dubbel) is always Doubles
+            if 'Doubles' in title or ' AD' in title or title.endswith('AD'):
+                match_type = 'Doubles'
+            else:
+                match_type = 'Singles'
 
             # Get match name from title
             match_name = title
