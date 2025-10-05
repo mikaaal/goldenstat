@@ -17,13 +17,13 @@ def main():
 
     filename = sys.argv[1]
 
-    # Hitta filen i 2025-2026 mappen
-    url_file = Path("2025-2026") / filename
+    # Hitta filen i current_match_urls mappen
+    url_file = Path("current_match_urls") / filename
 
     if not url_file.exists():
         print(f"Fil hittades inte: {url_file}")
         print("Tillgängliga filer:")
-        for file in Path("2025-2026").glob("*_match_urls*.txt"):
+        for file in Path("current_match_urls").glob("*_match_urls*.txt"):
             print(f"  - {file.name}")
         return
 
