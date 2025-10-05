@@ -316,10 +316,10 @@ def get_players():
             cursor = conn.cursor()
             
             # Get all effective player names with combined match counts
-            # This handles both direct players and mapped players without duplicates
+            # Show a player if they have ANY unmapped matches, plus all mapped player versions
             cursor.execute("""
                 WITH all_players AS (
-                    -- Direct players (not mapped away)
+                    -- Players with at least one unmapped match
                     SELECT
                         p.name,
                         COUNT(DISTINCT smp.sub_match_id) as total_matches
@@ -327,15 +327,16 @@ def get_players():
                     JOIN sub_match_participants smp ON p.id = smp.player_id
                     JOIN sub_matches sm ON smp.sub_match_id = sm.id
                     JOIN matches m ON sm.match_id = m.id
-                    WHERE p.id NOT IN (
-                        SELECT DISTINCT original_player_id
+                    WHERE smp.sub_match_id NOT IN (
+                        SELECT DISTINCT sub_match_id
                         FROM sub_match_player_mappings
+                        WHERE original_player_id = p.id
                     )
                     GROUP BY p.id, p.name
 
                     UNION ALL
 
-                    -- Mapped players (from mappings table)
+                    -- Mapped player versions (from mappings table)
                     SELECT
                         smpm.correct_player_name as name,
                         COUNT(DISTINCT smpm.sub_match_id) as total_matches
