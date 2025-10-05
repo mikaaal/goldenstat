@@ -25,7 +25,12 @@
       "Bash(cat:*)",
       "Bash(find:*)",
       "Bash(git log:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(while read module)",
+      "Bash(do if [ -f \"archive/old_importers/$module.py\" ])",
+      "Bash([ -f \"archive/fixes/$module.py\" ])",
+      "Bash(then if [ -f \"$module.py\" ])",
+      "Bash(then echo \"[OK] $module.py exists in root\" else echo \"[MISSING] $module.py is in archive but might be needed\" fi fi done)"
     ],
     "deny": [],
     "ask": []

@@ -16,6 +16,7 @@ goldenstat/
 ├── daily_import.py           # Daglig import av nya matcher
 ├── new_season_importer.py    # Import av nya säsonger
 ├── smart_season_importer.py  # Smart import med spelarmappningar
+├── smart_import_handler.py   # Smart player matching (används av importers)
 ├── single_file_import.py     # Import av enskilda filer
 ├── generate_match_urls.py    # Generera match-URLer för import
 │
