@@ -306,6 +306,271 @@ def get_top_stats():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/weekly-stats')
+def get_weekly_stats():
+    """API endpoint to get statistics for the current week"""
+    try:
+        import sqlite3
+        from datetime import datetime, timedelta
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Get optional division filter from query parameter
+            division = request.args.get('division')
+
+            # Calculate current week's date range (Monday to Sunday)
+            today = datetime.now()
+            # Get the start of the week (Monday)
+            start_of_week = today - timedelta(days=today.weekday())
+            start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Get the end of the week (Sunday)
+            end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
+
+            # Build filter for SQL
+            week_filter = f"AND m.match_date >= '{start_of_week.strftime('%Y-%m-%d %H:%M:%S')}' AND m.match_date <= '{end_of_week.strftime('%Y-%m-%d %H:%M:%S')}'"
+
+            if division:
+                week_filter += f" AND m.division = '{division}'"
+
+            # Top 10 highest averages this week
+            cursor.execute(f"""
+                SELECT
+                    p.name as player_name,
+                    smp.player_avg as average,
+                    CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
+                    CASE WHEN smp.team_number = 1 THEN t2.name ELSE t1.name END as opponent_name,
+                    DATE(m.match_date) as match_date,
+                    sm.id as sub_match_id
+                FROM sub_match_participants smp
+                JOIN players p ON smp.player_id = p.id
+                JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE sm.match_type = 'Singles'
+                    AND smp.player_avg > 0
+                {week_filter}
+                ORDER BY smp.player_avg DESC
+                LIMIT 10
+            """)
+            top_averages = [dict(row) for row in cursor.fetchall()]
+
+            # Top 10 highest checkouts this week
+            cursor.execute(f"""
+                SELECT
+                    p.name as player_name,
+                    prev.remaining_score as checkout,
+                    CASE WHEN curr.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
+                    CASE WHEN curr.team_number = 1 THEN t2.name ELSE t1.name END as opponent_name,
+                    DATE(m.match_date) as match_date,
+                    sm.id as sub_match_id
+                FROM throws curr
+                JOIN throws prev ON curr.leg_id = prev.leg_id
+                    AND curr.team_number = prev.team_number
+                    AND prev.round_number = curr.round_number - 1
+                JOIN legs l ON curr.leg_id = l.id
+                JOIN sub_matches sm ON l.sub_match_id = sm.id
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id AND smp.team_number = curr.team_number
+                JOIN players p ON smp.player_id = p.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE curr.remaining_score = 0
+                    AND prev.remaining_score > 0
+                    AND curr.team_number = l.winner_team
+                    AND sm.match_type = 'Singles'
+                {week_filter}
+                ORDER BY prev.remaining_score DESC, m.match_date DESC
+                LIMIT 10
+            """)
+            top_checkouts = [dict(row) for row in cursor.fetchall()]
+
+            # Top 10 shortest legs this week
+            cursor.execute(f"""
+                WITH completed_legs AS (
+                    SELECT DISTINCT l.id
+                    FROM legs l
+                    JOIN throws t ON l.id = t.leg_id
+                    WHERE t.remaining_score = 0
+                ),
+                leg_darts AS (
+                    SELECT
+                        l.id as leg_id,
+                        l.winner_team,
+                        sm.id as sub_match_id,
+                        SUM(CASE WHEN t.darts_used IS NOT NULL THEN t.darts_used ELSE 3 END) as total_darts
+                    FROM legs l
+                    JOIN completed_legs cl ON l.id = cl.id
+                    JOIN throws t ON l.id = t.leg_id AND t.team_number = l.winner_team
+                    JOIN sub_matches sm ON l.sub_match_id = sm.id
+                    WHERE NOT (t.score = 0 AND t.remaining_score = 501)
+                    GROUP BY l.id, l.winner_team, sm.id
+                )
+                SELECT
+                    p.name as player_name,
+                    ld.total_darts as darts,
+                    t1.name as team_name,
+                    t2.name as opponent_name,
+                    DATE(m.match_date) as match_date,
+                    ld.sub_match_id
+                FROM leg_darts ld
+                JOIN sub_matches sm ON ld.sub_match_id = sm.id
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id AND smp.team_number = ld.winner_team
+                JOIN players p ON smp.player_id = p.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON (CASE WHEN smp.team_number = 1 THEN m.team1_id ELSE m.team2_id END) = t1.id
+                JOIN teams t2 ON (CASE WHEN smp.team_number = 1 THEN m.team2_id ELSE m.team1_id END) = t2.id
+                WHERE ld.total_darts > 0
+                    AND sm.match_type = 'Singles'
+                {week_filter}
+                ORDER BY ld.total_darts ASC, m.match_date DESC
+                LIMIT 10
+            """)
+            shortest_sets = [dict(row) for row in cursor.fetchall()]
+
+            # Top 10 most 100+ throws in a single match this week
+            cursor.execute(f"""
+                WITH match_100plus AS (
+                    SELECT
+                        sm.id as sub_match_id,
+                        t.team_number,
+                        COUNT(*) as count_100plus
+                    FROM throws t
+                    JOIN legs l ON t.leg_id = l.id
+                    JOIN sub_matches sm ON l.sub_match_id = sm.id
+                    WHERE t.score >= 100
+                    GROUP BY sm.id, t.team_number
+                )
+                SELECT
+                    p.name as player_name,
+                    m100.count_100plus,
+                    t1.name as team_name,
+                    t2.name as opponent_name,
+                    DATE(m.match_date) as match_date,
+                    sm.id as sub_match_id
+                FROM match_100plus m100
+                JOIN sub_matches sm ON m100.sub_match_id = sm.id
+                JOIN sub_match_participants smp ON sm.id = smp.sub_match_id AND smp.team_number = m100.team_number
+                JOIN players p ON smp.player_id = p.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON (CASE WHEN smp.team_number = 1 THEN m.team1_id ELSE m.team2_id END) = t1.id
+                JOIN teams t2 ON (CASE WHEN smp.team_number = 1 THEN m.team2_id ELSE m.team1_id END) = t2.id
+                WHERE sm.match_type = 'Singles'
+                {week_filter}
+                ORDER BY m100.count_100plus DESC, m.match_date DESC
+                LIMIT 10
+            """)
+            most_100plus = [dict(row) for row in cursor.fetchall()]
+
+            # Get total matches this week for context
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT m.id) as total_matches
+                FROM matches m
+                WHERE 1=1 {week_filter}
+            """)
+            total_matches = cursor.fetchone()['total_matches']
+
+            return jsonify({
+                'week_start': start_of_week.strftime('%Y-%m-%d'),
+                'week_end': end_of_week.strftime('%Y-%m-%d'),
+                'total_matches': total_matches,
+                'division': division,
+                'top_averages': top_averages,
+                'top_checkouts': top_checkouts,
+                'shortest_sets': shortest_sets,
+                'most_100plus': most_100plus
+            })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/track-tab', methods=['POST'])
+def track_tab():
+    """Track tab navigation for analytics"""
+    try:
+        data = request.get_json()
+        tab_name = data.get('tab', 'unknown')
+        client_ip = request.remote_addr
+        user_agent = request.headers.get('User-Agent', 'unknown')
+
+        # Log to console/file
+        app.logger.info(f"Tab navigation: {tab_name} | IP: {client_ip} | User-Agent: {user_agent[:50]}")
+
+        return jsonify({'status': 'ok'}), 200
+    except Exception as e:
+        app.logger.error(f"Error tracking tab: {e}")
+        return jsonify({'status': 'error'}), 500
+
+@app.route('/api/divisions')
+def get_divisions():
+    """API endpoint to get all divisions for current season"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            cursor = conn.cursor()
+
+            # Get current season (most recent)
+            cursor.execute("""
+                SELECT season
+                FROM matches
+                WHERE season IS NOT NULL
+                ORDER BY match_date DESC
+                LIMIT 1
+            """)
+            current_season_row = cursor.fetchone()
+
+            if not current_season_row:
+                return jsonify([])
+
+            current_season = current_season_row[0]
+
+            # Get divisions for current season
+            cursor.execute("""
+                SELECT DISTINCT division
+                FROM matches
+                WHERE division IS NOT NULL
+                  AND season = ?
+            """, (current_season,))
+            divisions = []
+            for row in cursor.fetchall():
+                div = row[0]
+                # Fix division names for display
+                if div == "Mixed":
+                    # Get a sample match to determine X1 or X2
+                    cursor.execute("""
+                        SELECT t1.name FROM matches m
+                        JOIN teams t1 ON m.team1_id = t1.id
+                        WHERE m.division = ? AND m.season = ?
+                        LIMIT 1
+                    """, (div, current_season))
+                    team_row = cursor.fetchone()
+                    if team_row and "(X1)" in team_row[0]:
+                        divisions.append("Mixed (X1)")
+                    else:
+                        divisions.append(div)
+                elif div == "Mixed(":
+                    # This is X2
+                    divisions.append("Mixed (X2)")
+                elif div == "Superligan":
+                    # Display as SL6 to match team names
+                    divisions.append("SL6")
+                else:
+                    divisions.append(div)
+
+            # Custom sort: SL6 first, then SL4, then rest in ascending order, Mixed last
+            sl_divisions = [d for d in divisions if d in ["SL6", "SL4"]]
+            mixed_divisions = [d for d in divisions if "Mixed" in d]
+            other_divisions = [d for d in divisions if d not in ["SL6", "SL4"] and "Mixed" not in d]
+
+            # Sort other divisions in ascending order (1A, 1FA, 1FB, ... 4FA)
+            other_divisions.sort()
+
+            # Combine: SL6, SL4, others ascending, Mixed last
+            return jsonify(sl_divisions + other_divisions + mixed_divisions)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/players')
 def get_players():
     """API endpoint to get all player names for autocomplete"""
@@ -778,33 +1043,81 @@ def get_player_throws(player_name):
                 dedup_throws = list(unique_throws.values())
                 scores = [t['score'] for t in dedup_throws if t['score'] > 0]  # For max and ranges
                 
-                # Use player_avg from database to match main stats exactly
-                # Get unique matches and their player_avg values, separated by won/lost
+                # Calculate weighted average (same method as database.py)
+                # Group throws by match to get player_avg and won/lost status
                 unique_matches = {}
-                unique_won_matches = {}
-                unique_lost_matches = {}
-
                 for throw in dedup_throws:
                     match_key = f"{throw['match_date']}_{throw['match_name']}"
                     if match_key not in unique_matches and throw['player_avg'] is not None:
-                        unique_matches[match_key] = throw['player_avg']
+                        unique_matches[match_key] = {
+                            'player_avg': throw['player_avg'],
+                            'won': throw['won_match'] == 1,
+                            'throws': []
+                        }
 
-                        # Separate by won/lost status
-                        if throw['won_match'] == 1:
-                            unique_won_matches[match_key] = throw['player_avg']
+                # Assign throws to matches
+                for throw in dedup_throws:
+                    match_key = f"{throw['match_date']}_{throw['match_name']}"
+                    if match_key in unique_matches:
+                        unique_matches[match_key]['throws'].append(throw)
+
+                # Calculate weighted average for all matches
+                total_score = 0.0
+                total_darts = 0
+                won_total_score = 0.0
+                won_total_darts = 0
+                lost_total_score = 0.0
+                lost_total_darts = 0
+                won_matches_count = 0
+                lost_matches_count = 0
+
+                for match_key, match_data in unique_matches.items():
+                    player_avg = match_data['player_avg']
+                    match_throws = match_data['throws']
+                    won = match_data['won']
+
+                    # Count darts for this match (using same logic as database.py)
+                    match_darts = 0
+                    for throw in match_throws:
+                        score = throw['score']
+                        remaining = throw['remaining_score']
+                        darts_used = throw['darts_used']
+
+                        # Skip starting throw (score=0, remaining=501)
+                        if score == 0 and remaining == 501:
+                            continue
+
+                        if remaining == 0:
+                            # Checkout - detect format based on score value
+                            if score <= 3:
+                                # Standard format: score = number of darts
+                                checkout_darts = score if score else 3
+                            else:
+                                # Alternative format: score = points, use darts_used
+                                checkout_darts = darts_used if darts_used else 3
+                            match_darts += checkout_darts
                         else:
-                            unique_lost_matches[match_key] = throw['player_avg']
+                            # Regular throw: always count darts
+                            match_darts += (darts_used if darts_used else 3)
 
-                # Calculate average of player_avg values (same as main stats)
-                match_averages = list(unique_matches.values())
-                avg_score = sum(match_averages) / len(match_averages) if match_averages else 0
+                    # Calculate score for this match
+                    match_score = (player_avg * match_darts) / 3.0
+                    total_score += match_score
+                    total_darts += match_darts
 
-                # Calculate separate averages for won and lost matches
-                won_averages = list(unique_won_matches.values())
-                avg_score_won = sum(won_averages) / len(won_averages) if won_averages else 0
+                    if won:
+                        won_total_score += match_score
+                        won_total_darts += match_darts
+                        won_matches_count += 1
+                    else:
+                        lost_total_score += match_score
+                        lost_total_darts += match_darts
+                        lost_matches_count += 1
 
-                lost_averages = list(unique_lost_matches.values())
-                avg_score_lost = sum(lost_averages) / len(lost_averages) if lost_averages else 0
+                # Calculate final weighted averages
+                avg_score = (total_score / total_darts * 3.0) if total_darts > 0 else 0
+                avg_score_won = (won_total_score / won_total_darts * 3.0) if won_total_darts > 0 else 0
+                avg_score_lost = (lost_total_score / lost_total_darts * 3.0) if lost_total_darts > 0 else 0
                 max_score = max(scores) if scores else 0
                 
                 # Count different score ranges
@@ -857,8 +1170,8 @@ def get_player_throws(player_name):
                     'average_score': round(avg_score, 2),
                     'average_score_won': round(avg_score_won, 2),
                     'average_score_lost': round(avg_score_lost, 2),
-                    'won_matches_count': len(won_averages),
-                    'lost_matches_count': len(lost_averages),
+                    'won_matches_count': won_matches_count,
+                    'lost_matches_count': lost_matches_count,
                     'max_score': max_score,
                     'score_ranges': score_ranges,
                     'total_checkouts': len(checkouts),
