@@ -20,6 +20,11 @@
                     🎯 Topplistor
                 </button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="weekly-main-tab" data-bs-toggle="tab" data-bs-target="#weekly-tab-content" type="button" role="tab">
+                    ⭐ Veckans stjärnor
+                </button>
+            </li>
         </ul>
     </div>
 </div>
@@ -350,6 +355,111 @@
     </div>
     <!-- End Stats Tab -->
 
+    <!-- Weekly Stats Tab -->
+    <div class="tab-pane fade" id="weekly-tab-content" role="tabpanel">
+
+        <div class="row justify-content-center mb-4 mt-4">
+            <div class="col-md-10">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4 text-center">
+                        <p class="text-muted mb-0" id="weeklyDescription">De bästa prestationerna denna vecka</p>
+                        <p class="text-muted mb-0 mt-2" id="weeklyDateRange">Laddar...</p>
+                        <p class="text-muted mb-0 mt-1" id="weeklyMatchCount"></p>
+
+                        <!-- Division filter -->
+                        <div class="row justify-content-center mt-3">
+                            <div class="col-md-4">
+                                <label for="weeklyDivisionFilter" class="form-label small mb-1">Filtrera per division</label>
+                                <select id="weeklyDivisionFilter" class="form-select form-select-sm" onchange="filterWeeklyStats()">
+                                    <option value="">Alla divisioner</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading indicator -->
+        <div id="weeklyLoading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laddar veckans statistik...</span>
+            </div>
+            <p class="mt-2 text-muted">Laddar veckans statistik...</p>
+        </div>
+
+        <!-- Weekly content -->
+        <div id="weeklyContent" style="display: none;">
+
+            <!-- Highest Average this week -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">🔥 Högsta pilsnitt (Singel)</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="weeklyTopAverages" class="list-group list-group-flush">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Highest Checkout this week -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">🎯 Högsta utgång</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="weeklyTopCheckouts" class="list-group list-group-flush">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shortest Sets this week -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚡ Kortast leg</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="weeklyShortestSets" class="list-group list-group-flush">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Most 100+ throws this week -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">💯 Flest 100+ kast</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="weeklyMost100plus" class="list-group list-group-flush">
+                                <!-- Will be populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+    <!-- End Weekly Tab -->
+
 </div>
 <!-- End Tab Content -->
 
@@ -385,13 +495,41 @@ document.addEventListener('DOMContentLoaded', function() {
         loadCurrentSeasonStats();
     }
 
+    // Track tab navigation
+    function trackTabNavigation(tabName) {
+        fetch('/api/track-tab', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ tab: tabName })
+        }).catch(err => console.debug('Tab tracking failed:', err));
+    }
+
     // Load stats when stats tab is clicked
     document.getElementById('stats-main-tab').addEventListener('click', function() {
+        trackTabNavigation('stats');
         if (currentStatsView === 'season') {
             loadCurrentSeasonStats();
         } else {
             loadTopStats();
         }
+    });
+
+    // Load weekly stats when weekly tab is clicked
+    document.getElementById('weekly-main-tab').addEventListener('click', function() {
+        trackTabNavigation('weekly');
+        loadWeeklyStats();
+    });
+
+    // Track players tab
+    document.getElementById('players-main-tab').addEventListener('click', function() {
+        trackTabNavigation('players');
+    });
+
+    // Track teams tab
+    document.getElementById('teams-main-tab').addEventListener('click', function() {
+        trackTabNavigation('teams');
     });
 
     // Check for URL parameter for automatic player search
@@ -1944,6 +2082,154 @@ async function loadTopStats() {
         console.error('Kunde inte ladda statistik:', error);
         document.getElementById('statsLoading').innerHTML = '<p class="text-danger">Kunde inte ladda statistik</p>';
     }
+}
+
+// Load weekly stats
+let weeklyStatsLoaded = false;
+async function loadWeeklyStats(division = null) {
+    try {
+        // Build query string
+        const params = new URLSearchParams();
+        if (division) {
+            params.append('division', division);
+        }
+        const queryString = params.toString();
+        const url = `/api/weekly-stats${queryString ? '?' + queryString : ''}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        // Hide loading, show content
+        document.getElementById('weeklyLoading').style.display = 'none';
+        document.getElementById('weeklyContent').style.display = 'block';
+
+        // Update date range and match count
+        const startDate = new Date(data.week_start);
+        const endDate = new Date(data.week_end);
+        const formatDate = (d) => d.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
+        document.getElementById('weeklyDateRange').textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+
+        if (data.total_matches === 0) {
+            document.getElementById('weeklyMatchCount').textContent = 'Inga matcher spelade denna vecka ännu';
+        } else {
+            document.getElementById('weeklyMatchCount').textContent = `${data.total_matches} matcher spelade denna vecka`;
+        }
+
+        // Populate top averages
+        const averagesHtml = data.top_averages.length > 0 ? data.top_averages.map((item, index) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-primary rounded-pill me-2">${index + 1}</span>
+                    <strong>${item.player_name}</strong>
+                    <br>
+                    <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
+                    <br>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                </div>
+                <span class="badge bg-primary rounded-pill fs-5">${item.average.toFixed(2)}</span>
+            </div>
+        `).join('') : '<div class="text-muted text-center py-3">Inga singelmatcher denna vecka ännu</div>';
+        document.getElementById('weeklyTopAverages').innerHTML = averagesHtml;
+
+        // Populate top checkouts
+        const checkoutsHtml = data.top_checkouts.length > 0 ? data.top_checkouts.map((item, index) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-success rounded-pill me-2">${index + 1}</span>
+                    <strong>${item.player_name}</strong>
+                    <br>
+                    <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
+                    <br>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                </div>
+                <span class="badge bg-success rounded-pill fs-5">${item.checkout}</span>
+            </div>
+        `).join('') : '<div class="text-muted text-center py-3">Inga utgångar denna vecka ännu</div>';
+        document.getElementById('weeklyTopCheckouts').innerHTML = checkoutsHtml;
+
+        // Populate shortest sets
+        const shortestSetsHtml = data.shortest_sets.length > 0 ? data.shortest_sets.map((item, index) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-warning text-dark rounded-pill me-2">${index + 1}</span>
+                    <strong>${item.player_name}</strong>
+                    <br>
+                    <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
+                    <br>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                </div>
+                <span class="badge bg-warning text-dark rounded-pill fs-5">${item.darts} pilar</span>
+            </div>
+        `).join('') : '<div class="text-muted text-center py-3">Inga korta legs denna vecka ännu</div>';
+        document.getElementById('weeklyShortestSets').innerHTML = shortestSetsHtml;
+
+        // Populate most 100+ throws
+        const most100plusHtml = data.most_100plus.length > 0 ? data.most_100plus.map((item, index) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-info rounded-pill me-2">${index + 1}</span>
+                    <strong>${item.player_name}</strong>
+                    <br>
+                    <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
+                    <br>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                </div>
+                <span class="badge bg-info rounded-pill fs-5">${item.count_100plus} st</span>
+            </div>
+        `).join('') : '<div class="text-muted text-center py-3">Inga 100+ kast denna vecka ännu</div>';
+        document.getElementById('weeklyMost100plus').innerHTML = most100plusHtml;
+
+        // Load divisions for filter on first load
+        if (!weeklyStatsLoaded) {
+            await loadWeeklyDivisions();
+            weeklyStatsLoaded = true;
+        }
+    } catch (error) {
+        console.error('Kunde inte ladda veckans statistik:', error);
+        document.getElementById('weeklyLoading').innerHTML = '<p class="text-danger">Kunde inte ladda veckans statistik</p>';
+    }
+}
+
+// Load divisions for weekly filter
+async function loadWeeklyDivisions() {
+    try {
+        const response = await fetch('/api/divisions');
+        const divisions = await response.json();
+
+        const select = document.getElementById('weeklyDivisionFilter');
+        // Keep the "Alla divisioner" option
+        select.innerHTML = '<option value="">Alla divisioner</option>';
+
+        divisions.forEach(division => {
+            const option = document.createElement('option');
+            option.value = division;
+            option.textContent = division;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Kunde inte ladda divisioner:', error);
+    }
+}
+
+// Filter weekly stats by division
+function filterWeeklyStats() {
+    let division = document.getElementById('weeklyDivisionFilter').value;
+
+    // Map display names back to database values
+    if (division === "Mixed (X1)") {
+        division = "Mixed";
+    } else if (division === "Mixed (X2)") {
+        division = "Mixed(";
+    } else if (division === "SL6") {
+        division = "Superligan";
+    }
+
+    // Show loading, hide content
+    document.getElementById('weeklyLoading').style.display = 'block';
+    document.getElementById('weeklyContent').style.display = 'none';
+
+    // Reload with filter
+    loadWeeklyStats(division);
 }
 
 // Load last import info
