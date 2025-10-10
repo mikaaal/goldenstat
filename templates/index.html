@@ -22,7 +22,7 @@
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="weekly-main-tab" data-bs-toggle="tab" data-bs-target="#weekly-tab-content" type="button" role="tab">
-                    ⭐ Veckans stjärnor
+                    ⭐ Veckans prestationer!
                 </button>
             </li>
         </ul>
@@ -32,68 +32,27 @@
 
 {% block content %}
 
+<!-- Nyhetsbanner -->
+<div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+    <div class="container">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-megaphone-fill fs-4 me-3"></i>
+            <div>
+                <strong>Ny funktionalitet</strong>
+            </div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div class="d-flex align-items-center">
+            <i class="bi bi-megaphone-fill fs-4 me-3"></i>
+            <div>Kolla in ⭐ Veckans prestationer, du kanske är med på nån lista!</div>
+        </div>
+    </div>
+</div>
+
 <!-- Tab Content -->
 <div class="tab-content" id="mainTabContent">
     <!-- Players Tab -->
     <div class="tab-pane fade show active" id="players-tab-content" role="tabpanel">
-
-<!-- Informationssektion -->
-<div class="row justify-content-center mb-5">
-    <div class="col-md-10 col-lg-9">
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
-                <div class="row align-items-center mb-3">
-                    <div class="col-auto">
-                    </div>
-                </div>
-
-                <div class="alert alert-warning alert-dismissible d-flex align-items-center py-2 mb-3" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <div class="flex-grow-1">
-                        <p class="text-muted mb-0">Statistik för spelade seriematcher baserat på data från nakka.com</p>
-                        <strong>Betaversion:</strong> Det kan förekomma fel i hur data visas.
-                    </div>
-                </div>
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="d-flex align-items-start">
-                            <i class="bi bi-person-badge text-info me-2 mt-1"></i>
-                            <div>
-                                <h6 class="mb-1 text-info">Namnmappning</h6>
-                                <small class="text-muted">
-                                    Jag har försökt mappa olika namnvarianter för att visa en samlad spelarbild.
-                                    Om ditt namn stavats olika kommer det visas som separata spelare.
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="d-flex align-items-start">
-                            <i class="bi bi-people text-success me-2 mt-1"></i>
-                            <div>
-                                <h6 class="mb-1 text-success">Förnamnsmappning</h6>
-                                <small class="text-muted">
-                                    I många fall när bara förnamn angetts har jag mappat det till klubb,
-                                    t.ex. "Jocke (Oilers)".
-                                </small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <hr class="my-3">
-
-                <div class="text-center">
-                    <small class="text-muted">
-                        <i class="bi bi-tools me-1"></i>
-                        Mappningen förbättras kontinuerligt för bättre noggrannhet
-                    </small>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Söksektion för spelare -->
 <div class="row justify-content-center">
@@ -177,6 +136,20 @@
             <div class="card-body" id="teamResultsBody">
                 <!-- Team lineup will be loaded here -->
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Beta-varning längst ner -->
+<div class="row justify-content-center mt-5">
+    <div class="col-md-10 col-lg-8">
+        <div class="alert alert-warning alert-dismissible d-flex align-items-center py-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <div class="flex-grow-1">
+                <small class="text-muted mb-0">Statistik för spelade seriematcher baserat på data från nakka.com</small>
+                <strong>Betaversion:</strong> Det kan förekomma fel i hur data visas.
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     </div>
 </div>

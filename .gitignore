@@ -60,6 +60,9 @@ ENV/
 *.db-journal
 *.db.backup_*
 
+# Cache
+.flask_cache/
+
 # Logs
 *.log
 
@@ -70,3 +73,5 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+test_*.py
+goldenstat.db.backup
