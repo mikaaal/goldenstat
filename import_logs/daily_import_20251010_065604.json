@@ -1,0 +1,78 @@
+{
+  "import_id": "20251010_065604",
+  "start_time": "2025-10-10T06:56:04.076671",
+  "end_time": "2025-10-10T07:08:07.272996",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "current_match_urls\\t_4epA_9547_match_urls3FA.txt",
+      "division_id": "t_4epA_9547",
+      "division_name": "3FA",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 68,
+      "processed_at": "2025-10-10T06:57:55.844056"
+    },
+    {
+      "file": "current_match_urls\\t_bmWG_5842_match_urls3FC.txt",
+      "division_id": "t_bmWG_5842",
+      "division_name": "3FC",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 100,
+      "processed_at": "2025-10-10T07:00:11.831464"
+    },
+    {
+      "file": "current_match_urls\\t_JIvx_1896_match_urls3FE.txt",
+      "division_id": "t_JIvx_1896",
+      "division_name": "3FE",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 100,
+      "processed_at": "2025-10-10T07:02:26.643731"
+    },
+    {
+      "file": "current_match_urls\\t_UGYN_2596_match_urls3FD.txt",
+      "division_id": "t_UGYN_2596",
+      "division_name": "3FD",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 68,
+      "processed_at": "2025-10-10T07:04:10.542076"
+    },
+    {
+      "file": "current_match_urls\\t_v6Vw_6773_match_urls3FB.txt",
+      "division_id": "t_v6Vw_6773",
+      "division_name": "3FB",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 96,
+      "processed_at": "2025-10-10T07:06:26.552839"
+    },
+    {
+      "file": "current_match_urls\\t_Wjxm_8120_match_urls3A.txt",
+      "division_id": "t_Wjxm_8120",
+      "division_name": "3A",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 100,
+      "processed_at": "2025-10-10T07:08:07.270421"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 6,
+    "successful_files": 6,
+    "failed_files": 0,
+    "total_matches_imported": 30,
+    "total_players_processed": 532,
+    "auto_matched_high_confidence": 524,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 8
+  }
+}
