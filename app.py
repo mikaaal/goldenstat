@@ -5,6 +5,7 @@ A Flask web app for viewing dart player statistics
 """
 
 from flask import Flask, render_template, request, jsonify
+from flask_caching import Cache
 import json
 import sqlite3
 from datetime import datetime
@@ -59,8 +60,31 @@ def get_effective_player_ids(cursor, player_name):
 app = Flask(__name__)
 app.secret_key = 'goldenstat-secret-key'
 
+# Configure caching
+# Use FileSystemCache (persists across process restarts, works with Flask reloader)
+import os
+cache = Cache(app, config={
+    'CACHE_TYPE': 'FileSystemCache',
+    'CACHE_DIR': '.flask_cache',
+    'CACHE_DEFAULT_TIMEOUT': 0  # No timeout - cache until manually cleared or app redeployed
+})
 
 db = DartDatabase()
+
+# Global flag to track if warmup has run
+_warmup_done = False
+_warmup_disabled = False
+
+# Initialize cache warmup for production (Gunicorn/Railway)
+def init_app():
+    """Initialize app - called once on startup in production"""
+    try:
+        from cache_warmup import warmup_cache
+        warmup_cache(app, cache)
+        global _warmup_done
+        _warmup_done = True
+    except Exception as e:
+        print(f"Cache warmup failed (non-critical): {e}")
 
 @app.route('/')
 def index():
@@ -148,6 +172,7 @@ def get_teams():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/top-stats')
+@cache.cached(query_string=True)  # Cache indefinitely until redeploy, vary by season param
 def get_top_stats():
     """API endpoint to get top statistics"""
     try:
@@ -307,6 +332,7 @@ def get_top_stats():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/weekly-stats')
+@cache.cached(query_string=True)  # Cache indefinitely until redeploy, vary by division param
 def get_weekly_stats():
     """API endpoint to get statistics for the current week"""
     try:
@@ -2273,6 +2299,46 @@ def get_memorable_matches(player_id):
 
 
 if __name__ == '__main__':
+    import sys
+    import os
+    import threading
+    import time
+
     print("Starting GoldenStat Web Application...")
-    print("Open your browser to: http://localhost:3000")
-    app.run(debug=True, host='0.0.0.0', port=3000)
+
+    # Check if running in production (Railway sets RAILWAY_ENVIRONMENT)
+    is_production = os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('FLASK_ENV') == 'production'
+    debug_mode = not is_production
+
+    # Check for --no-warmup flag
+    if '--no-warmup' in sys.argv:
+        _warmup_disabled = True
+        print("Cache warmup disabled (--no-warmup flag)")
+    else:
+        # Start warmup in background thread after Flask starts
+        def delayed_warmup():
+            # Wait for Flask to start
+            time.sleep(3)
+            # In production (no debug/reloader), always run warmup
+            # In development, only run in child process (after reloader)
+            should_run = (not debug_mode) or (os.environ.get('WERKZEUG_RUN_MAIN') == 'true')
+
+            if should_run:
+                try:
+                    print("\n" + "="*60)
+                    print("Starting cache warmup in background...")
+                    print("="*60)
+                    from cache_warmup import warmup_cache
+                    warmup_cache(app, cache)
+                except Exception as e:
+                    print(f"Cache warmup failed: {e}")
+
+        warmup_thread = threading.Thread(target=delayed_warmup, daemon=True)
+        warmup_thread.start()
+
+    if debug_mode:
+        print("Open your browser to: http://localhost:3000")
+    else:
+        print("Production mode - cache warmup will start in 3 seconds...")
+
+    app.run(debug=debug_mode, host='0.0.0.0', port=3000)
