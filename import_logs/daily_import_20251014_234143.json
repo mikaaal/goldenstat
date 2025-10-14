@@ -1,0 +1,60 @@
+{
+  "import_id": "20251014_234143",
+  "start_time": "2025-10-14T23:41:43.846369",
+  "end_time": "2025-10-14T23:50:50.484795",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "current_match_urls\\t_fWIc_3015_match_urls2FB.txt",
+      "division_id": "t_fWIc_3015",
+      "division_name": "2FB",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 104,
+      "processed_at": "2025-10-14T23:44:10.338531"
+    },
+    {
+      "file": "current_match_urls\\t_jM8s_0341_match_urls2A.txt",
+      "division_id": "t_jM8s_0341",
+      "division_name": "2A",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 96,
+      "processed_at": "2025-10-14T23:46:12.174066"
+    },
+    {
+      "file": "current_match_urls\\t_xo0C_7058_match_urls2FA.txt",
+      "division_id": "t_xo0C_7058",
+      "division_name": "2FA",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 96,
+      "processed_at": "2025-10-14T23:48:31.432576"
+    },
+    {
+      "file": "current_match_urls\\t_XtZU_4873_match_urls2FC.txt",
+      "division_id": "t_XtZU_4873",
+      "division_name": "2FC",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 96,
+      "processed_at": "2025-10-14T23:50:50.482206"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 4,
+    "successful_files": 4,
+    "failed_files": 0,
+    "total_matches_imported": 22,
+    "total_players_processed": 392,
+    "auto_matched_high_confidence": 389,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 1,
+    "auto_created_new": 2
+  }
+}
