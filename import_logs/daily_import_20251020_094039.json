@@ -1,0 +1,42 @@
+{
+  "import_id": "20251020_094039",
+  "start_time": "2025-10-20T09:40:39.777336",
+  "end_time": "2025-10-20T09:43:32.355420",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "current_match_urls\\t_rqTc_6259_match_urlsX1.txt",
+      "division_id": "t_rqTc_6259",
+      "division_name": "X1",
+      "status": "success",
+      "matches_imported": 3,
+      "players_processed": 108,
+      "processed_at": "2025-10-20T09:42:01.269239"
+    },
+    {
+      "file": "current_match_urls\\t_RY0l_0196_match_urlsX2.txt",
+      "division_id": "t_RY0l_0196",
+      "division_name": "X2",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 144,
+      "processed_at": "2025-10-20T09:43:32.353568"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 2,
+    "successful_files": 2,
+    "failed_files": 0,
+    "total_matches_imported": 7,
+    "total_players_processed": 252,
+    "auto_matched_high_confidence": 233,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 4,
+    "auto_created_new": 15
+  }
+}
