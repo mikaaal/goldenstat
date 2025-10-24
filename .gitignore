@@ -75,3 +75,7 @@ Thumbs.db
 *.temp
 test_*.py
 goldenstat.db.backup
+separate_robban_players.py
+separate_pelle_players.py
+fix_all_problematic_players.py
+consolidate_nacka_players.py
