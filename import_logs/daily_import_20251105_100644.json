@@ -1,0 +1,33 @@
+{
+  "import_id": "20251105_100644",
+  "start_time": "2025-11-05T10:06:44.991257",
+  "end_time": "2025-11-05T10:08:51.002575",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "current_match_urls\\t_jM8s_0341_match_urls2A.txt",
+      "division_id": "t_jM8s_0341",
+      "division_name": "2A",
+      "status": "success",
+      "matches_imported": 1,
+      "players_processed": 24,
+      "processed_at": "2025-11-05T10:08:50.999177"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 1,
+    "successful_files": 1,
+    "failed_files": 0,
+    "total_matches_imported": 1,
+    "total_players_processed": 24,
+    "auto_matched_high_confidence": 23,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 1
+  }
+}
