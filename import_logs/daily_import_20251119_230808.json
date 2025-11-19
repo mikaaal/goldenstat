@@ -1,0 +1,69 @@
+{
+  "import_id": "20251119_230808",
+  "start_time": "2025-11-19T23:08:08.479188",
+  "end_time": "2025-11-19T23:19:37.260557",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "current_match_urls\\t_3VAf_1770_match_urls1FA.txt",
+      "division_id": "t_3VAf_1770",
+      "division_name": "1FA",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 68,
+      "processed_at": "2025-11-19T23:09:58.170084"
+    },
+    {
+      "file": "current_match_urls\\t_5L4C_6247_match_urlsSL4.txt",
+      "division_id": "t_5L4C_6247",
+      "division_name": "SL4",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 100,
+      "processed_at": "2025-11-19T23:12:31.793955"
+    },
+    {
+      "file": "current_match_urls\\t_NcAX_0028_match_urls1FB.txt",
+      "division_id": "t_NcAX_0028",
+      "division_name": "1FB",
+      "status": "success",
+      "matches_imported": 5,
+      "players_processed": 80,
+      "processed_at": "2025-11-19T23:14:43.864929"
+    },
+    {
+      "file": "current_match_urls\\t_OFlR_9185_match_urlsSL6.txt",
+      "division_id": "t_OFlR_9185",
+      "division_name": "SL6",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 96,
+      "processed_at": "2025-11-19T23:17:51.775976"
+    },
+    {
+      "file": "current_match_urls\\t_Y2RR_6468_match_urls1A.txt",
+      "division_id": "t_Y2RR_6468",
+      "division_name": "1A",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 100,
+      "processed_at": "2025-11-19T23:19:37.256738"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 5,
+    "successful_files": 5,
+    "failed_files": 0,
+    "total_matches_imported": 23,
+    "total_players_processed": 444,
+    "auto_matched_high_confidence": 444,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 0
+  }
+}
