@@ -22,6 +22,10 @@ env:
   RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
   RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
 
+# Grant write permissions to push changes back to repo
+permissions:
+  contents: write
+
 jobs:
   import-and-sync:
     runs-on: ubuntu-22.04  # Use Ubuntu 22.04 for better Playwright compatibility
