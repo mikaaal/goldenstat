@@ -1,0 +1,120 @@
+name: Daily Database Import
+
+on:
+  # Kör dagligen kl 02:00 UTC (03:00/04:00 svensk tid beroende på sommartid)
+  schedule:
+    - cron: '0 2 * * *'
+
+  # Tillåt manuell körning
+  workflow_dispatch:
+
+  # Kör när daily_import.py ändras (för testning)
+  push:
+    paths:
+      - 'daily_import.py'
+      - 'smart_season_importer.py'
+      - '.github/workflows/daily-import.yml'
+    branches:
+      - main
+
+env:
+  RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+
+jobs:
+  import-and-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history för git operations
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Download current database from Railway
+        run: |
+          echo "📥 Laddar ner nuvarande databas från Railway..."
+          python scripts/railway_db_sync.py download
+        continue-on-error: true  # Om det inte finns någon databas än, fortsätt ändå
+
+      - name: Run daily import
+        run: |
+          echo "🤖 Kör daglig import..."
+          python daily_import.py
+
+      - name: Check if database was updated
+        id: check_changes
+        run: |
+          if [ -f "goldenstat.db" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "✅ Databas uppdaterad"
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Ingen databas att ladda upp"
+          fi
+
+      - name: Upload database to Railway
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          echo "📤 Laddar upp uppdaterad databas till Railway..."
+          python scripts/railway_db_sync.py upload
+
+      - name: Upload latest import log as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: import-log-${{ github.run_number }}
+          path: import_logs/daily_import_*.json
+          retention-days: 30
+
+      - name: Commit and push import log (optional)
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+          # Lägg till endast den senaste import-loggen
+          latest_log=$(ls -t import_logs/daily_import_*.json | head -1)
+          git add "$latest_log" || true
+
+          if git diff --staged --quiet; then
+            echo "Ingen ny import-logg att committa"
+          else
+            git commit -m "🤖 Daily import log $(date +%Y-%m-%d)"
+            git push || echo "⚠️ Kunde inte pusha import-logg (inte kritiskt)"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📊 Import Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "import_logs/daily_import_"*.json ]; then
+            latest_log=$(ls -t import_logs/daily_import_*.json | head -1)
+            echo "### Senaste import-loggen:" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            python -c "import json; log=json.load(open('$latest_log')); print(json.dumps(log.get('statistics', {}), indent=2))"  >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Import slutförd $(date)" >> $GITHUB_STEP_SUMMARY

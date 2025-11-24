@@ -39,10 +39,14 @@ RUN playwright install chromium
 # Kopiera alla appfiler
 COPY . .
 
+# Skapa data directory för persistent storage
+RUN mkdir -p /app/data
+
 # Miljövariabler
 ENV PYTHONPATH=/app
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
+ENV DATABASE_PATH=/app/data/goldenstat.db
 
 # Exponera port
 EXPOSE $PORT
