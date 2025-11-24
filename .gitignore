@@ -57,7 +57,7 @@ ENV/
 *.swo
 
 # Database
-goldenstat.db
+# goldenstat.db - temporarily tracked for GitHub Actions automation
 *.db-journal
 *.db.backup_*
 

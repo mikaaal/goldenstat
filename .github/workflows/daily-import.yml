@@ -67,16 +67,14 @@ jobs:
         run: |
           playwright install chromium
 
-      - name: Install Railway CLI
+      - name: Check for existing database
         run: |
-          curl -fsSL https://railway.app/install.sh | sh
-          echo "$HOME/.railway/bin" >> $GITHUB_PATH
-
-      - name: Download current database from Railway
-        run: |
-          echo "📥 Laddar ner nuvarande databas från Railway..."
-          python scripts/railway_db_sync.py download
-        continue-on-error: true  # Om det inte finns någon databas än, fortsätt ändå
+          if [ -f "goldenstat.db" ]; then
+            echo "✅ Använder befintlig databas från repo"
+            ls -lh goldenstat.db
+          else
+            echo "⚠️  Ingen databas hittades, skapar ny"
+          fi
 
       - name: Run daily import
         run: |
@@ -89,16 +87,31 @@ jobs:
           if [ -f "goldenstat.db" ]; then
             echo "changed=true" >> $GITHUB_OUTPUT
             echo "✅ Databas uppdaterad"
+            ls -lh goldenstat.db
           else
             echo "changed=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Ingen databas att ladda upp"
+            echo "⚠️ Ingen databas skapad"
           fi
 
-      - name: Upload database to Railway
+      - name: Commit and push updated database
         if: steps.check_changes.outputs.changed == 'true'
         run: |
-          echo "📤 Laddar upp uppdaterad databas till Railway..."
-          python scripts/railway_db_sync.py upload
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+
+          # Lägg till databas och senaste loggen
+          git add goldenstat.db || true
+          latest_log=$(ls -t import_logs/daily_import_*.json 2>/dev/null | head -1)
+          if [ -f "$latest_log" ]; then
+            git add "$latest_log" || true
+          fi
+
+          if git diff --staged --quiet; then
+            echo "Inga ändringar att committa"
+          else
+            git commit -m "🤖 Daily import $(date +%Y-%m-%d)"
+            git push || echo "⚠️ Kunde inte pusha ändringar"
+          fi
 
       - name: Upload latest import log as artifact
         if: always()
