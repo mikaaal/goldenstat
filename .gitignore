@@ -57,6 +57,7 @@ ENV/
 *.swo
 
 # Database
+goldenstat.db
 *.db-journal
 *.db.backup_*
 

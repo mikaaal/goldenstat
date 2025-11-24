@@ -17,7 +17,8 @@ def get_effective_sub_match_query(player_name):
     Returns a WHERE clause that includes both direct matches and mapped sub-matches.
     """
     # Get player ID for exclusion logic
-    with sqlite3.connect("goldenstat.db") as conn:
+    db_path = os.getenv('DATABASE_PATH', 'goldenstat.db')
+    with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
         result = cursor.fetchone()
@@ -69,7 +70,9 @@ cache = Cache(app, config={
     'CACHE_DEFAULT_TIMEOUT': 0  # No timeout - cache until manually cleared or app redeployed
 })
 
-db = DartDatabase()
+# Use DATABASE_PATH environment variable if set (for Railway persistent volume)
+db_path = os.getenv('DATABASE_PATH', 'goldenstat.db')
+db = DartDatabase(db_path=db_path)
 
 # Global flag to track if warmup has run
 _warmup_done = False
@@ -1679,7 +1682,7 @@ def get_sub_match_player_throws(sub_match_id, player_name):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/team/<team_name>/lineup')
+@app.route('/api/team/<path:team_name>/lineup')
 def get_team_lineup(team_name):
     """Get team lineup prediction based on historical position data"""
     try:
@@ -1874,7 +1877,7 @@ def get_team_lineup(team_name):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/team/<team_name>/players')
+@app.route('/api/team/<path:team_name>/players')
 def get_team_players(team_name):
     """Get all players who have played for a team"""
     try:
