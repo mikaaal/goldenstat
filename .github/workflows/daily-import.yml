@@ -2,8 +2,8 @@ name: Daily Database Import
 
 on:
   # Kör dagligen kl 02:00 UTC (03:00/04:00 svensk tid beroende på sommartid)
-  #schedule:
-  #  - cron: '0 2 * * *'
+  schedule:
+    - cron: '0 2 * * *'
 
   # Tillåt manuell körning
   workflow_dispatch:

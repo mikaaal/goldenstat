@@ -31,7 +31,10 @@
       "Bash([ -f \"archive/fixes/$module.py\" ])",
       "Bash(then if [ -f \"$module.py\" ])",
       "Bash(then echo \"[OK] $module.py exists in root\" else echo \"[MISSING] $module.py is in archive but might be needed\" fi fi done)",
-      "Bash(netstat:*)"
+      "Bash(netstat:*)",
+      "Bash(rm:*)",
+      "Bash(mv:*)",
+      "Bash(do echo \"$file\")"
     ],
     "deny": [],
     "ask": []

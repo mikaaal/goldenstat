@@ -1,5 +1,5 @@
 # Match URLs for division t_rqTc_6259
-# Generated: 2025-09-17 15:33:11
+# Generated: 2026-01-12 14:57:41
 # Total URLs: 56
 #
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_rqTc_6259_lg_0_uebp_crfN_9elr

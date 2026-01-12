@@ -1,5 +1,5 @@
 # Match URLs for division t_RY0l_0196
-# Generated: 2025-09-17 15:33:29
+# Generated: 2026-01-12 14:57:39
 # Total URLs: 56
 #
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_RY0l_0196_lg_0_om7f_Gzl6_dGfP
