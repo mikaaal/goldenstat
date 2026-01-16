@@ -38,7 +38,10 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h1 class="h3 mb-0">Kastomgångar</h1>
-                <button onclick="window.history.back()" class="btn btn-primary">← Tillbaka</button>
+                <div>
+                    <button onclick="navigateToMatchOverview()" class="btn btn-outline-secondary me-2">Visa alla delmatchar</button>
+                    <button onclick="window.history.back()" class="btn btn-primary">Tillbaka</button>
+                </div>
             </div>
             <div class="card-body">
                 
@@ -217,6 +220,27 @@ function makePlayerNameClickable(playerName, isDoubles = false) {
 function navigateToPlayer(playerName) {
     // Navigate back to main page and trigger search
     window.location.href = `/?player=${encodeURIComponent(playerName)}`;
+}
+
+async function navigateToMatchOverview() {
+    if (!subMatchId) {
+        alert('Kan inte navigera: saknar sub_match_id');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/sub_match/${subMatchId}/match_id`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Kunde inte hamta match-id');
+        }
+
+        window.location.href = `/match_overview?match_id=${data.match_id}`;
+    } catch (error) {
+        console.error('Error navigating to match overview:', error);
+        alert('Kunde inte navigera till matchoversikt: ' + error.message);
+    }
 }
 
 

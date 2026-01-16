@@ -2301,6 +2301,202 @@ def get_memorable_matches(player_id):
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/match_overview')
+def match_overview():
+    """Page to show all sub-matches in a series match"""
+    return render_template('match_overview.html')
+
+
+@app.route('/api/match/<int:match_id>/overview')
+def get_match_overview(match_id):
+    """Get overview of all sub-matches in a series match"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Get match info
+            cursor.execute("""
+                SELECT
+                    m.id,
+                    m.match_date,
+                    m.season,
+                    m.division,
+                    t1.name as team1_name,
+                    t2.name as team2_name,
+                    m.team1_score,
+                    m.team2_score
+                FROM matches m
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE m.id = ?
+            """, (match_id,))
+
+            match_info = cursor.fetchone()
+            if not match_info:
+                return jsonify({'error': 'Match not found'}), 404
+
+            # Get all sub-matches for this match
+            cursor.execute("""
+                SELECT
+                    sm.id,
+                    sm.match_name,
+                    sm.match_type,
+                    sm.team1_legs,
+                    sm.team2_legs
+                FROM sub_matches sm
+                WHERE sm.match_id = ?
+                ORDER BY sm.id
+            """, (match_id,))
+
+            sub_matches_raw = cursor.fetchall()
+
+            # Process each sub-match to get player info and averages
+            sub_matches = []
+            for sm in sub_matches_raw:
+                # Parse position from match_name (e.g., "Team A vs Team B Doubles1" -> "D1")
+                position = parse_match_position(sm['match_name'], sm['match_type'])
+
+                # Get players for team 1
+                cursor.execute("""
+                    SELECT
+                        p.name as original_name,
+                        smp.player_avg,
+                        smp.player_id
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    WHERE smp.sub_match_id = ? AND smp.team_number = 1
+                    ORDER BY p.name
+                """, (sm['id'],))
+
+                team1_players_raw = cursor.fetchall()
+                team1_players = []
+                team1_avg = 0
+
+                for player in team1_players_raw:
+                    # Check for player mapping
+                    cursor.execute("""
+                        SELECT correct_player_name
+                        FROM sub_match_player_mappings
+                        WHERE sub_match_id = ? AND original_player_id = ?
+                    """, (sm['id'], player['player_id']))
+                    mapping = cursor.fetchone()
+                    name = mapping['correct_player_name'] if mapping else player['original_name']
+                    team1_players.append(name)
+                    if player['player_avg']:
+                        team1_avg = max(team1_avg, player['player_avg'])
+
+                # Get players for team 2
+                cursor.execute("""
+                    SELECT
+                        p.name as original_name,
+                        smp.player_avg,
+                        smp.player_id
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    WHERE smp.sub_match_id = ? AND smp.team_number = 2
+                    ORDER BY p.name
+                """, (sm['id'],))
+
+                team2_players_raw = cursor.fetchall()
+                team2_players = []
+                team2_avg = 0
+
+                for player in team2_players_raw:
+                    # Check for player mapping
+                    cursor.execute("""
+                        SELECT correct_player_name
+                        FROM sub_match_player_mappings
+                        WHERE sub_match_id = ? AND original_player_id = ?
+                    """, (sm['id'], player['player_id']))
+                    mapping = cursor.fetchone()
+                    name = mapping['correct_player_name'] if mapping else player['original_name']
+                    team2_players.append(name)
+                    if player['player_avg']:
+                        team2_avg = max(team2_avg, player['player_avg'])
+
+                sub_matches.append({
+                    'id': sm['id'],
+                    'position': position,
+                    'match_type': sm['match_type'],
+                    'team1_players': ' / '.join(team1_players),
+                    'team2_players': ' / '.join(team2_players),
+                    'team1_legs': sm['team1_legs'],
+                    'team2_legs': sm['team2_legs'],
+                    'team1_avg': round(team1_avg, 1) if team1_avg else None,
+                    'team2_avg': round(team2_avg, 1) if team2_avg else None
+                })
+
+            # Sort sub_matches by position order: D1, S1, S2, D2, S3, S4, D3, S5, S6, AD (AD always last)
+            position_order = {
+                'D1': 1, 'S1': 2, 'S2': 3, 'D2': 4, 'S3': 5, 'S4': 6,
+                'D3': 7, 'S5': 8, 'S6': 9,
+                'AD': 100  # AD always last
+            }
+            sub_matches.sort(key=lambda x: position_order.get(x['position'], 50))
+
+            # Calculate sub-match wins for each team
+            team1_sub_wins = sum(1 for sm in sub_matches if sm['team1_legs'] > sm['team2_legs'])
+            team2_sub_wins = sum(1 for sm in sub_matches if sm['team2_legs'] > sm['team1_legs'])
+
+            return jsonify({
+                'match_info': dict(match_info),
+                'sub_matches': sub_matches,
+                'team1_sub_wins': team1_sub_wins,
+                'team2_sub_wins': team2_sub_wins
+            })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+def parse_match_position(match_name, match_type):
+    """Parse match position (D1, S1, S2, D2, S3, S4, AD) from match_name"""
+    if not match_name:
+        return 'S1' if match_type == 'Singles' else 'D1'
+
+    # Check for AD first
+    if ' AD' in match_name:
+        return 'AD'
+
+    # Extract Singles/Doubles number
+    if 'Singles' in match_name:
+        import re
+        match = re.search(r'Singles(\d+)', match_name)
+        return f'S{match.group(1)}' if match else 'S1'
+    elif 'Doubles' in match_name:
+        import re
+        match = re.search(r'Doubles(\d+)', match_name)
+        return f'D{match.group(1)}' if match else 'D1'
+
+    # Fallback
+    return 'S1' if match_type == 'Singles' else 'D1'
+
+
+@app.route('/api/sub_match/<int:sub_match_id>/match_id')
+def get_sub_match_match_id(sub_match_id):
+    """Get the parent match_id for a sub_match"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT match_id FROM sub_matches WHERE id = ?
+            """, (sub_match_id,))
+
+            result = cursor.fetchone()
+            if not result:
+                return jsonify({'error': 'Sub-match not found'}), 404
+
+            return jsonify({'match_id': result['match_id']})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     import sys
     import os

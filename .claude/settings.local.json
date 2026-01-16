@@ -34,7 +34,8 @@
       "Bash(netstat:*)",
       "Bash(rm:*)",
       "Bash(mv:*)",
-      "Bash(do echo \"$file\")"
+      "Bash(do echo \"$file\")",
+      "Bash(xargs ls:*)"
     ],
     "deny": [],
     "ask": []
