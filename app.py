@@ -531,6 +531,38 @@ def track_tab():
         app.logger.error(f"Error tracking tab: {e}")
         return jsonify({'status': 'error'}), 500
 
+@app.route('/api/track-click', methods=['POST'])
+def track_click():
+    """Track click events for analytics"""
+    try:
+        data = request.get_json()
+        event_name = data.get('event', 'unknown')
+        client_ip = request.remote_addr
+        user_agent = request.headers.get('User-Agent', 'unknown')
+
+        app.logger.info(f"Click event: {event_name} | IP: {client_ip} | User-Agent: {user_agent[:50]}")
+
+        return jsonify({'status': 'ok'}), 200
+    except Exception as e:
+        app.logger.error(f"Error tracking click: {e}")
+        return jsonify({'status': 'error'}), 500
+
+@app.route('/api/track-pageview', methods=['POST'])
+def track_pageview():
+    """Track page views for analytics"""
+    try:
+        data = request.get_json()
+        page_name = data.get('page', 'unknown')
+        client_ip = request.remote_addr
+        user_agent = request.headers.get('User-Agent', 'unknown')
+
+        app.logger.info(f"Page view: {page_name} | IP: {client_ip} | User-Agent: {user_agent[:50]}")
+
+        return jsonify({'status': 'ok'}), 200
+    except Exception as e:
+        app.logger.error(f"Error tracking pageview: {e}")
+        return jsonify({'status': 'error'}), 500
+
 @app.route('/api/divisions')
 def get_divisions():
     """API endpoint to get all divisions for current season"""
@@ -1967,7 +1999,7 @@ def get_team_players(team_name):
                     WHERE {where_clause}
                       AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
                 ),
-                player_legs AS (
+                sub_match_results AS (
                     SELECT
                         pd.player_id,
                         pd.player_name,
@@ -1977,12 +2009,11 @@ def get_team_players(team_name):
                         pd.season,
                         pd.team_number,
                         pd.player_avg,
-                        CASE
-                            WHEN legs.winner_team = pd.team_number THEN 1
-                            ELSE 0
-                        END as won
+                        SUM(CASE WHEN legs.winner_team = pd.team_number THEN 1 ELSE 0 END) as player_legs_won,
+                        SUM(CASE WHEN legs.winner_team != pd.team_number AND legs.winner_team IS NOT NULL THEN 1 ELSE 0 END) as player_legs_lost
                     FROM player_data pd
                     LEFT JOIN legs ON legs.sub_match_id = pd.sub_match_id
+                    GROUP BY pd.player_id, pd.player_name, pd.sub_match_id, pd.corrected_match_type, pd.match_id, pd.season, pd.team_number, pd.player_avg
                 )
                 SELECT
                     player_name,
@@ -1991,10 +2022,12 @@ def get_team_players(team_name):
                     COUNT(DISTINCT CASE WHEN corrected_match_type = 'Singles' THEN sub_match_id END) as singles_played,
                     COUNT(DISTINCT CASE WHEN corrected_match_type = 'Doubles' THEN sub_match_id END) as doubles_played,
                     COUNT(DISTINCT sub_match_id) as sub_matches_played,
-                    SUM(CASE WHEN won = 1 THEN 1 ELSE 0 END) as legs_won,
-                    COUNT(*) - SUM(CASE WHEN won = 1 THEN 1 ELSE 0 END) as legs_lost,
+                    SUM(CASE WHEN player_legs_won > player_legs_lost THEN 1 ELSE 0 END) as sub_matches_won,
+                    SUM(CASE WHEN player_legs_won < player_legs_lost THEN 1 ELSE 0 END) as sub_matches_lost,
+                    SUM(CASE WHEN corrected_match_type = 'Singles' AND player_legs_won > player_legs_lost THEN 1 ELSE 0 END) as singles_won,
+                    SUM(CASE WHEN corrected_match_type = 'Doubles' AND player_legs_won > player_legs_lost THEN 1 ELSE 0 END) as doubles_won,
                     GROUP_CONCAT(DISTINCT season) as seasons
-                FROM player_legs
+                FROM sub_match_results
                 GROUP BY player_name, player_id
                 ORDER BY matches_played DESC, player_name ASC
             """, params + [team_name])
@@ -2079,14 +2112,26 @@ def get_team_players(team_name):
                     if total_darts > 0:
                         singles_avg = round((total_score / total_darts * 3.0), 2)
 
+                singles_played = row['singles_played']
+                doubles_played = row['doubles_played']
+                singles_won = row['singles_won']
+                doubles_won = row['doubles_won']
+
+                singles_win_pct = round((singles_won / singles_played * 100), 0) if singles_played > 0 else 0
+                doubles_win_pct = round((doubles_won / doubles_played * 100), 0) if doubles_played > 0 else 0
+
                 players.append({
                     'name': player_name,
                     'matches_played': row['matches_played'],
                     'sub_matches_played': row['sub_matches_played'],
-                    'singles_played': row['singles_played'],
-                    'doubles_played': row['doubles_played'],
-                    'legs_won': row['legs_won'],
-                    'legs_lost': row['legs_lost'],
+                    'singles_played': singles_played,
+                    'doubles_played': doubles_played,
+                    'singles_won': singles_won,
+                    'doubles_won': doubles_won,
+                    'singles_win_pct': singles_win_pct,
+                    'doubles_win_pct': doubles_win_pct,
+                    'sub_matches_won': row['sub_matches_won'],
+                    'sub_matches_lost': row['sub_matches_lost'],
                     'average': singles_avg,
                     'seasons': row['seasons']
                 })
@@ -2295,6 +2340,313 @@ def get_memorable_matches(player_id):
 
             return jsonify({
                 'memorable_matches': top_3_matches
+            })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/match_overview')
+def match_overview():
+    """Page to show all sub-matches in a series match"""
+    return render_template('match_overview.html')
+
+
+@app.route('/api/match/<int:match_id>/overview')
+def get_match_overview(match_id):
+    """Get overview of all sub-matches in a series match"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Get match info
+            cursor.execute("""
+                SELECT
+                    m.id,
+                    m.match_date,
+                    m.season,
+                    m.division,
+                    t1.name as team1_name,
+                    t2.name as team2_name,
+                    m.team1_score,
+                    m.team2_score
+                FROM matches m
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                WHERE m.id = ?
+            """, (match_id,))
+
+            match_info = cursor.fetchone()
+            if not match_info:
+                return jsonify({'error': 'Match not found'}), 404
+
+            # Get all sub-matches for this match
+            cursor.execute("""
+                SELECT
+                    sm.id,
+                    sm.match_name,
+                    sm.match_type,
+                    sm.team1_legs,
+                    sm.team2_legs
+                FROM sub_matches sm
+                WHERE sm.match_id = ?
+                ORDER BY sm.id
+            """, (match_id,))
+
+            sub_matches_raw = cursor.fetchall()
+
+            # Process each sub-match to get player info and averages
+            sub_matches = []
+            for sm in sub_matches_raw:
+                # Parse position from match_name (e.g., "Team A vs Team B Doubles1" -> "D1")
+                position = parse_match_position(sm['match_name'], sm['match_type'])
+
+                # Get players for team 1
+                cursor.execute("""
+                    SELECT
+                        p.name as original_name,
+                        smp.player_avg,
+                        smp.player_id
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    WHERE smp.sub_match_id = ? AND smp.team_number = 1
+                    ORDER BY p.name
+                """, (sm['id'],))
+
+                team1_players_raw = cursor.fetchall()
+                team1_players = []
+                team1_avg = 0
+
+                for player in team1_players_raw:
+                    # Check for player mapping
+                    cursor.execute("""
+                        SELECT correct_player_name
+                        FROM sub_match_player_mappings
+                        WHERE sub_match_id = ? AND original_player_id = ?
+                    """, (sm['id'], player['player_id']))
+                    mapping = cursor.fetchone()
+                    name = mapping['correct_player_name'] if mapping else player['original_name']
+                    team1_players.append(name)
+                    if player['player_avg']:
+                        team1_avg = max(team1_avg, player['player_avg'])
+
+                # Get players for team 2
+                cursor.execute("""
+                    SELECT
+                        p.name as original_name,
+                        smp.player_avg,
+                        smp.player_id
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    WHERE smp.sub_match_id = ? AND smp.team_number = 2
+                    ORDER BY p.name
+                """, (sm['id'],))
+
+                team2_players_raw = cursor.fetchall()
+                team2_players = []
+                team2_avg = 0
+
+                for player in team2_players_raw:
+                    # Check for player mapping
+                    cursor.execute("""
+                        SELECT correct_player_name
+                        FROM sub_match_player_mappings
+                        WHERE sub_match_id = ? AND original_player_id = ?
+                    """, (sm['id'], player['player_id']))
+                    mapping = cursor.fetchone()
+                    name = mapping['correct_player_name'] if mapping else player['original_name']
+                    team2_players.append(name)
+                    if player['player_avg']:
+                        team2_avg = max(team2_avg, player['player_avg'])
+
+                sub_matches.append({
+                    'id': sm['id'],
+                    'position': position,
+                    'match_type': sm['match_type'],
+                    'team1_players': ' / '.join(team1_players),
+                    'team2_players': ' / '.join(team2_players),
+                    'team1_legs': sm['team1_legs'],
+                    'team2_legs': sm['team2_legs'],
+                    'team1_avg': round(team1_avg, 2) if team1_avg else None,
+                    'team2_avg': round(team2_avg, 2) if team2_avg else None
+                })
+
+            # Sort sub_matches by position order: D1, S1, S2, D2, S3, S4, D3, S5, S6, AD (AD always last)
+            position_order = {
+                'D1': 1, 'S1': 2, 'S2': 3, 'D2': 4, 'S3': 5, 'S4': 6,
+                'D3': 7, 'S5': 8, 'S6': 9,
+                'AD': 100  # AD always last
+            }
+            sub_matches.sort(key=lambda x: position_order.get(x['position'], 50))
+
+            # Calculate sub-match wins for each team
+            team1_sub_wins = sum(1 for sm in sub_matches if sm['team1_legs'] > sm['team2_legs'])
+            team2_sub_wins = sum(1 for sm in sub_matches if sm['team2_legs'] > sm['team1_legs'])
+
+            return jsonify({
+                'match_info': dict(match_info),
+                'sub_matches': sub_matches,
+                'team1_sub_wins': team1_sub_wins,
+                'team2_sub_wins': team2_sub_wins
+            })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+def parse_match_position(match_name, match_type):
+    """Parse match position (D1, S1, S2, D2, S3, S4, AD) from match_name"""
+    if not match_name:
+        return 'S1' if match_type == 'Singles' else 'D1'
+
+    # Check for AD first
+    if ' AD' in match_name:
+        return 'AD'
+
+    # Extract Singles/Doubles number
+    if 'Singles' in match_name:
+        import re
+        match = re.search(r'Singles(\d+)', match_name)
+        return f'S{match.group(1)}' if match else 'S1'
+    elif 'Doubles' in match_name:
+        import re
+        match = re.search(r'Doubles(\d+)', match_name)
+        return f'D{match.group(1)}' if match else 'D1'
+
+    # Fallback
+    return 'S1' if match_type == 'Singles' else 'D1'
+
+
+@app.route('/api/sub_match/<int:sub_match_id>/match_id')
+def get_sub_match_match_id(sub_match_id):
+    """Get the parent match_id for a sub_match"""
+    try:
+        import sqlite3
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT match_id FROM sub_matches WHERE id = ?
+            """, (sub_match_id,))
+
+            result = cursor.fetchone()
+            if not result:
+                return jsonify({'error': 'Sub-match not found'}), 404
+
+            return jsonify({'match_id': result['match_id']})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/series_matches')
+def series_matches():
+    """Page to show all series matches grouped by week"""
+    return render_template('series_matches.html')
+
+
+@app.route('/api/series_matches')
+def get_series_matches():
+    """Get all series matches grouped by week"""
+    try:
+        import sqlite3
+        from datetime import datetime
+
+        # Get filter parameters
+        season = request.args.get('season')
+        division = request.args.get('division')
+
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Build query with optional filters
+            where_clauses = []
+            params = []
+
+            if season:
+                where_clauses.append("m.season = ?")
+                params.append(season)
+            if division:
+                where_clauses.append("m.division = ?")
+                params.append(division)
+
+            where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+            # Get all matches with sub-match win counts
+            cursor.execute(f"""
+                SELECT
+                    m.id,
+                    m.match_date,
+                    m.season,
+                    m.division,
+                    t1.name as team1_name,
+                    t2.name as team2_name,
+                    m.team1_score,
+                    m.team2_score,
+                    (SELECT COUNT(*) FROM sub_matches sm WHERE sm.match_id = m.id AND sm.team1_legs > sm.team2_legs) as team1_sub_wins,
+                    (SELECT COUNT(*) FROM sub_matches sm WHERE sm.match_id = m.id AND sm.team2_legs > sm.team1_legs) as team2_sub_wins
+                FROM matches m
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                {where_sql}
+                ORDER BY m.match_date DESC, m.id DESC
+            """, params)
+
+            matches = cursor.fetchall()
+
+            # Get available seasons and divisions for filters
+            cursor.execute("SELECT DISTINCT season FROM matches ORDER BY season DESC")
+            seasons = [row['season'] for row in cursor.fetchall()]
+
+            cursor.execute("SELECT DISTINCT division FROM matches ORDER BY division")
+            divisions = [row['division'] for row in cursor.fetchall()]
+
+            # Group matches by week
+            matches_by_week = {}
+            for match in matches:
+                match_dict = dict(match)
+                match_date = match['match_date']
+
+                if match_date:
+                    # Parse date and get ISO week - extract just the date part
+                    try:
+                        # Handle various formats by extracting YYYY-MM-DD part
+                        date_str = str(match_date).split('T')[0].split(' ')[0]
+                        dt = datetime.strptime(date_str, '%Y-%m-%d')
+                        year, week, _ = dt.isocalendar()
+                        week_key = f"{year}-W{week:02d}"
+                        week_label = f"Vecka {week}, {year}"
+                    except Exception:
+                        week_key = "unknown"
+                        week_label = "Okänt datum"
+                else:
+                    week_key = "unknown"
+                    week_label = "Okänt datum"
+
+                if week_key not in matches_by_week:
+                    matches_by_week[week_key] = {
+                        'week_key': week_key,
+                        'week_label': week_label,
+                        'matches': []
+                    }
+
+                matches_by_week[week_key]['matches'].append(match_dict)
+
+            # Sort weeks descending and convert to list
+            sorted_weeks = sorted(matches_by_week.values(),
+                                  key=lambda x: x['week_key'],
+                                  reverse=True)
+
+            return jsonify({
+                'weeks': sorted_weeks,
+                'seasons': seasons,
+                'divisions': divisions,
+                'current_season': season,
+                'current_division': division
             })
 
     except Exception as e:
