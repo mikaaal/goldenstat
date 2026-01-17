@@ -133,17 +133,7 @@ body {
     position: relative;
 }
 
-#searchSuggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    z-index: 1000;
-    border-radius: 0 0 15px 15px;
-    border-top: none;
-    max-height: 200px;
-    overflow-y: auto;
-}
+/* Old rule removed - now handled by .search-input-wrapper rules */
 
 .list-group-item-action:hover {
     background-color: #e9ecef;
@@ -342,7 +332,6 @@ body {
 .table-row-clickable {
     cursor: pointer;
     transition: all 0.2s ease;
-    position: relative;
 }
 
 .table-row-clickable:hover {
@@ -350,25 +339,9 @@ body {
     box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
 }
 
-.table-row-clickable::after {
-    content: "🎯";
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    font-size: 0.8em;
-}
-
-.table-row-clickable:hover::after {
-    opacity: 0.6;
-}
-
 .card-clickable {
     cursor: pointer;
     transition: all 0.2s ease;
-    position: relative;
     border: 1px solid #dee2e6;
 }
 
@@ -377,20 +350,6 @@ body {
     box-shadow: 0 8px 15px rgba(0, 123, 255, 0.15);
     border-color: #007bff;
     background-color: #f8f9ff;
-}
-
-.card-clickable::after {
-    content: "🎯";
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    font-size: 0.9em;
-}
-
-.card-clickable:hover::after {
-    opacity: 0.7;
 }
 
 /* Player name links */
@@ -763,5 +722,187 @@ body {
     color: #1d4ed8;
     border-bottom: 1px solid #1d4ed8;
     background-color: rgba(37, 99, 235, 0.05);
+}
+
+/* ========== NEWS BANNER ========== */
+.news-banner {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.news-banner-header {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    color: white;
+    font-size: 1.1rem;
+}
+
+.news-icon {
+    font-size: 1.5rem;
+    margin-right: 0.75rem;
+}
+
+.news-banner-body {
+    padding: 1rem 1.25rem;
+}
+
+.news-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.6rem 0;
+    color: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.news-item:last-child {
+    border-bottom: none;
+}
+
+.news-item-icon {
+    font-size: 1.25rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.news-item strong {
+    color: #fbbf24;
+}
+
+.news-item-link {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.6rem 0.75rem;
+    margin: 0 -0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.news-item-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.news-item-link strong {
+    color: #fbbf24;
+}
+
+/* ========== PLAYER SEARCH HERO ========== */
+.search-hero {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 20px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.search-hero-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.search-hero-subtitle {
+    color: #64748b;
+    margin-bottom: 1.5rem;
+}
+
+.search-box-wrapper {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.search-input-wrapper {
+    position: relative;
+    text-align: left;
+}
+
+.search-input-wrapper #searchSuggestions,
+.search-input-wrapper #teamSearchSuggestions {
+    position: absolute;
+    left: 0;
+    right: auto;
+    top: 100%;
+    z-index: 1050;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    max-height: 180px;
+    overflow-y: auto;
+    min-width: 200px;
+    max-width: 300px;
+    width: auto;
+}
+
+.search-input-wrapper #searchSuggestions .list-group-item,
+.search-input-wrapper #teamSearchSuggestions .list-group-item {
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+    text-align: left;
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.search-input-wrapper #searchSuggestions .list-group-item:last-child,
+.search-input-wrapper #teamSearchSuggestions .list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* ========== SORTABLE TABLE HEADERS ========== */
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+    background-color: #e9ecef;
+}
+
+.sort-indicator {
+    font-size: 0.7rem;
+    color: #007bff;
+    margin-left: 2px;
+}
+
+.mobile-sort-btn {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.6rem;
+}
+
+.mobile-sort-btn .sort-indicator {
+    font-size: 0.65rem;
+}
+
+@media (max-width: 767px) {
+    .news-banner-header {
+        font-size: 1rem;
+        padding: 0.6rem 1rem;
+    }
+
+    .news-banner-body {
+        padding: 0.75rem 1rem;
+    }
+
+    .news-item {
+        font-size: 0.9rem;
+    }
+
+    .search-hero {
+        padding: 1.5rem 1rem;
+    }
+
+    .search-hero-title {
+        font-size: 1.4rem;
+    }
 }
 

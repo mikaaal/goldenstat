@@ -9,22 +9,27 @@
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <a class="nav-link" href="/">
-                    Spelare
+                    👤 Spelare
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link" href="/?tab=teams">
-                    Lag
+                    👥 Lag
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" href="/series_matches">
+                    📋 Seriematcher
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link" href="/?tab=stats">
-                    Topplistor
+                    🎯 Topplistor
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link" href="/?tab=weekly">
-                    Veckans prestationer!
+                    ⭐ Veckans prestationer!
                 </a>
             </li>
         </ul>
@@ -37,7 +42,7 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0">Seriematch</h1>
+                
                 <button onclick="window.history.back()" class="btn btn-primary">Tillbaka</button>
             </div>
             <div class="card-body">
@@ -75,7 +80,19 @@
 }
 
 .sub-match-row:hover {
-    background-color: rgba(0, 123, 255, 0.1);
+    background-color: rgba(0, 123, 255, 0.15);
+}
+
+.sub-match-row:hover .click-indicator {
+    color: #007bff;
+    transform: translateX(3px);
+}
+
+.click-indicator {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #adb5bd;
+    transition: all 0.2s;
 }
 
 .winner-cell {
@@ -86,6 +103,23 @@
     background-color: rgba(220, 53, 69, 0.08);
 }
 
+/* Cell dividers */
+.sub-match-row td {
+    border-right: 1px solid #e9ecef;
+}
+
+.sub-match-row td:last-child {
+    border-right: none;
+}
+
+.table thead th {
+    border-right: 1px solid #dee2e6;
+}
+
+.table thead th:last-child {
+    border-right: none;
+}
+
 .position-badge {
     font-weight: bold;
     min-width: 40px;
@@ -94,15 +128,15 @@
 }
 
 .position-singles {
-    background-color: #17a2b8;
+    background-color: #5a9aa8;
 }
 
 .position-doubles {
-    background-color: #6f42c1;
+    background-color: #7a6b99;
 }
 
 .position-ad {
-    background-color: #fd7e14;
+    background-color: #c9956c;
 }
 
 .player-link {
@@ -113,7 +147,89 @@
 
 .player-link:hover {
     text-decoration: underline;
-    color: #007bff;
+    color: #000;
+}
+
+/* Team box styles */
+.team-box {
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.winner-box {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.25) 100%);
+    border-color: #28a745;
+    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+}
+
+.winner-box .team-name {
+    color: #1e7e34;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.team-icon {
+    display: block;
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.loser-box {
+    background: rgba(108, 117, 125, 0.08);
+    border-color: #dee2e6;
+}
+
+.loser-box .team-name {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.result-box {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    border: 2px solid #adb5bd;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.result-score {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #212529;
+}
+
+.result-legs {
+    font-size: 1rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.draw-box {
+    background: rgba(255, 193, 7, 0.1);
+    border-color: #ffc107;
+}
+
+.draw-box .team-name {
+    color: #856404;
+    font-weight: 600;
+}
+
+.running-score {
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+}
+
+.avg-badge {
+    font-weight: 700;
+    color: #495057;
 }
 </style>
 
@@ -190,29 +306,57 @@ async function loadMatchOverview() {
 
 function displayMatchOverview(data) {
     const matchInfo = data.match_info;
-    const subMatches = data.sub_matches;
+    let subMatches = data.sub_matches;
+
+    // Filter out AD if it wasn't actually played (0-0 legs)
+    subMatches = subMatches.filter(sm => {
+        if (sm.position !== 'AD') return true;
+        // Only keep AD if it was actually played (at least one team has legs)
+        return sm.team1_legs > 0 || sm.team2_legs > 0;
+    });
 
     // Update page title
     document.title = `${matchInfo.team1_name} vs ${matchInfo.team2_name}`;
 
-    // Determine winner
-    const team1Won = matchInfo.team1_score > matchInfo.team2_score;
-    const team2Won = matchInfo.team2_score > matchInfo.team1_score;
-    const isDraw = matchInfo.team1_score === matchInfo.team2_score;
+    // Determine winner based on sub-match wins
+    const team1Won = data.team1_sub_wins > data.team2_sub_wins;
+    const team2Won = data.team2_sub_wins > data.team1_sub_wins;
+    const isDraw = data.team1_sub_wins === data.team2_sub_wins;
 
-    const team1Style = team1Won ? 'border-success bg-success bg-opacity-10' :
-                      team2Won ? 'border-danger bg-danger bg-opacity-10' :
-                      'border-warning bg-warning bg-opacity-10';
-    const team1TextColor = team1Won ? 'text-success' :
-                          team2Won ? 'text-danger' :
-                          'text-warning';
+    // Check who won AD (for draws)
+    const adMatch = subMatches.find(sm => sm.position === 'AD');
+    const team1WonAD = adMatch && adMatch.team1_legs > adMatch.team2_legs;
+    const team2WonAD = adMatch && adMatch.team2_legs > adMatch.team1_legs;
 
-    const team2Style = team2Won ? 'border-success bg-success bg-opacity-10' :
-                      team1Won ? 'border-danger bg-danger bg-opacity-10' :
-                      'border-warning bg-warning bg-opacity-10';
-    const team2TextColor = team2Won ? 'text-success' :
-                          team1Won ? 'text-danger' :
-                          'text-warning';
+    const team1BoxClass = team1Won ? 'team-box winner-box' :
+                         team2Won ? 'team-box loser-box' :
+                         'team-box draw-box';
+    const team2BoxClass = team2Won ? 'team-box winner-box' :
+                         team1Won ? 'team-box loser-box' :
+                         'team-box draw-box';
+
+    // Emojis: trophy for winner, sad face for loser
+    // For draws: happy face for AD winner, disappointed for AD loser, handshake if no AD
+    let team1Icon, team2Icon;
+    if (team1Won) {
+        team1Icon = '&#129395;'; // party face
+        team2Icon = '&#128546;'; // sad
+    } else if (team2Won) {
+        team1Icon = '&#128546;'; // sad
+        team2Icon = '&#129395;'; // party face
+    } else {
+        // Draw - check AD winner
+        if (team1WonAD) {
+            team1Icon = '&#128524;'; // relieved face
+            team2Icon = '&#128532;'; // disappointed
+        } else if (team2WonAD) {
+            team1Icon = '&#128532;'; // disappointed
+            team2Icon = '&#128524;'; // relieved face
+        } else {
+            team1Icon = '&#129309;'; // handshake
+            team2Icon = '&#129309;'; // handshake
+        }
+    }
 
     // Match header - include both sub-match result and leg result
     const matchHeader = document.getElementById('match-header');
@@ -222,23 +366,22 @@ function displayMatchOverview(data) {
             <span class="badge bg-info fs-6 px-3 py-2 me-2">${matchInfo.season || ''}</span>
             <span class="badge bg-primary fs-6 px-3 py-2">${matchInfo.division || ''}</span>
         </div>
-        <div class="row text-center mb-4">
+        <div class="row text-center mb-4 align-items-center">
             <div class="col-md-5">
-                <div class="border ${team1Style} rounded p-3">
-                    <h5 class="${team1TextColor} mb-0">${matchInfo.team1_name}${team1Won ? ' (V)' : ''}</h5>
+                <div class="${team1BoxClass}">
+                    <span class="team-icon">${team1Icon}</span>
+                    <h5 class="team-name mb-0">${matchInfo.team1_name}</h5>
                 </div>
             </div>
             <div class="col-md-2 d-flex align-items-center justify-content-center">
-                <div class="text-center">
-                    <div class="h3 mb-0">${data.team1_sub_wins} - ${data.team2_sub_wins}</div>
-                    <small class="text-muted">Delmatchar</small>
-                    <div class="h5 mb-0 mt-1">(${matchInfo.team1_score} - ${matchInfo.team2_score})</div>
-                    <small class="text-muted">Ben</small>
+                <div class="result-box">
+                    <div class="result-score">${data.team1_sub_wins} - ${data.team2_sub_wins}</div>
                 </div>
             </div>
             <div class="col-md-5">
-                <div class="border ${team2Style} rounded p-3">
-                    <h5 class="${team2TextColor} mb-0">${matchInfo.team2_name}${team2Won ? ' (V)' : ''}</h5>
+                <div class="${team2BoxClass}">
+                    <span class="team-icon">${team2Icon}</span>
+                    <h5 class="team-name mb-0">${matchInfo.team2_name}</h5>
                 </div>
             </div>
         </div>
@@ -251,18 +394,28 @@ function displayMatchOverview(data) {
             <thead class="table-light">
                 <tr>
                     <th class="text-center" style="width: 50px;">Match</th>
-                    <th class="text-end" style="width: 38%;">${matchInfo.team1_name}</th>
+                    <th class="text-end">${matchInfo.team1_name}</th>
                     <th class="text-center" style="width: 70px;">Resultat</th>
-                    <th style="width: 38%;">${matchInfo.team2_name}</th>
+                    <th>${matchInfo.team2_name}</th>
+                    <th class="text-center" style="width: 70px;">Ställning</th>
+                    <th style="width: 30px;"></th>
                 </tr>
             </thead>
             <tbody>
     `;
 
+    // Track running score
+    let runningTeam1Wins = 0;
+    let runningTeam2Wins = 0;
+
     subMatches.forEach(sm => {
         const team1Won = sm.team1_legs > sm.team2_legs;
         const team2Won = sm.team2_legs > sm.team1_legs;
         const notPlayed = sm.team1_legs === 0 && sm.team2_legs === 0 && !sm.team1_players && !sm.team2_players;
+
+        // Update running score
+        if (team1Won) runningTeam1Wins++;
+        if (team2Won) runningTeam2Wins++;
 
         const team1CellClass = team1Won ? 'winner-cell' : (team2Won ? 'loser-cell' : '');
         const team2CellClass = team2Won ? 'winner-cell' : (team1Won ? 'loser-cell' : '');
@@ -270,14 +423,15 @@ function displayMatchOverview(data) {
         const badgeClass = getPositionBadgeClass(sm.position);
 
         const resultDisplay = notPlayed ? '-' : `${sm.team1_legs}-${sm.team2_legs}`;
+        const runningScoreDisplay = notPlayed ? '-' : `${runningTeam1Wins}-${runningTeam2Wins}`;
 
-        // Format player names with averages
+        // Format player names with averages (plain text, no links)
         const team1PlayerDisplay = sm.team1_players
-            ? `${makePlayerNameClickable(sm.team1_players)}${sm.team1_avg ? `<br><small class="text-muted">${sm.team1_avg}</small>` : ''}`
+            ? `${sm.team1_players}${sm.team1_avg ? `<br><span class="avg-badge">${sm.team1_avg}</span>` : ''}`
             : '<span class="text-muted">-</span>';
 
         const team2PlayerDisplay = sm.team2_players
-            ? `${makePlayerNameClickable(sm.team2_players)}${sm.team2_avg ? `<br><small class="text-muted">${sm.team2_avg}</small>` : ''}`
+            ? `${sm.team2_players}${sm.team2_avg ? `<br><span class="avg-badge">${sm.team2_avg}</span>` : ''}`
             : '<span class="text-muted">-</span>';
 
         tableHtml += `
@@ -293,6 +447,12 @@ function displayMatchOverview(data) {
                 </td>
                 <td class="${team2CellClass} align-middle">
                     ${team2PlayerDisplay}
+                </td>
+                <td class="text-center align-middle">
+                    <span class="running-score">${runningScoreDisplay}</span>
+                </td>
+                <td class="text-center align-middle">
+                    <span class="click-indicator">›</span>
                 </td>
             </tr>
         `;
