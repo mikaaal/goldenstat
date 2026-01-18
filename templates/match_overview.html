@@ -231,6 +231,63 @@
     font-weight: 700;
     color: #495057;
 }
+
+/* Mobile styles */
+@media (max-width: 767px) {
+    .team-box {
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .team-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .winner-box .team-name,
+    .loser-box .team-name,
+    .draw-box .team-name {
+        font-size: 1rem;
+    }
+
+    .result-box {
+        padding: 0.75rem 1rem;
+        margin: 0.5rem 0;
+    }
+
+    .result-score {
+        font-size: 1.5rem;
+    }
+
+    .sub-match-row td {
+        padding: 0.6rem 0.4rem;
+        font-size: 0.85rem;
+    }
+
+    .position-badge {
+        min-width: 32px;
+        font-size: 0.8rem;
+        padding: 0.25rem 0.4rem;
+    }
+
+    .running-score {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    .click-indicator {
+        font-size: 1.2rem;
+    }
+
+    .avg-badge {
+        font-size: 0.8rem;
+    }
+
+    .table thead th {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.3rem;
+    }
+}
 </style>
 
 <script>
@@ -238,18 +295,28 @@
 const urlParams = new URLSearchParams(window.location.search);
 const matchId = urlParams.get('match_id');
 
-function navigateToPlayer(playerName) {
-    event.stopPropagation();
-    window.location.href = `/?player=${encodeURIComponent(playerName)}`;
+function navigateToPlayer(playerName, e) {
+    if (e) e.stopPropagation();
+    if (!playerName) return;
+    try {
+        window.location.href = '/?player=' + encodeURIComponent(playerName);
+    } catch (error) {
+        console.error('Navigation error:', error);
+    }
 }
 
 function navigateToSubMatch(subMatchId, playerName) {
-    if (playerName && playerName.trim()) {
-        // Get first player name if multiple (for doubles)
-        const firstPlayer = playerName.split(' / ')[0].trim();
-        window.location.href = `/sub_match_throws?sub_match_id=${subMatchId}&player_name=${encodeURIComponent(firstPlayer)}`;
-    } else {
-        window.location.href = `/sub_match_throws?sub_match_id=${subMatchId}`;
+    if (!subMatchId) return;
+    try {
+        if (playerName && playerName.trim()) {
+            // Get first player name if multiple (for doubles)
+            const firstPlayer = playerName.split(' / ')[0].trim();
+            window.location.href = '/sub_match_throws?sub_match_id=' + subMatchId + '&player_name=' + encodeURIComponent(firstPlayer);
+        } else {
+            window.location.href = '/sub_match_throws?sub_match_id=' + subMatchId;
+        }
+    } catch (error) {
+        console.error('Navigation error:', error);
     }
 }
 
@@ -264,11 +331,11 @@ function makePlayerNameClickable(playerName) {
         return players.map(player => {
             const trimmedPlayer = player.trim();
             const escapedName = trimmedPlayer.replace(/'/g, "\\'");
-            return `<span class="player-link" onclick="navigateToPlayer('${escapedName}')" title="Klicka for att se ${trimmedPlayer}">${trimmedPlayer}</span>`;
+            return `<span class="player-link" onclick="navigateToPlayer('${escapedName}', event)" title="Klicka for att se ${trimmedPlayer}">${trimmedPlayer}</span>`;
         }).join(' / ');
     } else {
         const escapedName = playerName.replace(/'/g, "\\'");
-        return `<span class="player-link" onclick="navigateToPlayer('${escapedName}')" title="Klicka for att se ${playerName}">${playerName}</span>`;
+        return `<span class="player-link" onclick="navigateToPlayer('${escapedName}', event)" title="Klicka for att se ${playerName}">${playerName}</span>`;
     }
 }
 
@@ -305,8 +372,13 @@ async function loadMatchOverview() {
 }
 
 function displayMatchOverview(data) {
-    const matchInfo = data.match_info;
-    let subMatches = data.sub_matches;
+    try {
+        if (!data || !data.match_info) {
+            throw new Error('Ingen matchdata mottagen');
+        }
+
+        const matchInfo = data.match_info;
+        let subMatches = data.sub_matches || [];
 
     // Filter out AD if it wasn't actually played (0-0 legs)
     subMatches = subMatches.filter(sm => {
@@ -465,6 +537,11 @@ function displayMatchOverview(data) {
 
     tableContainer.innerHTML = tableHtml;
     document.getElementById('match-content').classList.remove('d-none');
+    } catch (error) {
+        console.error('Error displaying match overview:', error);
+        document.getElementById('error-message').innerHTML = 'Kunde inte visa matchdata. Försök ladda om sidan.';
+        document.getElementById('error-message').classList.remove('d-none');
+    }
 }
 
 // Initialize

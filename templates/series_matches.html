@@ -91,6 +91,28 @@
     font-size: 1.25rem;
     font-weight: 700;
     color: #495057;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+@media (max-width: 576px) {
+    .match-result {
+        font-size: 1rem;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+
+    .team-section {
+        min-width: 0;
+    }
+
+    .team-name {
+        font-size: 0.85rem;
+    }
+
+    .winner-icon {
+        font-size: 0.75rem;
+    }
 }
 
 .team-name {
@@ -214,11 +236,13 @@ function populateFilters(seasons, divisions) {
 
 function cleanTeamName(name) {
     // Remove division suffix like "(3FB)" from team names
-    return name.replace(/\s*\([^)]+\)\s*$/, '').trim();
+    if (!name) return 'Okänt lag';
+    return String(name).replace(/\s*\([^)]+\)\s*$/, '').trim();
 }
 
 function cleanDivisionName(division) {
     // Map database division names to display names
+    if (!division) return 'Övriga';
     const divisionMap = {
         'Mixed': 'Mixed (X1)',
         'Mixed(': 'Mixed (X2)'
@@ -229,102 +253,125 @@ function cleanDivisionName(division) {
 function displayMatches(weeks) {
     const container = document.getElementById('matches-content');
 
-    if (weeks.length === 0) {
-        container.innerHTML = '<div class="text-center text-muted py-4">Inga matcher hittades</div>';
-        container.classList.remove('d-none');
-        return;
-    }
+    try {
+        if (!weeks || weeks.length === 0) {
+            container.innerHTML = '<div class="text-center text-muted py-4">Inga matcher hittades</div>';
+            container.classList.remove('d-none');
+            return;
+        }
 
-    let html = '';
+        const htmlParts = [];
 
-    weeks.forEach(week => {
-        html += `
-            <div class="week-section mb-4">
-                <div class="week-header">
-                    <h5>${week.week_label}</h5>
-                </div>
-        `;
+        weeks.forEach(week => {
+            if (!week || !week.matches) return;
 
-        // Group matches by division
-        const matchesByDivision = {};
-        week.matches.forEach(match => {
-            const div = match.division || 'Övriga';
-            if (!matchesByDivision[div]) {
-                matchesByDivision[div] = [];
-            }
-            matchesByDivision[div].push(match);
-        });
+            htmlParts.push(`
+                <div class="week-section mb-4">
+                    <div class="week-header">
+                        <h5>${week.week_label || 'Okänd vecka'}</h5>
+                    </div>
+            `);
 
-        // Sort divisions with priority
-        const priorityDivisions = ['Superligan', 'SL6', 'SL4'];
-        const sortedDivisions = Object.keys(matchesByDivision).sort((a, b) => {
-            const priorityA = priorityDivisions.indexOf(a);
-            const priorityB = priorityDivisions.indexOf(b);
-            if (priorityA !== -1 && priorityB !== -1) return priorityA - priorityB;
-            if (priorityA !== -1) return -1;
-            if (priorityB !== -1) return 1;
-            return a.localeCompare(b);
-        });
+            // Group matches by division
+            const matchesByDivision = {};
+            week.matches.forEach(match => {
+                if (!match) return;
+                const div = match.division || 'Övriga';
+                if (!matchesByDivision[div]) {
+                    matchesByDivision[div] = [];
+                }
+                matchesByDivision[div].push(match);
+            });
 
-        sortedDivisions.forEach(division => {
-            const divisionMatches = matchesByDivision[division];
+            // Sort divisions with priority
+            const priorityDivisions = ['Superligan', 'SL6', 'SL4'];
+            const sortedDivisions = Object.keys(matchesByDivision).sort((a, b) => {
+                const priorityA = priorityDivisions.indexOf(a);
+                const priorityB = priorityDivisions.indexOf(b);
+                if (priorityA !== -1 && priorityB !== -1) return priorityA - priorityB;
+                if (priorityA !== -1) return -1;
+                if (priorityB !== -1) return 1;
+                return a.localeCompare(b);
+            });
 
-            html += `
-                <div class="division-section mb-3">
-                    <div class="division-header">${cleanDivisionName(division)}</div>
-                    <div class="row g-2">
-            `;
+            sortedDivisions.forEach(division => {
+                const divisionMatches = matchesByDivision[division];
 
-            divisionMatches.forEach(match => {
-                const team1Won = match.team1_sub_wins > match.team2_sub_wins;
-                const team2Won = match.team2_sub_wins > match.team1_sub_wins;
+                htmlParts.push(`
+                    <div class="division-section mb-3">
+                        <div class="division-header">${cleanDivisionName(division)}</div>
+                        <div class="row g-2">
+                `);
 
-                const team1Class = team1Won ? 'winner-team' : (team2Won ? 'loser-team' : 'draw-team');
-                const team2Class = team2Won ? 'winner-team' : (team1Won ? 'loser-team' : 'draw-team');
+                divisionMatches.forEach(match => {
+                    if (!match) return;
 
-                const team1Icon = team1Won ? '<span class="winner-icon">🏆</span>' : '';
-                const team2Icon = team2Won ? '<span class="winner-icon">🏆</span>' : '';
+                    const team1Wins = match.team1_sub_wins || 0;
+                    const team2Wins = match.team2_sub_wins || 0;
+                    const team1Won = team1Wins > team2Wins;
+                    const team2Won = team2Wins > team1Wins;
 
-                html += `
-                    <div class="col-12 col-lg-6">
-                        <div class="match-card card" onclick="navigateToMatch(${match.id})">
-                            <div class="card-body py-2 px-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="team-section">
-                                        ${team1Icon}
-                                        <span class="team-name ${team1Class} text-truncate">${cleanTeamName(match.team1_name)}</span>
-                                    </div>
-                                    <div class="match-result px-3">
-                                        ${match.team1_sub_wins} - ${match.team2_sub_wins}
-                                    </div>
-                                    <div class="team-section justify-content-end">
-                                        <span class="team-name ${team2Class} text-truncate text-end">${cleanTeamName(match.team2_name)}</span>
-                                        ${team2Icon}
+                    const team1Class = team1Won ? 'winner-team' : (team2Won ? 'loser-team' : 'draw-team');
+                    const team2Class = team2Won ? 'winner-team' : (team1Won ? 'loser-team' : 'draw-team');
+
+                    const team1Icon = team1Won ? '<span class="winner-icon">🏆</span>' : '';
+                    const team2Icon = team2Won ? '<span class="winner-icon">🏆</span>' : '';
+
+                    const matchId = match.id || 0;
+
+                    htmlParts.push(`
+                        <div class="col-12 col-lg-6">
+                            <div class="match-card card" onclick="navigateToMatch(${matchId})">
+                                <div class="card-body py-2 px-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="team-section">
+                                            ${team1Icon}
+                                            <span class="team-name ${team1Class} text-truncate">${cleanTeamName(match.team1_name)}</span>
+                                        </div>
+                                        <div class="match-result px-3">
+                                            ${team1Wins} - ${team2Wins}
+                                        </div>
+                                        <div class="team-section justify-content-end">
+                                            <span class="team-name ${team2Class} text-truncate text-end">${cleanTeamName(match.team2_name)}</span>
+                                            ${team2Icon}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    `);
+                });
+
+                htmlParts.push(`
+                        </div>
                     </div>
-                `;
+                `);
             });
 
-            html += `
-                    </div>
+            htmlParts.push(`
                 </div>
-            `;
+            `);
         });
 
-        html += `
-            </div>
-        `;
-    });
-
-    container.innerHTML = html;
-    container.classList.remove('d-none');
+        container.innerHTML = htmlParts.join('');
+        container.classList.remove('d-none');
+    } catch (error) {
+        console.error('Error displaying matches:', error);
+        container.innerHTML = '<div class="alert alert-warning">Kunde inte visa matcher. Försök ladda om sidan.</div>';
+        container.classList.remove('d-none');
+    }
 }
 
 function navigateToMatch(matchId) {
-    window.location.href = `/match_overview?match_id=${matchId}`;
+    if (!matchId || matchId === 0) {
+        console.error('Invalid match ID');
+        return;
+    }
+    try {
+        window.location.href = '/match_overview?match_id=' + encodeURIComponent(matchId);
+    } catch (error) {
+        console.error('Navigation error:', error);
+    }
 }
 
 // Event listeners for filters
