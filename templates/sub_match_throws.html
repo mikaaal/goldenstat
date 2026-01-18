@@ -598,19 +598,17 @@ function displayThrowData(data) {
     let legsHtml = '';
     
     data.legs.forEach(leg => {
-        const legWonClass = leg.player_won_leg ? 'border-success' : 'border-danger';
-        const legWonBg = leg.player_won_leg ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10';
-        const legWonText = leg.player_won_leg ? 'VANN' : 'FÖRLORADE';
-        const legWonIcon = leg.player_won_leg ? '🏆' : '❌';
-        const legWonBadge = leg.player_won_leg ? 'bg-success' : 'bg-danger';
+        const winningTeamName = leg.player_won_leg ?
+            (isPlayerTeam1 ? window.matchTeamData.team1_name : window.matchTeamData.team2_name) :
+            (isPlayerTeam1 ? window.matchTeamData.team2_name : window.matchTeamData.team1_name);
         
         
         legsHtml += `
-            <div class="card mb-4 ${legWonClass}">
-                <div class="card-header ${legWonBg}">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">Leg ${leg.leg_number} ${legWonIcon}</h6>
-                        <span class="badge ${legWonBadge}">${legWonText}</span>
+                        <h6 class="mb-0">Leg ${leg.leg_number}</h6>
+                        <span class="badge bg-success">${winningTeamName}</span>
                     </div>
                 </div>
                 <div class="card-body">

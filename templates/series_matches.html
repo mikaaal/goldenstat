@@ -92,43 +92,49 @@
     color: inherit;
 }
 
-.match-result {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #495057;
-    white-space: nowrap;
-    flex-shrink: 0;
+.teams-column {
+    flex: 1;
+    min-width: 0;
 }
 
-@media (max-width: 576px) {
-    .match-result {
-        font-size: 1rem;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-    }
-
-    .team-section {
-        min-width: 0;
-    }
-
-    .team-name {
-        font-size: 0.85rem;
-    }
-
-    .winner-icon {
-        font-size: 0.75rem;
-    }
+.team-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0;
 }
 
 .team-name {
     font-weight: 500;
 }
 
-.team-section {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+.match-result {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #495057;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding-left: 1rem;
+}
+
+@media (max-width: 576px) {
+    .match-result {
+        font-size: 1.2rem;
+        padding-left: 0.75rem;
+    }
+
+    .team-name {
+        font-size: 0.9rem;
+    }
+
+    .result-icon {
+        font-size: 0.9rem;
+    }
+}
+
+.result-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
 }
 
 .winner-team {
@@ -142,10 +148,6 @@
 
 .draw-team {
     color: #6c757d;
-}
-
-.winner-icon {
-    font-size: 0.9rem;
 }
 
 .week-header {
@@ -319,8 +321,17 @@ function displayMatches(weeks) {
                     const team1Class = team1Won ? 'winner-team' : (team2Won ? 'loser-team' : 'draw-team');
                     const team2Class = team2Won ? 'winner-team' : (team1Won ? 'loser-team' : 'draw-team');
 
-                    const team1Icon = team1Won ? '<span class="winner-icon">🏆</span>' : '';
-                    const team2Icon = team2Won ? '<span class="winner-icon">🏆</span>' : '';
+                    var team1Icon, team2Icon;
+                    if (team1Won) {
+                        team1Icon = '<span class="result-icon">&#129395;</span>'; // party face
+                        team2Icon = '<span class="result-icon">&#128546;</span>'; // sad face
+                    } else if (team2Won) {
+                        team1Icon = '<span class="result-icon">&#128546;</span>'; // sad face
+                        team2Icon = '<span class="result-icon">&#129395;</span>'; // party face
+                    } else {
+                        team1Icon = '<span class="result-icon">&#128528;</span>'; // neutral face
+                        team2Icon = '<span class="result-icon">&#128528;</span>'; // neutral face
+                    }
 
                     const matchId = match.id || 0;
 
@@ -329,16 +340,16 @@ function displayMatches(weeks) {
                             <a href="/match_overview?match_id=${matchId}" class="match-card card text-decoration-none">
                                 <div class="card-body py-2 px-3">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <div class="team-section">
-                                            ${team1Icon}
-                                            <span class="team-name ${team1Class} text-truncate">${cleanTeamName(match.team1_name)}</span>
+                                        <div class="teams-column">
+                                            <div class="team-row ${team1Class}">
+                                                ${team1Icon}<span class="team-name">${cleanTeamName(match.team1_name)}</span>
+                                            </div>
+                                            <div class="team-row ${team2Class}">
+                                                ${team2Icon}<span class="team-name">${cleanTeamName(match.team2_name)}</span>
+                                            </div>
                                         </div>
-                                        <div class="match-result px-3">
+                                        <div class="match-result">
                                             ${team1Wins} - ${team2Wins}
-                                        </div>
-                                        <div class="team-section justify-content-end">
-                                            <span class="team-name ${team2Class} text-truncate text-end">${cleanTeamName(match.team2_name)}</span>
-                                            ${team2Icon}
                                         </div>
                                     </div>
                                 </div>
