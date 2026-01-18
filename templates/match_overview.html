@@ -77,9 +77,14 @@
 .sub-match-row {
     cursor: pointer;
     transition: background-color 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
-.sub-match-row:hover {
+.sub-match-row:hover,
+.sub-match-row:active {
     background-color: rgba(0, 123, 255, 0.15);
 }
 
@@ -520,7 +525,7 @@ function displayMatchOverview(data) {
             : '<span class="text-muted">-</span>';
 
         tableHtml += `
-            <tr class="sub-match-row" onclick="navigateToSubMatch(${sm.id}, '${(sm.team1_players || '').replace(/'/g, "\\'")}')">
+            <tr class="sub-match-row" data-submatch-id="${sm.id}" data-player-name="${(sm.team1_players || '').replace(/"/g, '&quot;')}">
                 <td class="text-center align-middle">
                     <span class="badge ${badgeClass} position-badge">${sm.position}</span>
                 </td>
@@ -550,6 +555,23 @@ function displayMatchOverview(data) {
 
     tableContainer.innerHTML = tableHtml;
     document.getElementById('match-content').classList.remove('d-none');
+
+    // Add event delegation for sub-match row clicks (iOS-safe)
+    // Remove existing listener to prevent duplicates
+    if (window.subMatchClickHandler) {
+        tableContainer.removeEventListener('click', window.subMatchClickHandler);
+    }
+    window.subMatchClickHandler = function(e) {
+        var row = e.target.closest('.sub-match-row');
+        if (row) {
+            var subMatchId = row.getAttribute('data-submatch-id');
+            var playerName = row.getAttribute('data-player-name');
+            if (subMatchId) {
+                navigateToSubMatch(parseInt(subMatchId, 10), playerName || '');
+            }
+        }
+    };
+    tableContainer.addEventListener('click', window.subMatchClickHandler);
     } catch (error) {
         console.error('Error displaying match overview:', error);
         document.getElementById('error-message').innerHTML = 'Kunde inte visa matchdata. Försök ladda om sidan.';
