@@ -79,51 +79,62 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid #dee2e6;
+    display: block;
+    color: inherit;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.match-card:hover {
+.match-card:hover,
+.match-card:focus {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border-color: #007bff;
+    color: inherit;
 }
 
-.match-result {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #495057;
-    white-space: nowrap;
-    flex-shrink: 0;
+.teams-column {
+    flex: 1;
+    min-width: 0;
 }
 
-@media (max-width: 576px) {
-    .match-result {
-        font-size: 1rem;
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-    }
-
-    .team-section {
-        min-width: 0;
-    }
-
-    .team-name {
-        font-size: 0.85rem;
-    }
-
-    .winner-icon {
-        font-size: 0.75rem;
-    }
+.team-row {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0;
 }
 
 .team-name {
     font-weight: 500;
 }
 
-.team-section {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+.match-result {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #495057;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding-left: 1rem;
+}
+
+@media (max-width: 576px) {
+    .match-result {
+        font-size: 1.2rem;
+        padding-left: 0.75rem;
+    }
+
+    .team-name {
+        font-size: 0.9rem;
+    }
+
+    .result-icon {
+        font-size: 0.9rem;
+    }
+}
+
+.result-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
 }
 
 .winner-team {
@@ -137,10 +148,6 @@
 
 .draw-team {
     color: #6c757d;
-}
-
-.winner-icon {
-    font-size: 0.9rem;
 }
 
 .week-header {
@@ -314,30 +321,39 @@ function displayMatches(weeks) {
                     const team1Class = team1Won ? 'winner-team' : (team2Won ? 'loser-team' : 'draw-team');
                     const team2Class = team2Won ? 'winner-team' : (team1Won ? 'loser-team' : 'draw-team');
 
-                    const team1Icon = team1Won ? '<span class="winner-icon">🏆</span>' : '';
-                    const team2Icon = team2Won ? '<span class="winner-icon">🏆</span>' : '';
+                    var team1Icon, team2Icon;
+                    if (team1Won) {
+                        team1Icon = '<span class="result-icon">&#129395;</span>'; // party face
+                        team2Icon = '<span class="result-icon">&#128546;</span>'; // sad face
+                    } else if (team2Won) {
+                        team1Icon = '<span class="result-icon">&#128546;</span>'; // sad face
+                        team2Icon = '<span class="result-icon">&#129395;</span>'; // party face
+                    } else {
+                        team1Icon = '<span class="result-icon">&#128528;</span>'; // neutral face
+                        team2Icon = '<span class="result-icon">&#128528;</span>'; // neutral face
+                    }
 
                     const matchId = match.id || 0;
 
                     htmlParts.push(`
                         <div class="col-12 col-lg-6">
-                            <div class="match-card card" onclick="navigateToMatch(${matchId})">
+                            <a href="/match_overview?match_id=${matchId}" class="match-card card text-decoration-none">
                                 <div class="card-body py-2 px-3">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <div class="team-section">
-                                            ${team1Icon}
-                                            <span class="team-name ${team1Class} text-truncate">${cleanTeamName(match.team1_name)}</span>
+                                        <div class="teams-column">
+                                            <div class="team-row ${team1Class}">
+                                                ${team1Icon}<span class="team-name">${cleanTeamName(match.team1_name)}</span>
+                                            </div>
+                                            <div class="team-row ${team2Class}">
+                                                ${team2Icon}<span class="team-name">${cleanTeamName(match.team2_name)}</span>
+                                            </div>
                                         </div>
-                                        <div class="match-result px-3">
+                                        <div class="match-result">
                                             ${team1Wins} - ${team2Wins}
-                                        </div>
-                                        <div class="team-section justify-content-end">
-                                            <span class="team-name ${team2Class} text-truncate text-end">${cleanTeamName(match.team2_name)}</span>
-                                            ${team2Icon}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                     `);
                 });
@@ -374,27 +390,6 @@ function navigateToMatch(matchId) {
     }
 }
 
-// Event listeners for filters
-document.getElementById('season-filter').addEventListener('change', function() {
-    currentSeason = this.value;
-    loadMatches();
-});
-
-document.getElementById('division-filter').addEventListener('change', function() {
-    currentDivision = this.value;
-    loadMatches();
-});
-
-// Initialize
-loadMatches();
-
-// Track page view
-fetch('/api/track-pageview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ page: 'series_matches' })
-}).catch(err => console.debug('Pageview tracking failed:', err));
-
 // Load last import info
 async function loadLastImport() {
     try {
@@ -404,7 +399,7 @@ async function loadLastImport() {
         if (response.ok && data.end_time) {
             const badge = document.createElement('div');
             badge.className = 'last-update-badge';
-            badge.textContent = `Uppdaterad\n${data.end_time.split(' ')[0]}`;
+            badge.textContent = 'Uppdaterad\n' + data.end_time.split(' ')[0];
             document.body.appendChild(badge);
         }
     } catch (error) {
@@ -412,6 +407,47 @@ async function loadLastImport() {
     }
 }
 
-loadLastImport();
+// Track page view
+function trackPageView() {
+    fetch('/api/track-pageview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: 'series_matches' })
+    }).catch(function(err) {
+        console.debug('Pageview tracking failed:', err);
+    });
+}
+
+// Initialize when DOM is ready
+function initPage() {
+    var seasonFilter = document.getElementById('season-filter');
+    var divisionFilter = document.getElementById('division-filter');
+
+    if (seasonFilter) {
+        seasonFilter.addEventListener('change', function() {
+            currentSeason = this.value;
+            loadMatches();
+        });
+    }
+
+    if (divisionFilter) {
+        divisionFilter.addEventListener('change', function() {
+            currentDivision = this.value;
+            loadMatches();
+        });
+    }
+
+    // Load data
+    loadMatches();
+    loadLastImport();
+    trackPageView();
+}
+
+// Wait for DOM to be ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPage);
+} else {
+    initPage();
+}
 </script>
 {% endblock %}
