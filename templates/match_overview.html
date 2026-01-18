@@ -234,6 +234,19 @@
 
 /* Mobile styles */
 @media (max-width: 767px) {
+    .match-info-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .match-info-badges .badge {
+        font-size: 0.75rem !important;
+        padding: 0.4rem 0.6rem !important;
+        margin: 0 !important;
+    }
+
     .team-box {
         padding: 1rem;
         margin-bottom: 0.75rem;
@@ -433,9 +446,9 @@ function displayMatchOverview(data) {
     // Match header - include both sub-match result and leg result
     const matchHeader = document.getElementById('match-header');
     matchHeader.innerHTML = `
-        <div class="text-center mb-3">
-            <span class="badge bg-secondary fs-6 px-3 py-2 me-2">${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okant datum'}</span>
-            <span class="badge bg-info fs-6 px-3 py-2 me-2">${matchInfo.season || ''}</span>
+        <div class="text-center mb-3 match-info-badges">
+            <span class="badge bg-secondary fs-6 px-3 py-2">${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okant datum'}</span>
+            <span class="badge bg-info fs-6 px-3 py-2">${matchInfo.season || ''}</span>
             <span class="badge bg-primary fs-6 px-3 py-2">${matchInfo.division || ''}</span>
         </div>
         <div class="row text-center mb-4 align-items-center">
