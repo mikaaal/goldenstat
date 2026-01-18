@@ -100,6 +100,22 @@
     transition: all 0.2s;
 }
 
+.click-indicator-cell {
+    position: sticky;
+    right: 0;
+    background: #fff;
+    box-shadow: -2px 0 4px rgba(0,0,0,0.05);
+}
+
+thead .click-indicator-cell {
+    background: #f8f9fa;
+}
+
+.sub-match-row:hover .click-indicator-cell,
+.sub-match-row:active .click-indicator-cell {
+    background: rgba(0, 123, 255, 0.15);
+}
+
 .winner-cell {
     background-color: rgba(40, 167, 69, 0.15);
 }
@@ -293,8 +309,8 @@
         padding: 0.2rem 0.4rem;
     }
 
-    .click-indicator {
-        font-size: 1.2rem;
+    .click-indicator-cell {
+        display: none;
     }
 
     .avg-badge {
@@ -488,7 +504,7 @@ function displayMatchOverview(data) {
                     <th class="text-center" style="width: 70px;">Resultat</th>
                     <th>${matchInfo.team2_name}</th>
                     <th class="text-center" style="width: 70px;">Ställning</th>
-                    <th style="width: 30px;"></th>
+                    <th class="click-indicator-cell" style="width: 30px;"></th>
                 </tr>
             </thead>
             <tbody>
@@ -541,7 +557,7 @@ function displayMatchOverview(data) {
                 <td class="text-center align-middle">
                     <span class="running-score">${runningScoreDisplay}</span>
                 </td>
-                <td class="text-center align-middle">
+                <td class="text-center align-middle click-indicator-cell">
                     <span class="click-indicator">›</span>
                 </td>
             </tr>

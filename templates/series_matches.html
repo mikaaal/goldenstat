@@ -185,6 +185,9 @@
 <script>
 let currentSeason = '';
 let currentDivision = '';
+let allWeeks = [];
+let displayedWeeks = 0;
+const WEEKS_PER_PAGE = 4;
 
 async function loadMatches() {
     document.getElementById('loading').classList.remove('d-none');
@@ -206,7 +209,9 @@ async function loadMatches() {
         }
 
         populateFilters(data.seasons, data.divisions);
-        displayMatches(data.weeks);
+        allWeeks = data.weeks || [];
+        displayedWeeks = 0;
+        displayMatches();
     } catch (error) {
         document.getElementById('error-message').innerHTML = `Fel: ${error.message}`;
         document.getElementById('error-message').classList.remove('d-none');
@@ -231,10 +236,22 @@ function populateFilters(seasons, divisions) {
     }
 
     if (divisionSelect.options.length <= 1) {
-        divisions.forEach(division => {
+        // Filter out Unknown and sort with same priority as in table
+        const priorityDivisions = ['Superligan', 'SL6', 'SL4'];
+        const filteredDivisions = divisions.filter(d => d && d !== 'Unknown');
+        const sortedDivisions = filteredDivisions.sort((a, b) => {
+            const priorityA = priorityDivisions.indexOf(a);
+            const priorityB = priorityDivisions.indexOf(b);
+            if (priorityA !== -1 && priorityB !== -1) return priorityA - priorityB;
+            if (priorityA !== -1) return -1;
+            if (priorityB !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        sortedDivisions.forEach(division => {
             const option = document.createElement('option');
             option.value = division;
-            option.textContent = division;
+            option.textContent = cleanDivisionName(division);
             if (division === currentDivision) option.selected = true;
             divisionSelect.appendChild(option);
         });
@@ -257,19 +274,25 @@ function cleanDivisionName(division) {
     return divisionMap[division] || division;
 }
 
-function displayMatches(weeks) {
+function displayMatches() {
     const container = document.getElementById('matches-content');
 
     try {
-        if (!weeks || weeks.length === 0) {
+        if (!allWeeks || allWeeks.length === 0) {
             container.innerHTML = '<div class="text-center text-muted py-4">Inga matcher hittades</div>';
             container.classList.remove('d-none');
             return;
         }
 
+        // Get next batch of weeks to display
+        const startIndex = displayedWeeks;
+        const endIndex = Math.min(displayedWeeks + WEEKS_PER_PAGE, allWeeks.length);
+        const weeksToShow = allWeeks.slice(startIndex, endIndex);
+        displayedWeeks = endIndex;
+
         const htmlParts = [];
 
-        weeks.forEach(week => {
+        weeksToShow.forEach(week => {
             if (!week || !week.matches) return;
 
             htmlParts.push(`
@@ -369,7 +392,28 @@ function displayMatches(weeks) {
             `);
         });
 
-        container.innerHTML = htmlParts.join('');
+        // If first load, replace content; otherwise append
+        if (startIndex === 0) {
+            container.innerHTML = htmlParts.join('');
+        } else {
+            // Remove existing "load more" button before appending
+            var existingBtn = container.querySelector('.load-more-btn');
+            if (existingBtn) existingBtn.remove();
+            container.insertAdjacentHTML('beforeend', htmlParts.join(''));
+        }
+
+        // Add "Load more" button if there are more weeks
+        if (displayedWeeks < allWeeks.length) {
+            var remainingWeeks = allWeeks.length - displayedWeeks;
+            container.insertAdjacentHTML('beforeend', `
+                <div class="text-center my-4">
+                    <button class="btn btn-outline-primary load-more-btn" onclick="displayMatches()">
+                        Visa fler veckor (${remainingWeeks} kvar)
+                    </button>
+                </div>
+            `);
+        }
+
         container.classList.remove('d-none');
     } catch (error) {
         console.error('Error displaying matches:', error);
