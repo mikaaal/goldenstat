@@ -557,9 +557,6 @@ function displayMatchOverview(data) {
     }
 }
 
-// Initialize
-loadMatchOverview();
-
 // Load last import info
 async function loadLastImport() {
     try {
@@ -569,7 +566,7 @@ async function loadLastImport() {
         if (response.ok && data.end_time) {
             const badge = document.createElement('div');
             badge.className = 'last-update-badge';
-            badge.textContent = `Uppdaterad\n${data.end_time.split(' ')[0]}`;
+            badge.textContent = 'Uppdaterad\n' + data.end_time.split(' ')[0];
             document.body.appendChild(badge);
         }
     } catch (error) {
@@ -577,6 +574,16 @@ async function loadLastImport() {
     }
 }
 
-loadLastImport();
+// Initialize when DOM is ready
+function initPage() {
+    loadMatchOverview();
+    loadLastImport();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPage);
+} else {
+    initPage();
+}
 </script>
 {% endblock %}

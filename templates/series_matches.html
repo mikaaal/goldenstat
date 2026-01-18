@@ -79,12 +79,17 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border: 1px solid #dee2e6;
+    display: block;
+    color: inherit;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.match-card:hover {
+.match-card:hover,
+.match-card:focus {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border-color: #007bff;
+    color: inherit;
 }
 
 .match-result {
@@ -321,7 +326,7 @@ function displayMatches(weeks) {
 
                     htmlParts.push(`
                         <div class="col-12 col-lg-6">
-                            <div class="match-card card" onclick="navigateToMatch(${matchId})">
+                            <a href="/match_overview?match_id=${matchId}" class="match-card card text-decoration-none">
                                 <div class="card-body py-2 px-3">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="team-section">
@@ -337,7 +342,7 @@ function displayMatches(weeks) {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                     `);
                 });
@@ -374,27 +379,6 @@ function navigateToMatch(matchId) {
     }
 }
 
-// Event listeners for filters
-document.getElementById('season-filter').addEventListener('change', function() {
-    currentSeason = this.value;
-    loadMatches();
-});
-
-document.getElementById('division-filter').addEventListener('change', function() {
-    currentDivision = this.value;
-    loadMatches();
-});
-
-// Initialize
-loadMatches();
-
-// Track page view
-fetch('/api/track-pageview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ page: 'series_matches' })
-}).catch(err => console.debug('Pageview tracking failed:', err));
-
 // Load last import info
 async function loadLastImport() {
     try {
@@ -404,7 +388,7 @@ async function loadLastImport() {
         if (response.ok && data.end_time) {
             const badge = document.createElement('div');
             badge.className = 'last-update-badge';
-            badge.textContent = `Uppdaterad\n${data.end_time.split(' ')[0]}`;
+            badge.textContent = 'Uppdaterad\n' + data.end_time.split(' ')[0];
             document.body.appendChild(badge);
         }
     } catch (error) {
@@ -412,6 +396,47 @@ async function loadLastImport() {
     }
 }
 
-loadLastImport();
+// Track page view
+function trackPageView() {
+    fetch('/api/track-pageview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: 'series_matches' })
+    }).catch(function(err) {
+        console.debug('Pageview tracking failed:', err);
+    });
+}
+
+// Initialize when DOM is ready
+function initPage() {
+    var seasonFilter = document.getElementById('season-filter');
+    var divisionFilter = document.getElementById('division-filter');
+
+    if (seasonFilter) {
+        seasonFilter.addEventListener('change', function() {
+            currentSeason = this.value;
+            loadMatches();
+        });
+    }
+
+    if (divisionFilter) {
+        divisionFilter.addEventListener('change', function() {
+            currentDivision = this.value;
+            loadMatches();
+        });
+    }
+
+    // Load data
+    loadMatches();
+    loadLastImport();
+    trackPageView();
+}
+
+// Wait for DOM to be ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initPage);
+} else {
+    initPage();
+}
 </script>
 {% endblock %}
