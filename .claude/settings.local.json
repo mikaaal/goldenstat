@@ -36,7 +36,7 @@
       "Bash(mv:*)",
       "Bash(do echo \"$file\")",
       "Bash(xargs ls:*)",
-      "Bash(git -C \"C:\\\\DEVTOOLS\\\\development\\\\goldenstat\" log --oneline --all -- dartstat.db)"
+      "Bash(git -C \"C:\\\\DEVTOOLS\\\\development\\\\goldenstat\" log --oneline --all -- goldenstat.db)"
     ],
     "deny": [],
     "ask": []
