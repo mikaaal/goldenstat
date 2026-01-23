@@ -2018,7 +2018,7 @@ def get_team_players(team_name):
                 WITH player_data AS (
                     SELECT
                         p.id as player_id,
-                        p.name as player_name,
+                        COALESCE(smpm.correct_player_name, p.name) as player_name,
                         sm.id as sub_match_id,
                         sm.match_name,
                         CASE
@@ -2035,6 +2035,8 @@ def get_team_players(team_name):
                     JOIN matches m ON sm.match_id = m.id
                     JOIN teams t1 ON m.team1_id = t1.id
                     JOIN teams t2 ON m.team2_id = t2.id
+                    LEFT JOIN sub_match_player_mappings smpm
+                        ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = p.id
                     WHERE {where_clause}
                       AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
                 ),
@@ -2067,7 +2069,7 @@ def get_team_players(team_name):
                     SUM(CASE WHEN corrected_match_type = 'Doubles' AND player_legs_won > player_legs_lost THEN 1 ELSE 0 END) as doubles_won,
                     GROUP_CONCAT(DISTINCT season) as seasons
                 FROM sub_match_results
-                GROUP BY player_name, player_id
+                GROUP BY player_name
                 ORDER BY matches_played DESC, player_name ASC
             """, params + [team_name])
 
