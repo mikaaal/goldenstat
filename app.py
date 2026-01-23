@@ -196,6 +196,7 @@ def get_top_stats():
                 SELECT
                     p.name as player_name,
                     smp.player_avg as average,
+                    smp.team_number as team_number,
                     CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
                     CASE WHEN smp.team_number = 1 THEN t2.name ELSE t1.name END as opponent_name,
                     DATE(m.match_date) as match_date,
@@ -220,6 +221,7 @@ def get_top_stats():
                 SELECT
                     p.name as player_name,
                     prev.remaining_score as checkout,
+                    curr.team_number as team_number,
                     CASE WHEN curr.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
                     CASE WHEN curr.team_number = 1 THEN t2.name ELSE t1.name END as opponent_name,
                     DATE(m.match_date) as match_date,
@@ -270,6 +272,7 @@ def get_top_stats():
                 SELECT
                     p.name as player_name,
                     ld.total_darts as darts,
+                    smp.team_number as team_number,
                     t1.name as team_name,
                     t2.name as opponent_name,
                     DATE(m.match_date) as match_date,
@@ -306,6 +309,7 @@ def get_top_stats():
                 SELECT
                     p.name as player_name,
                     m180.count_180,
+                    smp.team_number as team_number,
                     t1.name as team_name,
                     t2.name as opponent_name,
                     DATE(m.match_date) as match_date,
@@ -367,6 +371,7 @@ def get_weekly_stats():
                 SELECT
                     p.name as player_name,
                     smp.player_avg as average,
+                    smp.team_number as team_number,
                     CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
                     CASE WHEN smp.team_number = 1 THEN t2.name ELSE t1.name END as opponent_name,
                     DATE(m.match_date) as match_date,
@@ -390,6 +395,7 @@ def get_weekly_stats():
                 SELECT
                     p.name as player_name,
                     prev.remaining_score as checkout,
+                    curr.team_number as team_number,
                     CASE WHEN curr.team_number = 1 THEN t1.name ELSE t2.name END as team_name,
                     CASE WHEN curr.team_number = 1 THEN t2.name ELSE t1.name END as opponent_name,
                     DATE(m.match_date) as match_date,
@@ -439,6 +445,7 @@ def get_weekly_stats():
                 SELECT
                     p.name as player_name,
                     ld.total_darts as darts,
+                    smp.team_number as team_number,
                     t1.name as team_name,
                     t2.name as opponent_name,
                     DATE(m.match_date) as match_date,
@@ -474,6 +481,7 @@ def get_weekly_stats():
                 SELECT
                     p.name as player_name,
                     m100.count_100plus,
+                    smp.team_number as team_number,
                     t1.name as team_name,
                     t2.name as opponent_name,
                     DATE(m.match_date) as match_date,
@@ -1335,10 +1343,28 @@ def get_sub_match_info(sub_match_id):
                     
                     canonical_players.append({
                         'name': display_name,
+                        'player_id': player['player_id'],
                         'average': player['player_avg']
                     })
                 
-                team_players[f'team{team_num}_players'] = canonical_players
+                # Deduplicate: if "Erik" and "Erik (Oilers)" both appear with the same avg,
+                # keep only the disambiguated version
+                deduplicated = []
+                for p in canonical_players:
+                    dominated = False
+                    for other in canonical_players:
+                        if other is p:
+                            continue
+                        # Check if other's name is a disambiguated version of p's name
+                        if (other['name'].startswith(p['name'] + ' (') and
+                                other['name'].endswith(')') and
+                                other['average'] == p['average']):
+                            dominated = True
+                            break
+                    if not dominated:
+                        deduplicated.append(p)
+
+                team_players[f'team{team_num}_players'] = deduplicated
             
             return jsonify({
                 'sub_match_info': dict(sub_match),
@@ -1353,43 +1379,56 @@ def get_sub_match_player_throws(sub_match_id, player_name):
     """Get detailed throw data for a specific player in a specific sub-match"""
     try:
         import sqlite3
+        from urllib.parse import unquote
+        player_name = unquote(player_name)
+
+        # Handle team disambiguation like "Robban (Bålsta)" -> "Robban"
+        with sqlite3.connect(db.db_path) as temp_conn:
+            temp_cursor = temp_conn.cursor()
+            temp_cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
+            is_exact_match = temp_cursor.fetchone() is not None
+
+        if '(' in player_name and player_name.endswith(')') and not is_exact_match:
+            player_name = player_name.split(' (')[0]
+
         with sqlite3.connect(db.db_path) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
-            
+
             # Handle both direct players and mapped players
             final_canonical_name = player_name
-            
-            # First check if this is a mapped player for this specific sub-match
+
+            # First try direct participant lookup by name
             cursor.execute("""
-                SELECT 
-                    smpm.original_player_id,
-                    smpm.correct_player_id,
-                    smpm.correct_player_name
-                FROM sub_match_player_mappings smpm
-                WHERE smpm.sub_match_id = ? AND smpm.correct_player_name = ?
-            """, (sub_match_id, player_name))
-            
-            mapping_result = cursor.fetchone()
-            
-            if mapping_result:
-                # This is a mapped player - use the original player who actually participated
-                actual_player_id = mapping_result['original_player_id']
-                print(f"DEBUG: Found mapping for {player_name} -> original player ID {actual_player_id}")
-            else:
-                # Direct player - get their ID
-                cursor.execute("""
-                    SELECT id as player_id, name
-                    FROM players
-                    WHERE name = ?
-                """, (final_canonical_name,))
-                
-                player_result = cursor.fetchone()
-                if not player_result:
-                    return jsonify({'error': 'Player not found'}), 404
-                
+                SELECT p.id as player_id, p.name
+                FROM players p
+                JOIN sub_match_participants smp ON p.id = smp.player_id
+                WHERE p.name = ? AND smp.sub_match_id = ?
+            """, (final_canonical_name, sub_match_id))
+
+            player_result = cursor.fetchone()
+
+            if player_result:
                 actual_player_id = player_result['player_id']
-                print(f"DEBUG: Direct player {player_name} -> player ID {actual_player_id}")
+            else:
+                # Check if this is a mapped player for this specific sub-match
+                cursor.execute("""
+                    SELECT smpm.original_player_id
+                    FROM sub_match_player_mappings smpm
+                    WHERE smpm.sub_match_id = ? AND smpm.correct_player_name = ?
+                """, (sub_match_id, player_name))
+
+                mapping_result = cursor.fetchone()
+
+                if mapping_result:
+                    actual_player_id = mapping_result['original_player_id']
+                else:
+                    # Fallback: just look up by name
+                    cursor.execute("SELECT id as player_id, name FROM players WHERE name = ?", (final_canonical_name,))
+                    player_result = cursor.fetchone()
+                    if not player_result:
+                        return jsonify({'error': 'Player not found'}), 404
+                    actual_player_id = player_result['player_id']
             
             # Get sub-match info using the actual player who participated
             cursor.execute("""

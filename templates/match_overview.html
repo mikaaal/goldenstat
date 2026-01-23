@@ -238,6 +238,18 @@ thead .click-indicator-cell {
     font-weight: 600;
 }
 
+.team-link {
+    color: inherit;
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+}
+
+.team-link:hover {
+    opacity: 0.85;
+    transform: scale(1.02);
+}
+
 .running-score {
     font-weight: 700;
     color: #fff;
@@ -339,19 +351,9 @@ function navigateToPlayer(playerName, e) {
     }
 }
 
-function navigateToSubMatch(subMatchId, playerName) {
+function navigateToSubMatch(subMatchId) {
     if (!subMatchId) return;
-    try {
-        if (playerName && playerName.trim()) {
-            // Get first player name if multiple (for doubles)
-            const firstPlayer = playerName.split(' / ')[0].trim();
-            window.location.href = '/sub_match_throws?sub_match_id=' + subMatchId + '&player_name=' + encodeURIComponent(firstPlayer);
-        } else {
-            window.location.href = '/sub_match_throws?sub_match_id=' + subMatchId;
-        }
-    } catch (error) {
-        console.error('Navigation error:', error);
-    }
+    window.location.href = '/sub_match_throws?sub_match_id=' + subMatchId + '&team=1';
 }
 
 function makePlayerNameClickable(playerName) {
@@ -474,10 +476,10 @@ function displayMatchOverview(data) {
         </div>
         <div class="row text-center mb-4 align-items-center">
             <div class="col-md-5">
-                <div class="${team1BoxClass}">
+                <a href="/?tab=teams&team=${encodeURIComponent(matchInfo.team1_name)}" class="team-link ${team1BoxClass}">
                     <span class="team-icon">${team1Icon}</span>
                     <h5 class="team-name mb-0">${matchInfo.team1_name}</h5>
-                </div>
+                </a>
             </div>
             <div class="col-md-2 d-flex align-items-center justify-content-center">
                 <div class="result-box">
@@ -485,10 +487,10 @@ function displayMatchOverview(data) {
                 </div>
             </div>
             <div class="col-md-5">
-                <div class="${team2BoxClass}">
+                <a href="/?tab=teams&team=${encodeURIComponent(matchInfo.team2_name)}" class="team-link ${team2BoxClass}">
                     <span class="team-icon">${team2Icon}</span>
                     <h5 class="team-name mb-0">${matchInfo.team2_name}</h5>
-                </div>
+                </a>
             </div>
         </div>
     `;
@@ -581,9 +583,8 @@ function displayMatchOverview(data) {
         var row = e.target.closest('.sub-match-row');
         if (row) {
             var subMatchId = row.getAttribute('data-submatch-id');
-            var playerName = row.getAttribute('data-player-name');
             if (subMatchId) {
-                navigateToSubMatch(parseInt(subMatchId, 10), playerName || '');
+                navigateToSubMatch(parseInt(subMatchId, 10));
             }
         }
     };

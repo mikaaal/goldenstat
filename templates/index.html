@@ -64,7 +64,6 @@
     <div class="col-md-10 col-lg-8">
         <div class="search-hero">
             <h2 class="search-hero-title">🎯 Hitta en spelare</h2>
-            <p class="search-hero-subtitle">Sök på namn för att se statistik och matchhistorik</p>
             <div class="search-box-wrapper">
                 <div class="search-input-wrapper">
                     <div class="input-group input-group-lg">
@@ -152,14 +151,13 @@
     <div class="col-md-10 col-lg-8">
         <div class="search-hero">
             <h2 class="search-hero-title">👥 Hitta ett lag</h2>
-            <p class="search-hero-subtitle">Sök på lagnamn för att se laguppställning och division</p>
             <div class="search-box-wrapper">
                 <div class="search-input-wrapper">
                     <div class="input-group input-group-lg">
                         <input type="text"
                                id="teamSearch"
                                class="form-control"
-                               placeholder="Skriv lagnamn..."
+                               placeholder="Skriv lagnamnet här..."
                                autocomplete="off">
                         <button class="btn btn-outline-secondary" type="button" onclick="clearTeamSearch()" id="clearTeamBtn" style="display: none;">
                             ✕
@@ -459,6 +457,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if we should activate teams tab from URL
     if (urlParams.get('tab') === 'teams') {
         document.getElementById('teams-main-tab').click();
+        const teamParam = urlParams.get('team');
+        if (teamParam) {
+            document.getElementById('teamSearch').value = teamParam;
+            searchTeam();
+        }
     } else if (urlParams.get('tab') === 'stats') {
         document.getElementById('stats-main-tab').click();
         loadCurrentSeasonStats();
@@ -512,7 +515,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Setup filter change handlers
-    document.getElementById('seasonFilter').addEventListener('change', updateFilters);
+    const seasonFilterEl = document.getElementById('seasonFilter');
+    if (seasonFilterEl) {
+        seasonFilterEl.addEventListener('change', updateFilters);
+    }
 
     // Setup browser history navigation
     setupHistoryNavigation();
@@ -591,14 +597,16 @@ async function loadFilters() {
         
         // Populate season filter
         const seasonSelect = document.getElementById('seasonFilter');
-        data.seasons.forEach(season => {
-            if (season && season !== 'Unknown') {
-                const option = document.createElement('option');
-                option.value = season;
-                option.textContent = season;
-                seasonSelect.appendChild(option);
-            }
-        });
+        if (seasonSelect) {
+            data.seasons.forEach(season => {
+                if (season && season !== 'Unknown') {
+                    const option = document.createElement('option');
+                    option.value = season;
+                    option.textContent = season;
+                    seasonSelect.appendChild(option);
+                }
+            });
+        }
         
         
     } catch (error) {
@@ -823,7 +831,7 @@ async function showPlayerStats(stats) {
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link fw-bold" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button">
-                    📊 Översikt
+                    🔍 Översikt
                 </button>
             </li>
         </ul>
@@ -976,29 +984,35 @@ async function showPlayerStats(stats) {
                     <div class="col-12">
                         <div class="card">
                             <div class="card-body">
-                                <canvas id="progressChart" style="height: 300px;"></canvas>
+                                <div class="chart-container">
+                                    <canvas id="progressChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Throw Distribution Chart -->
                 <div class="row g-2 mb-3">
                     <div class="col-12">
                         <div class="card">
                             <div class="card-body">
-                                <canvas id="throwDistributionChart" style="height: 300px;"></canvas>
+                                <div class="chart-container">
+                                    <canvas id="throwDistributionChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Match Position Chart -->
                 <div class="row g-2 mb-3">
                     <div class="col-12">
                         <div class="card">
                             <div class="card-body">
-                                <canvas id="matchPositionChart" style="height: 300px;"></canvas>
+                                <div class="chart-container">
+                                    <canvas id="matchPositionChart"></canvas>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1024,7 +1038,7 @@ async function showPlayerStats(stats) {
                             </thead>
                             <tbody id="matchesTableBody">
                                 ${stats.recent_matches.map(match => `
-                                    <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
+                                    <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                                         <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
                                         <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${parseMatchPosition(match.match_name) || (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                                         <td><small>
@@ -1069,7 +1083,7 @@ async function showPlayerStats(stats) {
                     <div id="mobileMatchesList">
                     ${stats.recent_matches.map(match => `
                         <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
-                            <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(stats.player_name) + '\'"' : ''}>
+                            <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\'"' : ''}>
                                 <div class="row">
                                     <div class="col-8">
                                         <div class="d-flex justify-content-between align-items-start">
@@ -1324,13 +1338,11 @@ function applySortToMatches(matches) {
 
 // Update matches display with filtered/sorted data
 function updateMatchesDisplay(matches) {
-    const currentPlayerName = document.getElementById('playerSearch').value.trim();
-    
     // Update desktop table
     const tableBody = document.getElementById('matchesTableBody');
     if (tableBody) {
         tableBody.innerHTML = matches.map(match => `
-            <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(currentPlayerName) + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
+            <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                 <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
                 <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${parseMatchPosition(match.match_name) || (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                 <td><small>
@@ -1358,7 +1370,7 @@ function updateMatchesDisplay(matches) {
     if (mobileList) {
         mobileList.innerHTML = matches.map(match => `
             <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
-                <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&player_name=' + encodeURIComponent(currentPlayerName) + '\'"' : ''}>
+                <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\'"' : ''}>
                     <div class="row">
                         <div class="col-8">
                             <div class="d-flex justify-content-between align-items-start">
@@ -1563,29 +1575,34 @@ function showTeamData(playersData, lineupData) {
                     </h6>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover table-sm" id="teamPlayersTable">
-                        <thead>
-                            <tr>
-                                <th style="cursor: pointer;" onclick="sortTeamPlayersTable(0)">Spelare <span class="sort-arrow">↕</span></th>
-                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(1)">Singlar <span class="sort-arrow">↕</span></th>
-                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(2)">Vinst % <span class="sort-arrow">↕</span></th>
-                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(3)">Dubblar <span class="sort-arrow">↕</span></th>
-                                <th class="text-center" style="cursor: pointer;" onclick="sortTeamPlayersTable(4)">Vinst % <span class="sort-arrow">↕</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${playersData.players.map(player => `
-                                <tr>
-                                    <td><strong>${goldenStat.makePlayerNameClickable(player.name)}</strong></td>
-                                    <td class="text-center" data-value="${player.singles_played}">${player.singles_played}</td>
-                                    <td class="text-center" data-value="${player.singles_win_pct}"><span class="${player.singles_win_pct >= 50 ? 'text-success' : 'text-danger'}">${player.singles_played > 0 ? player.singles_win_pct + '%' : '-'}</span></td>
-                                    <td class="text-center" data-value="${player.doubles_played}">${player.doubles_played}</td>
-                                    <td class="text-center" data-value="${player.doubles_win_pct}"><span class="${player.doubles_win_pct >= 50 ? 'text-success' : 'text-danger'}">${player.doubles_played > 0 ? player.doubles_win_pct + '%' : '-'}</span></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
+                <div class="player-cards-sort-bar" id="teamPlayersSortBar">
+                    <span class="sort-label">Sortera:</span>
+                    <button class="sort-btn active" onclick="sortTeamPlayerCards('name')">Namn <span class="sort-arrow">↕</span></button>
+                    <button class="sort-btn" onclick="sortTeamPlayerCards('average')">Snitt <span class="sort-arrow">↕</span></button>
+                    <button class="sort-btn" onclick="sortTeamPlayerCards('singles_win_pct')">S-vinst <span class="sort-arrow">↕</span></button>
+                    <button class="sort-btn" onclick="sortTeamPlayerCards('doubles_win_pct')">D-vinst <span class="sort-arrow">↕</span></button>
+                </div>
+                <div class="player-cards-container" id="teamPlayersCards">
+                    ${playersData.players.map(player => `
+                        <div class="player-card" data-name="${player.name}" data-average="${player.average || 0}" data-singles-win-pct="${player.singles_win_pct}" data-doubles-win-pct="${player.doubles_win_pct}">
+                            <div class="player-card-header">
+                                <span class="player-card-name">${goldenStat.makePlayerNameClickable(player.name)}</span>
+                                <span class="player-card-avg ${player.average >= 20 ? 'avg-high' : player.average >= 15 ? 'avg-mid' : 'avg-low'}">${player.average ? player.average.toFixed(1) : '-'}</span>
+                            </div>
+                            <div class="player-card-stats">
+                                <div class="player-card-stat">
+                                    <span class="stat-label">Singlar:</span>
+                                    <span class="stat-value">${player.singles_played}</span>
+                                    <span class="stat-pct ${player.singles_win_pct >= 50 ? 'pct-good' : 'pct-bad'}">${player.singles_played > 0 ? '(' + player.singles_win_pct + '%)' : ''}</span>
+                                </div>
+                                <div class="player-card-stat">
+                                    <span class="stat-label">Dubblar:</span>
+                                    <span class="stat-value">${player.doubles_played}</span>
+                                    <span class="stat-pct ${player.doubles_win_pct >= 50 ? 'pct-good' : 'pct-bad'}">${player.doubles_played > 0 ? '(' + player.doubles_win_pct + '%)' : ''}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
                 </div>
             </div>
 
@@ -1839,52 +1856,56 @@ function clearTeamResults() {
 
 let teamPlayersTableSortOrder = {};
 
-function sortTeamPlayersTable(columnIndex) {
-    const table = document.getElementById('teamPlayersTable');
-    const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
+function sortTeamPlayerCards(field) {
+    const container = document.getElementById('teamPlayersCards');
+    const cards = Array.from(container.querySelectorAll('.player-card'));
+    const sortBar = document.getElementById('teamPlayersSortBar');
+    const buttons = sortBar.querySelectorAll('.sort-btn');
 
-    // Toggle sort order for this column
-    if (!teamPlayersTableSortOrder[columnIndex]) {
-        teamPlayersTableSortOrder[columnIndex] = 'asc';
-    } else if (teamPlayersTableSortOrder[columnIndex] === 'asc') {
-        teamPlayersTableSortOrder[columnIndex] = 'desc';
+    // Find active button and toggle direction
+    let activeBtn = null;
+    buttons.forEach(btn => {
+        if (btn.textContent.trim().startsWith(field === 'name' ? 'Namn' : field === 'average' ? 'Snitt' : field === 'singles_win_pct' ? 'S-vinst' : 'D-vinst')) {
+            activeBtn = btn;
+        }
+    });
+
+    // Toggle sort order
+    if (!teamPlayersTableSortOrder[field]) {
+        teamPlayersTableSortOrder[field] = field === 'name' ? 'asc' : 'desc';
+    } else if (teamPlayersTableSortOrder[field] === 'asc') {
+        teamPlayersTableSortOrder[field] = 'desc';
     } else {
-        teamPlayersTableSortOrder[columnIndex] = 'asc';
+        teamPlayersTableSortOrder[field] = 'asc';
     }
 
-    const isAscending = teamPlayersTableSortOrder[columnIndex] === 'asc';
+    const isAscending = teamPlayersTableSortOrder[field] === 'asc';
 
-    rows.sort((a, b) => {
-        let aValue, bValue;
-
-        if (columnIndex === 0) {
-            // Name column - sort alphabetically
-            aValue = a.cells[columnIndex].textContent.trim();
-            bValue = b.cells[columnIndex].textContent.trim();
-            return isAscending
-                ? aValue.localeCompare(bValue, 'sv')
-                : bValue.localeCompare(aValue, 'sv');
+    cards.sort((a, b) => {
+        if (field === 'name') {
+            const aVal = a.getAttribute('data-name');
+            const bVal = b.getAttribute('data-name');
+            return isAscending ? aVal.localeCompare(bVal, 'sv') : bVal.localeCompare(aVal, 'sv');
         } else {
-            // Numeric columns - use data-value attribute
-            aValue = parseFloat(a.cells[columnIndex].getAttribute('data-value')) || 0;
-            bValue = parseFloat(b.cells[columnIndex].getAttribute('data-value')) || 0;
-            return isAscending ? aValue - bValue : bValue - aValue;
+            const attr = field === 'average' ? 'data-average' : field === 'singles_win_pct' ? 'data-singles-win-pct' : 'data-doubles-win-pct';
+            const aVal = parseFloat(a.getAttribute(attr)) || 0;
+            const bVal = parseFloat(b.getAttribute(attr)) || 0;
+            return isAscending ? aVal - bVal : bVal - aVal;
         }
     });
 
-    // Clear tbody and append sorted rows
-    tbody.innerHTML = '';
-    rows.forEach(row => tbody.appendChild(row));
+    // Re-append sorted cards
+    cards.forEach(card => container.appendChild(card));
 
-    // Update sort arrows
-    table.querySelectorAll('th .sort-arrow').forEach((arrow, idx) => {
-        if (idx === columnIndex) {
-            arrow.textContent = isAscending ? '↑' : '↓';
-        } else {
-            arrow.textContent = '↕';
-        }
+    // Update button states and arrows
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+        btn.querySelector('.sort-arrow').textContent = '↕';
     });
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.querySelector('.sort-arrow').textContent = isAscending ? '↑' : '↓';
+    }
 }
 
 // Funktion för att rensa spelarresultat
@@ -1963,7 +1984,7 @@ function populateStatsWithData(data) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-primary rounded-pill fs-5">${item.average.toFixed(2)}</span>
             </div>
@@ -1978,7 +1999,7 @@ function populateStatsWithData(data) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-success rounded-pill fs-5">${item.checkout}</span>
             </div>
@@ -1993,7 +2014,7 @@ function populateStatsWithData(data) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-warning text-dark rounded-pill fs-5">${item.darts} pilar</span>
             </div>
@@ -2008,7 +2029,7 @@ function populateStatsWithData(data) {
                 <br>
                 <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
                 <br>
-                <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
             </div>
             <span class="badge bg-info rounded-pill fs-5">${item.count_180} st</span>
         </div>
@@ -2101,7 +2122,7 @@ async function loadWeeklyStats(division = null) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-primary rounded-pill fs-5">${item.average.toFixed(2)}</span>
             </div>
@@ -2117,7 +2138,7 @@ async function loadWeeklyStats(division = null) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-success rounded-pill fs-5">${item.checkout}</span>
             </div>
@@ -2133,7 +2154,7 @@ async function loadWeeklyStats(division = null) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-warning text-dark rounded-pill fs-5">${item.darts} pilar</span>
             </div>
@@ -2149,7 +2170,7 @@ async function loadWeeklyStats(division = null) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&player_name=${encodeURIComponent(item.player_name)}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-info rounded-pill fs-5">${item.count_100plus} st</span>
             </div>
