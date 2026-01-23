@@ -445,10 +445,10 @@ function parseMatchPosition(matchName) {
 }
 
 // Load player list on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     loadPlayerList();
     loadTeamList();
-    loadFilters();
+    await loadFilters();
     loadLastImport();
 
     // Check URL parameters
@@ -595,17 +595,10 @@ async function loadFilters() {
         const response = await fetch('/api/leagues');
         const data = await response.json();
         
-        // Populate season filter
-        const seasonSelect = document.getElementById('seasonFilter');
-        if (seasonSelect) {
-            data.seasons.forEach(season => {
-                if (season && season !== 'Unknown') {
-                    const option = document.createElement('option');
-                    option.value = season;
-                    option.textContent = season;
-                    seasonSelect.appendChild(option);
-                }
-            });
+        // Set current season to latest available
+        const validSeasons = data.seasons.filter(s => s && s !== 'Unknown');
+        if (validSeasons.length > 0) {
+            currentFilters.season = validSeasons[0];
         }
         
         
@@ -768,12 +761,7 @@ async function searchPlayer() {
     if (!playerName) return;
     
     try {
-        // Build query parameters with filters
-        const params = new URLSearchParams();
-        if (currentFilters.season) params.append('season', currentFilters.season);
-        
-        const queryString = params.toString();
-        const url = `/api/player/${encodeURIComponent(playerName)}${queryString ? '?' + queryString : ''}`;
+        const url = `/api/player/${encodeURIComponent(playerName)}`;
         
         const response = await fetch(url);
         const data = await response.json();
