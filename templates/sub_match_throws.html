@@ -321,7 +321,8 @@
 // Get URL parameters
 const urlParams = new URLSearchParams(window.location.search);
 const subMatchId = urlParams.get('sub_match_id');
-const playerName = urlParams.get('player_name');
+const teamNumber = urlParams.get('team') || '1';
+let playerName = null;
 
 
 function pluralizeDarts(count) {
@@ -378,10 +379,18 @@ async function initPage() {
         document.getElementById('error-message').classList.remove('d-none');
         document.getElementById('loading').classList.add('d-none');
     } else {
-        // Load match info first to show correct player names
-        await loadMatchInfo();
-        
-        // Then load detailed throw data if player is specified
+        // Load match info first to show correct player names and determine player
+        const matchData = await loadMatchInfo();
+
+        // Determine player name from team participants
+        if (matchData) {
+            const teamPlayers = teamNumber === '2' ? matchData.team2_players : matchData.team1_players;
+            if (teamPlayers && teamPlayers.length > 0) {
+                playerName = teamPlayers[0].name;
+            }
+        }
+
+        // Load detailed throw data
         if (playerName) {
             loadThrowData();
         } else {
@@ -397,14 +406,16 @@ async function loadMatchInfo() {
     try {
         const response = await fetch(`/api/sub_match/${subMatchId}`);
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Kunde inte ladda matchinfo');
         }
-        
+
         displayMatchInfo(data);
+        return data;
     } catch (error) {
         console.error('Error loading match info:', error);
+        return null;
     }
 }
 

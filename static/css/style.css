@@ -176,6 +176,7 @@ body {
 
 .chart-container {
     position: relative;
+    width: 100%;
     height: 300px;
     margin: 20px 0;
 }
@@ -903,6 +904,198 @@ body {
 
     .search-hero-title {
         font-size: 1.4rem;
+    }
+}
+
+/* ========== PLAYER CARDS (Alla spelare) ========== */
+.player-cards-sort-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.player-cards-sort-bar .sort-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-right: 0.2rem;
+}
+
+.player-cards-sort-bar .sort-btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 1rem;
+    background: #fff;
+    color: #495057;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.player-cards-sort-bar .sort-btn:hover {
+    border-color: #007bff;
+    color: #007bff;
+}
+
+.player-cards-sort-bar .sort-btn.active {
+    background: #007bff;
+    border-color: #007bff;
+    color: #fff;
+}
+
+.player-cards-sort-bar .sort-btn .sort-arrow {
+    font-size: 0.65rem;
+    margin-left: 0.15rem;
+}
+
+.player-cards-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.player-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.player-card:hover {
+    border-color: #c8d6e5;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.player-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.player-card-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.player-card-name a {
+    color: #2c3e50;
+    text-decoration: none;
+}
+
+.player-card-name a:hover {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.player-card-avg {
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.75rem;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+.player-card-avg.avg-high {
+    background: #d4edda;
+    color: #155724;
+}
+
+.player-card-avg.avg-mid {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.player-card-avg.avg-low {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.player-card-stats {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.player-card-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+}
+
+.player-card-stat .stat-label {
+    color: #6c757d;
+}
+
+.player-card-stat .stat-value {
+    font-weight: 500;
+    color: #495057;
+}
+
+.player-card-stat .stat-pct {
+    font-weight: 600;
+}
+
+.player-card-stat .stat-pct.pct-good {
+    color: #28a745;
+}
+
+.player-card-stat .stat-pct.pct-bad {
+    color: #dc3545;
+}
+
+@media (min-width: 577px) {
+    .player-card {
+        padding: 0.75rem 1rem;
+    }
+
+    .player-card-name {
+        font-size: 1rem;
+    }
+
+    .player-card-avg {
+        font-size: 1.05rem;
+        padding: 0.2rem 0.6rem;
+    }
+
+    .player-card-stat {
+        font-size: 0.9rem;
+    }
+
+    .player-cards-sort-bar .sort-btn {
+        font-size: 0.85rem;
+        padding: 0.3rem 0.65rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .player-card {
+        padding: 0.55rem 0.7rem;
+    }
+
+    .player-card-name {
+        font-size: 0.85rem;
+    }
+
+    .player-card-avg {
+        font-size: 0.85rem;
+    }
+
+    .player-card-stats {
+        gap: 1rem;
+    }
+
+    .player-card-stat {
+        font-size: 0.75rem;
     }
 }
 
