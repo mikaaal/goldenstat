@@ -8,8 +8,21 @@ from flask import Flask, render_template, request, jsonify
 from flask_caching import Cache
 import json
 import sqlite3
+import logging
 from datetime import datetime
 from database import DartDatabase
+
+# Configure usage logging
+usage_logger = logging.getLogger('usage')
+usage_logger.setLevel(logging.INFO)
+# Log to file locally
+usage_file_handler = logging.FileHandler('usage.log')
+usage_file_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
+usage_logger.addHandler(usage_file_handler)
+# Log to stdout for Railway/production
+usage_console_handler = logging.StreamHandler()
+usage_console_handler.setFormatter(logging.Formatter('[USAGE] %(message)s'))
+usage_logger.addHandler(usage_console_handler)
 
 def get_effective_sub_match_query(player_name):
     """
@@ -126,6 +139,25 @@ def get_last_import():
             'total_matches': data['statistics']['total_matches_imported'],
             'total_files': data['statistics']['total_files']
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/track-tab', methods=['POST'])
+def track_tab_click():
+    """Log tab clicks for usage analytics"""
+    try:
+        data = request.get_json()
+        tab = data.get('tab', 'unknown')
+        context = data.get('context', '')
+
+        # Get client info
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')[:100]
+
+        usage_logger.info(f"TAB | {tab} | context={context} | ip={ip} | ua={user_agent}")
+
+        return jsonify({'status': 'ok'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1262,11 +1294,106 @@ def get_player_throws(player_name):
             for throw in throws:
                 if throw['match_date']:
                     throw['match_date'] = str(throw['match_date'])
-            
+
+            # Calculate ALL-TIME statistics (without season/division filters)
+            all_time_statistics = {}
+            if season or division:  # Only calculate if we have filters applied
+                # Build WHERE clause without season/division filters
+                all_time_where_conditions = [
+                    """(
+                        -- Include direct matches for this player, but exclude mapped-away sub-matches
+                        (smp.player_id = ? AND p.name = ?
+                         AND smp.sub_match_id NOT IN (
+                             SELECT smpm.sub_match_id
+                             FROM sub_match_player_mappings smpm
+                             WHERE smpm.original_player_id = ?
+                         )
+                        )
+                        OR
+                        -- Include sub-matches that are mapped TO this player
+                        (smp.sub_match_id IN (
+                            SELECT smpm.sub_match_id
+                            FROM sub_match_player_mappings smpm
+                            WHERE smpm.correct_player_name = ?
+                        ) AND smp.player_id IN (
+                            SELECT DISTINCT smpm2.original_player_id
+                            FROM sub_match_player_mappings smpm2
+                            WHERE smpm2.correct_player_name = ?
+                        ))
+                    ) AND sm.match_type = 'Singles'"""
+                ]
+                all_time_params = [player_ids[0], player_name, player_ids[0], player_name, player_name]
+                all_time_where_clause = " AND ".join(all_time_where_conditions)
+
+                # Get ALL throw data (no season/division filter)
+                cursor.execute(f"""
+                    SELECT
+                        t.score,
+                        t.remaining_score,
+                        t.darts_used,
+                        t.round_number,
+                        l.leg_number,
+                        sm.match_type,
+                        sm.match_name,
+                        m.match_date,
+                        smp.player_avg,
+                        CASE
+                            WHEN (smp.team_number = 1 AND sm.team1_legs > sm.team2_legs)
+                              OR (smp.team_number = 2 AND sm.team2_legs > sm.team1_legs)
+                            THEN 1 ELSE 0
+                        END as won_match
+                    FROM throws t
+                    JOIN legs l ON t.leg_id = l.id
+                    JOIN sub_matches sm ON l.sub_match_id = sm.id
+                    JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                    JOIN players p ON smp.player_id = p.id
+                    JOIN matches m ON sm.match_id = m.id
+                    JOIN teams t1 ON m.team1_id = t1.id
+                    JOIN teams t2 ON m.team2_id = t2.id
+                    WHERE {all_time_where_clause}
+                    AND t.team_number = smp.team_number
+                    ORDER BY m.match_date DESC, l.leg_number, t.round_number
+                """, all_time_params)
+
+                all_time_throws = [dict(row) for row in cursor.fetchall()]
+
+                if all_time_throws:
+                    # Deduplicate
+                    unique_all_time = {}
+                    for t in all_time_throws:
+                        key = f"{t['match_date']}_{t['leg_number']}_{t['round_number']}_{t['score']}"
+                        if key not in unique_all_time:
+                            unique_all_time[key] = t
+
+                    dedup_all_time = list(unique_all_time.values())
+                    all_time_scores = [t['score'] for t in dedup_all_time if t['score'] > 0]
+
+                    # Calculate statistics
+                    all_time_throws_over_100 = len([s for s in all_time_scores if s >= 100])
+                    all_time_throws_180 = len([s for s in all_time_scores if s == 180])
+                    all_time_throws_over_140 = len([s for s in all_time_scores if s >= 140])
+                    all_time_high_finishes = len([t['score'] for t in dedup_all_time if t['remaining_score'] == 0 and t['score'] >= 100])
+
+                    all_time_statistics = {
+                        'throws_over_100': all_time_throws_over_100,
+                        'throws_over_140': all_time_throws_over_140,
+                        'throws_180': all_time_throws_180,
+                        'high_finishes': all_time_high_finishes
+                    }
+            else:
+                # No filters applied, use current statistics as all-time
+                all_time_statistics = {
+                    'throws_over_100': statistics.get('throws_over_100', 0),
+                    'throws_over_140': statistics.get('throws_over_140', 0),
+                    'throws_180': statistics.get('throws_180', 0),
+                    'high_finishes': statistics.get('high_finishes', 0)
+                } if statistics else {}
+
             return jsonify({
                 'player_name': player_name,
                 'throws': throws[:100],  # Limit to last 100 throws for performance
-                'statistics': statistics
+                'statistics': statistics,
+                'all_time_statistics': all_time_statistics
             })
 
     except Exception as e:
@@ -1777,26 +1904,30 @@ def get_team_lineup(team_name):
                 division_from_name = new_format_match.group(2)
                 season = new_format_match.group(3).replace('-', '/')  # Convert back to 2024/2025 format
 
-                # Try to find team with division in name
+                # Try to find team with division in name, but verify it has matches in the season
                 team_name_with_division = f"{base_team_name} ({division_from_name})"
-                cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name_with_division,))
+                cursor.execute("""
+                    SELECT t.id FROM teams t
+                    JOIN matches m ON t.id = m.team1_id OR t.id = m.team2_id
+                    WHERE t.name = ? AND m.season = ?
+                    LIMIT 1
+                """, (team_name_with_division, season))
                 team_with_div_result = cursor.fetchone()
 
                 if team_with_div_result:
-                    # Use team with division in name, but don't filter by division
-                    # (teams may play in different divisions across seasons)
+                    # Use team with division in name
                     team_name = team_name_with_division
                     division = None
                     team_result = team_with_div_result
                 else:
-                    # Fallback: try base team name without division filter
+                    # Fallback: try base team name with division filter
                     cursor.execute("SELECT id FROM teams WHERE name = ?", (base_team_name,))
                     base_result = cursor.fetchone()
 
                     if base_result:
-                        # Team exists without division in name, don't use division filter
+                        # Team exists without division in name, use division filter
                         team_name = base_team_name
-                        division = None
+                        division = division_from_name
                         team_result = base_result
                     else:
                         # Team not found
@@ -1971,9 +2102,14 @@ def get_team_players(team_name):
                 division_from_name = new_format_match.group(2)
                 season = new_format_match.group(3).replace('-', '/')
 
-                # Try with division in name first
+                # Try with division in name first, but verify it has matches in the season
                 team_name_with_division = f"{base_team_name} ({division_from_name})"
-                cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name_with_division,))
+                cursor.execute("""
+                    SELECT t.id FROM teams t
+                    JOIN matches m ON t.id = m.team1_id OR t.id = m.team2_id
+                    WHERE t.name = ? AND m.season = ?
+                    LIMIT 1
+                """, (team_name_with_division, season))
                 team_result = cursor.fetchone()
 
                 if team_result:
@@ -1982,8 +2118,10 @@ def get_team_players(team_name):
                     # even though the team name contains a division
                     division = None
                 else:
+                    # Team with division in name doesn't have matches in this season,
+                    # try base team with division filter
                     team_name = base_team_name
-                    division = None
+                    division = division_from_name
             else:
                 # Try old format: "Team Name (YYYY-YYYY)"
                 old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
@@ -2069,6 +2207,7 @@ def get_team_players(team_name):
                     SUM(CASE WHEN corrected_match_type = 'Doubles' AND player_legs_won > player_legs_lost THEN 1 ELSE 0 END) as doubles_won,
                     GROUP_CONCAT(DISTINCT season) as seasons
                 FROM sub_match_results
+                WHERE player_name IS NOT NULL AND player_name != ''
                 GROUP BY player_name
                 ORDER BY matches_played DESC, player_name ASC
             """, params + [team_name])
@@ -2080,17 +2219,26 @@ def get_team_players(team_name):
 
                 # Calculate weighted average for singles matches only
                 # Use the same method as database.py get_player_stats
+                # Include both direct matches and mapped sub-matches
                 singles_avg = None
                 if row['singles_played'] > 0:
-                    # Get singles matches for this player
+                    # Get singles matches for this player (including mapped)
                     cursor.execute(f"""
-                        SELECT sm.id as sub_match_id, smp.player_avg, smp.team_number
+                        SELECT DISTINCT sm.id as sub_match_id, smp.player_avg, smp.team_number
                         FROM sub_match_participants smp
                         JOIN sub_matches sm ON smp.sub_match_id = sm.id
                         JOIN matches m ON sm.match_id = m.id
                         JOIN teams t1 ON m.team1_id = t1.id
                         JOIN teams t2 ON m.team2_id = t2.id
-                        WHERE smp.player_id = ?
+                        LEFT JOIN sub_match_player_mappings smpm
+                            ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = smp.player_id
+                        WHERE (
+                            -- Direct matches for this player
+                            (smp.player_id = ? AND smpm.id IS NULL)
+                            OR
+                            -- Sub-matches mapped TO this player name
+                            (smpm.correct_player_name = ?)
+                        )
                           AND {where_clause}
                           AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
                           AND CASE
@@ -2098,7 +2246,7 @@ def get_team_players(team_name):
                               ELSE sm.match_type
                           END = 'Singles'
                           AND smp.player_avg > 0
-                    """, [player_id] + params + [team_name])
+                    """, [player_id, player_name] + params + [team_name])
 
                     singles_matches = cursor.fetchall()
 
@@ -2186,6 +2334,12 @@ def get_team_players(team_name):
 
             total_matches = cursor.fetchone()['total_team_matches']
 
+            # Sort players by singles_played (desc), then by average (desc, None last)
+            players.sort(key=lambda p: (
+                -p['singles_played'],
+                -(p['average'] if p['average'] is not None else -float('inf'))
+            ))
+
             return jsonify({
                 'team_name': team_name,
                 'total_matches': total_matches,
@@ -2197,6 +2351,450 @@ def get_team_players(team_name):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/team/<path:team_name>/doubles-pairs')
+def get_team_doubles_pairs(team_name):
+    """Get doubles pair statistics for a team - who played with whom and at which position"""
+    try:
+        import sqlite3
+        import re
+        from collections import defaultdict
+
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            season = request.args.get('season')
+            division_param = request.args.get('division')
+
+            # Handle team name format with season/division
+            division = division_param  # Use parameter if provided
+            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}-\d{4})\)$', team_name)
+            if new_format_match:
+                base_team_name = new_format_match.group(1)
+                division_from_name = new_format_match.group(2)
+                season = new_format_match.group(3).replace('-', '/')
+                team_name_with_division = f"{base_team_name} ({division_from_name})"
+                # Verify team has matches in this season before using it
+                cursor.execute("""
+                    SELECT t.id FROM teams t
+                    JOIN matches m ON t.id = m.team1_id OR t.id = m.team2_id
+                    WHERE t.name = ? AND m.season = ?
+                    LIMIT 1
+                """, (team_name_with_division, season))
+                team_result = cursor.fetchone()
+                if team_result:
+                    team_name = team_name_with_division
+                else:
+                    team_name = base_team_name
+                    if not division:  # Only set if not already provided
+                        division = division_from_name
+            else:
+                old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
+                if old_format_match:
+                    team_name = old_format_match.group(1)
+                    season = old_format_match.group(2).replace('-', '/')
+
+            # Get team ID
+            cursor.execute("SELECT id FROM teams WHERE name = ?", (team_name,))
+            team_result = cursor.fetchone()
+            if not team_result:
+                return jsonify({'error': f'Lag hittades inte: {team_name}'}), 404
+
+            team_id = team_result['id']
+
+            # Build WHERE clause
+            where_conditions = ["(m.team1_id = ? OR m.team2_id = ?)"]
+            params = [team_id, team_id]
+
+            if season:
+                where_conditions.append("m.season = ?")
+                params.append(season)
+
+            if division:
+                where_conditions.append("m.division = ?")
+                params.append(division)
+
+            where_clause = " AND ".join(where_conditions)
+
+            # Get all doubles matches for this team with both players
+            cursor.execute(f"""
+                SELECT
+                    sm.id as sub_match_id,
+                    sm.match_name,
+                    m.match_date,
+                    m.season,
+                    smp.team_number,
+                    smp.player_id,
+                    COALESCE(smpm.correct_player_name, p.name) as player_name,
+                    CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as player_team,
+                    (SELECT SUM(CASE WHEN legs.winner_team = smp.team_number THEN 1 ELSE 0 END) >
+                            SUM(CASE WHEN legs.winner_team != smp.team_number AND legs.winner_team IS NOT NULL THEN 1 ELSE 0 END)
+                     FROM legs WHERE legs.sub_match_id = sm.id) as won
+                FROM sub_match_participants smp
+                JOIN players p ON smp.player_id = p.id
+                JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                JOIN matches m ON sm.match_id = m.id
+                JOIN teams t1 ON m.team1_id = t1.id
+                JOIN teams t2 ON m.team2_id = t2.id
+                LEFT JOIN sub_match_player_mappings smpm
+                    ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = p.id
+                WHERE {where_clause}
+                  AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
+                  AND (sm.match_type = 'Doubles' OR sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %')
+                ORDER BY sm.id, smp.player_id
+            """, params + [team_name])
+
+            rows = cursor.fetchall()
+
+            # Group by sub_match to find pairs
+            sub_matches = defaultdict(list)
+            for row in rows:
+                sub_matches[row['sub_match_id']].append({
+                    'player_name': row['player_name'],
+                    'match_name': row['match_name'],
+                    'won': row['won'],
+                    'match_date': row['match_date']
+                })
+
+            # Extract position from match_name
+            def get_position(match_name):
+                if ' Doubles1' in match_name or match_name.endswith(' D1'):
+                    return 'D1'
+                elif ' Doubles2' in match_name or match_name.endswith(' D2'):
+                    return 'D2'
+                elif ' Doubles3' in match_name or match_name.endswith(' D3'):
+                    return 'D3'
+                elif ' AD' in match_name:
+                    return 'AD'
+                return 'D'
+
+            # Build pair statistics
+            pair_stats = defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(int)})
+            player_pairs = defaultdict(lambda: defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(int)}))
+
+            for sub_match_id, players in sub_matches.items():
+                if len(players) >= 2:
+                    # Filter out empty names
+                    valid_players = [p for p in players if p['player_name'] and p['player_name'].strip()]
+                    if len(valid_players) >= 2:
+                        p1, p2 = sorted([valid_players[0]['player_name'], valid_players[1]['player_name']])
+                        position = get_position(valid_players[0]['match_name'])
+                        won = valid_players[0]['won']
+
+                        pair_key = f"{p1} + {p2}"
+                        pair_stats[pair_key]['total'] += 1
+                        pair_stats[pair_key]['positions'][position] += 1
+                        if won:
+                            pair_stats[pair_key]['wins'] += 1
+
+                        # Track per player
+                        player_pairs[valid_players[0]['player_name']][valid_players[1]['player_name']]['total'] += 1
+                        player_pairs[valid_players[0]['player_name']][valid_players[1]['player_name']]['positions'][position] += 1
+                        if won:
+                            player_pairs[valid_players[0]['player_name']][valid_players[1]['player_name']]['wins'] += 1
+
+                        player_pairs[valid_players[1]['player_name']][valid_players[0]['player_name']]['total'] += 1
+                        player_pairs[valid_players[1]['player_name']][valid_players[0]['player_name']]['positions'][position] += 1
+                        if won:
+                            player_pairs[valid_players[1]['player_name']][valid_players[0]['player_name']]['wins'] += 1
+
+            # Format output - per player view
+            players_data = []
+            for player, partners in sorted(player_pairs.items()):
+                partner_list = []
+                for partner, stats in sorted(partners.items(), key=lambda x: -x[1]['total']):
+                    win_pct = round(stats['wins'] / stats['total'] * 100) if stats['total'] > 0 else 0
+                    partner_list.append({
+                        'partner': partner,
+                        'total': stats['total'],
+                        'wins': stats['wins'],
+                        'win_pct': win_pct,
+                        'positions': dict(stats['positions'])
+                    })
+
+                total_doubles = sum(p['total'] for p in partner_list) // 2  # Divided by 2 since each match counted twice
+                players_data.append({
+                    'player': player,
+                    'total_doubles': sum(p['total'] for p in partner_list),
+                    'partners': partner_list
+                })
+
+            # Sort by total doubles played
+            players_data.sort(key=lambda x: -x['total_doubles'])
+
+            # Format pairs view
+            pairs_list = []
+            for pair_key, stats in sorted(pair_stats.items(), key=lambda x: -x[1]['total']):
+                win_pct = round(stats['wins'] / stats['total'] * 100) if stats['total'] > 0 else 0
+                pairs_list.append({
+                    'pair': pair_key,
+                    'total': stats['total'],
+                    'wins': stats['wins'],
+                    'win_pct': win_pct,
+                    'positions': dict(stats['positions'])
+                })
+
+            return jsonify({
+                'team_name': team_name,
+                'season': season,
+                'players': players_data,
+                'pairs': pairs_list,
+                'total_doubles_matches': len([sm for sm in sub_matches.values() if len(sm) >= 2])
+            })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/club/<path:club_name>/players')
+def get_club_players(club_name):
+    """Get all players who have played for any team in a club (across all divisions)"""
+    try:
+        import sqlite3
+        import re
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            season = request.args.get('season')
+
+            # Extract base club name (remove division suffix if present)
+            # "Mitt i DC (3FD)" -> "Mitt i DC"
+            base_club = re.sub(r'\s*\([^)]*\)$', '', club_name).strip()
+
+            # Find all teams for this club
+            cursor.execute("SELECT id, name FROM teams WHERE name = ? OR name LIKE ?",
+                          (base_club, f"{base_club} (%)",))
+            club_teams = cursor.fetchall()
+
+            if not club_teams:
+                return jsonify({'error': f'Klubb hittades inte: {base_club}'}), 404
+
+            team_ids = [t['id'] for t in club_teams]
+            team_names = [t['name'] for t in club_teams]
+
+            # Build WHERE clause
+            team_placeholders = ','.join(['?' for _ in team_ids])
+            where_conditions = [f"(m.team1_id IN ({team_placeholders}) OR m.team2_id IN ({team_placeholders}))"]
+            params = team_ids + team_ids
+
+            if season:
+                where_conditions.append("m.season = ?")
+                params.append(season)
+
+            where_clause = " AND ".join(where_conditions)
+
+            # Build team name match condition
+            team_name_placeholders = ','.join(['?' for _ in team_names])
+
+            cursor.execute(f"""
+                WITH player_data AS (
+                    SELECT
+                        p.id as player_id,
+                        COALESCE(smpm.correct_player_name, p.name) as player_name,
+                        sm.id as sub_match_id,
+                        sm.match_name,
+                        CASE
+                            WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' THEN 'Doubles'
+                            ELSE sm.match_type
+                        END as corrected_match_type,
+                        m.id as match_id,
+                        m.season,
+                        smp.team_number,
+                        smp.player_avg,
+                        CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as player_team
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                    JOIN matches m ON sm.match_id = m.id
+                    JOIN teams t1 ON m.team1_id = t1.id
+                    JOIN teams t2 ON m.team2_id = t2.id
+                    LEFT JOIN sub_match_player_mappings smpm
+                        ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = p.id
+                    WHERE {where_clause}
+                      AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) IN ({team_name_placeholders})
+                ),
+                sub_match_results AS (
+                    SELECT
+                        pd.player_id,
+                        pd.player_name,
+                        pd.sub_match_id,
+                        pd.corrected_match_type,
+                        pd.match_id,
+                        pd.season,
+                        pd.team_number,
+                        pd.player_avg,
+                        pd.player_team,
+                        SUM(CASE WHEN legs.winner_team = pd.team_number THEN 1 ELSE 0 END) as player_legs_won,
+                        SUM(CASE WHEN legs.winner_team != pd.team_number AND legs.winner_team IS NOT NULL THEN 1 ELSE 0 END) as player_legs_lost
+                    FROM player_data pd
+                    LEFT JOIN legs ON legs.sub_match_id = pd.sub_match_id
+                    GROUP BY pd.player_id, pd.player_name, pd.sub_match_id, pd.corrected_match_type, pd.match_id, pd.season, pd.team_number, pd.player_avg, pd.player_team
+                )
+                SELECT
+                    player_name,
+                    player_id,
+                    COUNT(DISTINCT match_id) as matches_played,
+                    COUNT(DISTINCT CASE WHEN corrected_match_type = 'Singles' THEN sub_match_id END) as singles_played,
+                    COUNT(DISTINCT CASE WHEN corrected_match_type = 'Doubles' THEN sub_match_id END) as doubles_played,
+                    COUNT(DISTINCT sub_match_id) as sub_matches_played,
+                    SUM(CASE WHEN player_legs_won > player_legs_lost THEN 1 ELSE 0 END) as sub_matches_won,
+                    SUM(CASE WHEN player_legs_won < player_legs_lost THEN 1 ELSE 0 END) as sub_matches_lost,
+                    SUM(CASE WHEN corrected_match_type = 'Singles' AND player_legs_won > player_legs_lost THEN 1 ELSE 0 END) as singles_won,
+                    SUM(CASE WHEN corrected_match_type = 'Doubles' AND player_legs_won > player_legs_lost THEN 1 ELSE 0 END) as doubles_won,
+                    GROUP_CONCAT(DISTINCT season) as seasons,
+                    GROUP_CONCAT(DISTINCT player_team) as teams_played_for
+                FROM sub_match_results
+                WHERE player_name IS NOT NULL AND player_name != ''
+                GROUP BY player_name
+                ORDER BY matches_played DESC, player_name ASC
+            """, params + team_names)
+
+            players = []
+            for row in cursor.fetchall():
+                player_id = row['player_id']
+                player_name = row['player_name']
+
+                # Calculate weighted average for singles matches
+                # Include both direct matches and mapped sub-matches
+                singles_avg = None
+                if row['singles_played'] > 0:
+                    cursor.execute(f"""
+                        SELECT DISTINCT sm.id as sub_match_id, smp.player_avg, smp.team_number
+                        FROM sub_match_participants smp
+                        JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                        JOIN matches m ON sm.match_id = m.id
+                        JOIN teams t1 ON m.team1_id = t1.id
+                        JOIN teams t2 ON m.team2_id = t2.id
+                        LEFT JOIN sub_match_player_mappings smpm
+                            ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = smp.player_id
+                        WHERE (
+                            -- Direct matches for this player
+                            (smp.player_id = ? AND smpm.id IS NULL)
+                            OR
+                            -- Sub-matches mapped TO this player name
+                            (smpm.correct_player_name = ?)
+                        )
+                          AND {where_clause}
+                          AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) IN ({team_name_placeholders})
+                          AND CASE
+                              WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' THEN 'Doubles'
+                              ELSE sm.match_type
+                          END = 'Singles'
+                          AND smp.player_avg > 0
+                    """, [player_id, player_name] + params + team_names)
+
+                    singles_matches = cursor.fetchall()
+                    total_score = 0.0
+                    total_darts = 0
+
+                    for match in singles_matches:
+                        sub_match_id = match['sub_match_id']
+                        player_avg = match['player_avg']
+                        team_number = match['team_number']
+
+                        cursor.execute('''
+                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score
+                            FROM legs l
+                            JOIN throws t ON t.leg_id = l.id
+                            WHERE l.sub_match_id = ? AND t.team_number = ?
+                            ORDER BY l.leg_number, t.id
+                        ''', (sub_match_id, team_number))
+
+                        all_throws = cursor.fetchall()
+                        match_darts = 0
+
+                        for throw in all_throws:
+                            score = throw['score']
+                            darts_used = throw['darts_used']
+                            remaining = throw['remaining_score']
+
+                            # Skip starting throw (score=0, remaining=501)
+                            if score == 0 and remaining == 501:
+                                continue
+
+                            if remaining == 0:
+                                # Checkout - detect format based on score value
+                                if score <= 3:
+                                    checkout_darts = score if score else 3
+                                else:
+                                    checkout_darts = darts_used if darts_used else 3
+                                match_darts += checkout_darts
+                            else:
+                                # Regular throw
+                                match_darts += (darts_used if darts_used else 3)
+
+                        if match_darts > 0:
+                            match_score = (player_avg * match_darts) / 3.0
+                            total_score += match_score
+                            total_darts += match_darts
+
+                    if total_darts > 0:
+                        singles_avg = round((total_score / total_darts * 3.0), 2)
+
+                singles_win_pct = round(row['singles_won'] / row['singles_played'] * 100) if row['singles_played'] > 0 else 0
+                doubles_win_pct = round(row['doubles_won'] / row['doubles_played'] * 100) if row['doubles_played'] > 0 else 0
+
+                # Extract just division names from teams_played_for
+                # "Mitt i DC (3FD),Mitt i DC (2A)" -> "3FD, 2A"
+                # Sort: Superligan, SL6, SL4 first, then rest ascending
+                divisions_played = None
+                if row['teams_played_for']:
+                    divisions = []
+                    for team in row['teams_played_for'].split(','):
+                        match = re.search(r'\(([^)]+)\)$', team.strip())
+                        if match:
+                            divisions.append(match.group(1))
+                    if divisions:
+                        unique_divs = set(divisions)
+                        priority = ['Superligan', 'SL6', 'SL4']
+                        priority_divs = [d for d in priority if d in unique_divs]
+                        other_divs = sorted([d for d in unique_divs if d not in priority])
+                        divisions_played = ', '.join(priority_divs + other_divs)
+
+                players.append({
+                    'name': player_name,
+                    'matches_played': row['matches_played'],
+                    'singles_played': row['singles_played'],
+                    'doubles_played': row['doubles_played'],
+                    'singles_won': row['singles_won'],
+                    'doubles_won': row['doubles_won'],
+                    'singles_win_pct': singles_win_pct,
+                    'doubles_win_pct': doubles_win_pct,
+                    'average': singles_avg,
+                    'seasons': row['seasons'],
+                    'divisions_played': divisions_played
+                })
+
+            # Get total matches across all club teams
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT m.id) as total_club_matches
+                FROM matches m
+                WHERE {where_clause}
+            """, params)
+
+            total_matches = cursor.fetchone()['total_club_matches']
+
+            # Sort players by singles_played (desc), then by average (desc, None last)
+            players.sort(key=lambda p: (
+                -p['singles_played'],
+                -(p['average'] if p['average'] is not None else -float('inf'))
+            ))
+
+            return jsonify({
+                'club_name': base_club,
+                'teams': team_names,
+                'total_matches': total_matches,
+                'season': season,
+                'players': players,
+                'player_count': len(players)
+            })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/match/<int:match_id>/legs')
 def get_match_legs(match_id):
