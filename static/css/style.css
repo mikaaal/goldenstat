@@ -1053,6 +1053,13 @@ body {
     color: #dc3545;
 }
 
+.player-card-teams {
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px solid #eee;
+    font-size: 0.75rem;
+}
+
 @media (min-width: 577px) {
     .player-card {
         padding: 0.75rem 1rem;
@@ -1099,3 +1106,116 @@ body {
     }
 }
 
+/* Doubles Pairs Styles */
+.doubles-pairs-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.doubles-player-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    border: 2px solid #e2e8f0;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.doubles-player-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.doubles-player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 2px solid #cbd5e1;
+}
+
+.doubles-player-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #1e293b;
+}
+
+.doubles-player-header .badge {
+    background-color: #2563eb !important;
+    color: white;
+    font-weight: 500;
+}
+
+.doubles-partners-list {
+    padding: 0.5rem;
+}
+
+.doubles-partner-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.625rem 0.75rem;
+    margin: 0.375rem 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fafbfc;
+    transition: all 0.15s ease;
+}
+
+.doubles-partner-row:hover {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.partner-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.partner-name {
+    font-weight: 500;
+    color: #334155;
+}
+
+.partner-positions {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.partner-positions .badge {
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.partner-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.125rem;
+    font-size: 0.85rem;
+}
+
+.partner-matches {
+    color: #64748b;
+}
+
+.partner-winrate {
+    font-weight: 600;
+}
+
+@media (max-width: 576px) {
+    .doubles-partner-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .partner-stats {
+        align-items: flex-start;
+        flex-direction: row;
+        gap: 0.75rem;
+    }
+}

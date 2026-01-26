@@ -120,16 +120,16 @@ class GoldenStat {
                 datasets: [{
                     label: 'Snitt per singelmatch',
                     data: averages,
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderColor: '#e07850',
+                    backgroundColor: 'rgba(224, 120, 80, 0.1)',
                     borderWidth: 2,
                     fill: false,
                     tension: 0.1
                 }, {
                     label: '3-matchers pilsnitt över tid',
                     data: movingAvg,
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderColor: '#5a9bcf',
+                    backgroundColor: 'rgba(90, 155, 207, 0.1)',
                     borderWidth: 3,
                     fill: false,
                     tension: 0.3
@@ -232,12 +232,12 @@ class GoldenStat {
                 datasets: [{
                     data: [wins, losses],
                     backgroundColor: [
-                        'rgba(40, 167, 69, 0.8)',
-                        'rgba(220, 53, 69, 0.8)'
+                        'rgba(140, 192, 132, 0.75)',
+                        'rgba(232, 121, 160, 0.75)'
                     ],
                     borderColor: [
-                        '#28a745',
-                        '#dc3545'
+                        '#8cc084',
+                        '#e879a0'
                     ],
                     borderWidth: 2
                 }]
@@ -264,17 +264,19 @@ class GoldenStat {
     createThrowDistributionChart(canvasId, scoreRanges) {
         if (!scoreRanges || Object.keys(scoreRanges).length === 0) return;
 
-        const labels = Object.keys(scoreRanges);
-        const data = Object.values(scoreRanges);
+        // Explicit order: low to high, with 100+ last
+        const orderedLabels = ['0-20', '21-40', '41-60', '61-80', '81-99', '100+'];
+        const labels = orderedLabels.filter(label => scoreRanges.hasOwnProperty(label));
+        const data = labels.map(label => scoreRanges[label]);
 
-        // Professional gradient colors from low to high scores
+        // Soft, muted colors from low to high scores
         const colors = [
-            '#ef4444',  // Red - 0-20
-            '#f97316',  // Orange - 21-40
-            '#f59e0b',  // Amber - 41-60
-            '#84cc16',  // Lime - 61-80
-            '#10b981',  // Emerald - 81-99
-            '#059669'   // Dark emerald - 100+
+            '#e879a0',  // Soft rose - 0-20
+            '#f0a875',  // Soft peach - 21-40
+            '#e8c46e',  // Soft gold - 41-60
+            '#8cc084',  // Soft sage - 61-80
+            '#6cb4c4',  // Soft teal - 81-99
+            '#5a9bcf'   // Soft blue - 100+
         ];
 
         const config = {
@@ -449,23 +451,23 @@ class GoldenStat {
         const labels = Object.keys(positionStats);
         const data = Object.values(positionStats);
 
-        // Professional color scheme - sorted to match typical positions
+        // Soft, balanced color scheme
         const getPositionColor = (position) => {
             const colorMap = {
-                'S1': '#2563eb',  // Blue
-                'S2': '#06b6d4',  // Cyan
-                'S3': '#10b981',  // Emerald
-                'S4': '#84cc16',  // Lime
-                'S5': '#f59e0b',  // Amber
-                'S6': '#f97316',  // Orange
-                'D1': '#8b5cf6',  // Violet
-                'D2': '#a855f7',  // Purple
-                'D3': '#ec4899',  // Pink
-                'AD': '#ef4444',  // Red
-                'S': '#64748b',   // Slate (fallback)
-                'D': '#64748b'    // Slate (fallback)
+                'S1': '#5a9bcf',  // Soft blue
+                'S2': '#6cb4c4',  // Soft teal
+                'S3': '#8cc084',  // Soft sage
+                'S4': '#a8c686',  // Soft lime
+                'S5': '#c4b87a',  // Soft khaki
+                'S6': '#d4a574',  // Soft tan
+                'D1': '#b89cc4',  // Soft lavender
+                'D2': '#c4a0b4',  // Soft mauve
+                'D3': '#d4a4a4',  // Soft dusty rose
+                'AD': '#c49090',  // Soft coral
+                'S': '#7ba3b4',   // Soft steel (fallback)
+                'D': '#b89cc4'    // Soft lavender (fallback)
             };
-            return colorMap[position] || '#64748b';
+            return colorMap[position] || '#7ba3b4';
         };
 
         const backgroundColor = labels.map(label => getPositionColor(label));
