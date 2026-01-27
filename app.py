@@ -2503,6 +2503,7 @@ def get_team_doubles_pairs(team_name):
             players_data = []
             for player, partners in sorted(player_pairs.items()):
                 partner_list = []
+                total_positions = defaultdict(int)
                 for partner, stats in sorted(partners.items(), key=lambda x: -x[1]['total']):
                     win_pct = round(stats['wins'] / stats['total'] * 100) if stats['total'] > 0 else 0
                     partner_list.append({
@@ -2512,11 +2513,18 @@ def get_team_doubles_pairs(team_name):
                         'win_pct': win_pct,
                         'positions': dict(stats['positions'])
                     })
+                    # Aggregate positions for the player
+                    for pos, count in stats['positions'].items():
+                        total_positions[pos] += count
 
-                total_doubles = sum(p['total'] for p in partner_list) // 2  # Divided by 2 since each match counted twice
+                # Each partner entry already represents unique matches, so no need to divide
+                # But filter out zero values
+                player_positions = {pos: count for pos, count in total_positions.items() if count > 0}
+
                 players_data.append({
                     'player': player,
                     'total_doubles': sum(p['total'] for p in partner_list),
+                    'positions': player_positions,
                     'partners': partner_list
                 })
 

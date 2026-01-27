@@ -1957,17 +1957,27 @@ function generateDoublesPairsHTML(data) {
             ${data.players.map(player => `
                 <div class="doubles-player-card mb-3">
                     <div class="doubles-player-header">
-                        <span class="doubles-player-name">${goldenStat.makePlayerNameClickable(player.player)}</span>
-                        <span class="badge bg-secondary">${player.total_doubles} dubblar</span>
+                        <div class="doubles-player-info">
+                            <span class="doubles-player-name">${goldenStat.makePlayerNameClickable(player.player)}</span>
+                            <span class="doubles-player-positions">(${Object.entries(player.positions || {}).sort((a, b) => {
+                                    // Sort D1, D2, D3 first, then D, then AD last
+                                    const order = {'D1': 1, 'D2': 2, 'D3': 3, 'D': 4, 'AD': 5};
+                                    return (order[a[0]] || 99) - (order[b[0]] || 99);
+                                }).map(([pos, count]) => `${pos}: ${count}`).join(', ')})</span>
+                        </div>
+                        <span class="badge bg-secondary">${player.total_doubles} ${player.total_doubles === 1 ? 'dubbel' : 'dubblar'}</span>
                     </div>
                     <div class="doubles-partners-list">
                         ${player.partners.map(partner => `
                             <div class="doubles-partner-row">
                                 <div class="partner-info">
                                     <span class="partner-name">${goldenStat.makePlayerNameClickable(partner.partner)}</span>
-                                    <span class="partner-positions text-muted">
-                                        ${Object.entries(partner.positions).map(([pos, count]) =>
-                                            `<span class="badge bg-light text-dark">${pos}: ${count}</span>`
+                                    <span class="partner-positions">
+                                        ${Object.entries(partner.positions).sort((a, b) => {
+                                            const order = {'D1': 1, 'D2': 2, 'D3': 3, 'D': 4, 'AD': 5};
+                                            return (order[a[0]] || 99) - (order[b[0]] || 99);
+                                        }).map(([pos, count]) =>
+                                            `<span class="position-badge">${pos}: ${count}</span>`
                                         ).join(' ')}
                                     </span>
                                 </div>
