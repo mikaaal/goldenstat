@@ -383,12 +383,16 @@ def get_weekly_stats():
 
             # Get optional division filter from query parameter
             division = request.args.get('division')
+            # Get optional week_offset parameter (0 = current week, -1 = last week, etc.)
+            week_offset = int(request.args.get('week_offset', 0))
 
-            # Calculate current week's date range (Monday to Sunday)
+            # Calculate week's date range (Monday to Sunday)
             today = datetime.now()
-            # Get the start of the week (Monday)
+            # Get the start of the current week (Monday)
             start_of_week = today - timedelta(days=today.weekday())
             start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Apply week offset
+            start_of_week = start_of_week + timedelta(weeks=week_offset)
             # Get the end of the week (Sunday)
             end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
@@ -543,6 +547,7 @@ def get_weekly_stats():
             return jsonify({
                 'week_start': start_of_week.strftime('%Y-%m-%d'),
                 'week_end': end_of_week.strftime('%Y-%m-%d'),
+                'week_offset': week_offset,
                 'total_matches': total_matches,
                 'division': division,
                 'top_averages': top_averages,
@@ -550,6 +555,72 @@ def get_weekly_stats():
                 'shortest_sets': shortest_sets,
                 'most_100plus': most_100plus
             })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/available-weeks')
+@cache.cached(timeout=3600)  # Cache for 1 hour
+def get_available_weeks():
+    """API endpoint to get list of weeks that have match data"""
+    try:
+        import sqlite3
+        from datetime import datetime, timedelta
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Get the earliest and latest match dates
+            cursor.execute("""
+                SELECT MIN(match_date) as earliest, MAX(match_date) as latest
+                FROM matches
+            """)
+            result = cursor.fetchone()
+
+            if not result['earliest'] or not result['latest']:
+                return jsonify({'weeks': []})
+
+            earliest_date = datetime.strptime(result['earliest'][:10], '%Y-%m-%d')
+            latest_date = datetime.strptime(result['latest'][:10], '%Y-%m-%d')
+
+            # Get current week start
+            today = datetime.now()
+            current_week_start = today - timedelta(days=today.weekday())
+            current_week_start = current_week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # Generate list of weeks from current week back to earliest data
+            weeks = []
+            week_start = current_week_start
+            week_offset = 0
+
+            while week_start >= earliest_date - timedelta(days=7):
+                week_end = week_start + timedelta(days=6)
+
+                # Check if there are any matches in this week
+                cursor.execute("""
+                    SELECT COUNT(*) as match_count
+                    FROM matches
+                    WHERE match_date >= ? AND match_date <= ?
+                """, (week_start.strftime('%Y-%m-%d'), week_end.strftime('%Y-%m-%d 23:59:59')))
+                match_count = cursor.fetchone()['match_count']
+
+                if match_count > 0:
+                    weeks.append({
+                        'week_offset': week_offset,
+                        'week_start': week_start.strftime('%Y-%m-%d'),
+                        'week_end': week_end.strftime('%Y-%m-%d'),
+                        'match_count': match_count,
+                        'label': f"v.{week_start.isocalendar()[1]} ({week_start.strftime('%d/%m')} - {week_end.strftime('%d/%m')})"
+                    })
+
+                week_start = week_start - timedelta(weeks=1)
+                week_offset -= 1
+
+                # Limit to last 52 weeks
+                if len(weeks) >= 52:
+                    break
+
+            return jsonify({'weeks': weeks})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -771,7 +842,7 @@ def get_player_stats(player_name):
             for match in stats['recent_matches']:
                 if 'match_date' in match and match['match_date']:
                     match['match_date'] = str(match['match_date'])
-        
+
         # Add filter information to response
         stats['filters'] = {
             'season': season,
@@ -831,7 +902,7 @@ def get_player_detailed_stats(player_name):
             """.format(','.join(['?' for _ in all_player_ids])), all_player_ids)
             
             matches = [dict(row) for row in cursor.fetchall()]
-            
+
             # Get match type breakdown
             cursor.execute("""
                 SELECT 
@@ -1242,11 +1313,27 @@ def get_player_throws(player_name):
                 throws_under_20 = len([s for s in scores if s < 20])
 
                 # High finishes (checkouts 100+)
-                high_finishes = len([t['score'] for t in dedup_throws if t['remaining_score'] == 0 and t['score'] >= 100])
+                # Group throws by leg to find the previous throw's remaining_score
+                from collections import defaultdict
+                leg_throws_grouped = defaultdict(list)
+                for t in dedup_throws:
+                    leg_key = f"{t['match_date']}_{t['match_name']}_{t['leg_number']}"
+                    leg_throws_grouped[leg_key].append(t)
+
+                # Sort throws in each leg by round_number
+                high_finishes = 0
+                for leg_key, throws_in_leg in leg_throws_grouped.items():
+                    throws_in_leg.sort(key=lambda x: x['round_number'])
+                    for i, t in enumerate(throws_in_leg):
+                        if t['remaining_score'] == 0:  # This is a checkout
+                            # Get the previous throw's remaining_score (that's the checkout value)
+                            if i > 0:
+                                checkout_value = throws_in_leg[i-1]['remaining_score']
+                                if checkout_value >= 100:
+                                    high_finishes += 1
                 
                 # Short sets (legs won in 18 darts or fewer)
                 # Count legs where player won and used <= 18 darts
-                from collections import defaultdict
                 leg_darts = defaultdict(int)
                 leg_winners = {}
 
@@ -1372,7 +1459,21 @@ def get_player_throws(player_name):
                     all_time_throws_over_100 = len([s for s in all_time_scores if s >= 100])
                     all_time_throws_180 = len([s for s in all_time_scores if s == 180])
                     all_time_throws_over_140 = len([s for s in all_time_scores if s >= 140])
-                    all_time_high_finishes = len([t['score'] for t in dedup_all_time if t['remaining_score'] == 0 and t['score'] >= 100])
+
+                    # High finishes - group by leg and check previous throw's remaining_score
+                    all_time_leg_throws = defaultdict(list)
+                    for t in dedup_all_time:
+                        leg_key = f"{t['match_date']}_{t['match_name']}_{t['leg_number']}"
+                        all_time_leg_throws[leg_key].append(t)
+
+                    all_time_high_finishes = 0
+                    for leg_key, throws_in_leg in all_time_leg_throws.items():
+                        throws_in_leg.sort(key=lambda x: x['round_number'])
+                        for i, t in enumerate(throws_in_leg):
+                            if t['remaining_score'] == 0 and i > 0:
+                                checkout_value = throws_in_leg[i-1]['remaining_score']
+                                if checkout_value >= 100:
+                                    all_time_high_finishes += 1
 
                     all_time_statistics = {
                         'throws_over_100': all_time_throws_over_100,
@@ -2503,6 +2604,7 @@ def get_team_doubles_pairs(team_name):
             players_data = []
             for player, partners in sorted(player_pairs.items()):
                 partner_list = []
+                total_positions = defaultdict(int)
                 for partner, stats in sorted(partners.items(), key=lambda x: -x[1]['total']):
                     win_pct = round(stats['wins'] / stats['total'] * 100) if stats['total'] > 0 else 0
                     partner_list.append({
@@ -2512,11 +2614,18 @@ def get_team_doubles_pairs(team_name):
                         'win_pct': win_pct,
                         'positions': dict(stats['positions'])
                     })
+                    # Aggregate positions for the player
+                    for pos, count in stats['positions'].items():
+                        total_positions[pos] += count
 
-                total_doubles = sum(p['total'] for p in partner_list) // 2  # Divided by 2 since each match counted twice
+                # Each partner entry already represents unique matches, so no need to divide
+                # But filter out zero values
+                player_positions = {pos: count for pos, count in total_positions.items() if count > 0}
+
                 players_data.append({
                     'player': player,
                     'total_doubles': sum(p['total'] for p in partner_list),
+                    'positions': player_positions,
                     'partners': partner_list
                 })
 
@@ -2935,8 +3044,22 @@ def get_memorable_matches(player_id):
                 total_throws = len(throws)
                 average_score = total_score / total_throws if total_throws > 0 else 0
 
-                # Räkna höga utgångar (100+)
-                high_finishes = len([t for t in throws if t['remaining_score'] == 0 and t['score'] >= 100])
+                # Räkna höga utgångar (100+) - kolla föregående kasts remaining_score
+                leg_throws_for_checkout = {}
+                for t in throws:
+                    leg_id = t['leg_id']
+                    if leg_id not in leg_throws_for_checkout:
+                        leg_throws_for_checkout[leg_id] = []
+                    leg_throws_for_checkout[leg_id].append(t)
+
+                high_finishes = 0
+                for leg_id, leg_throws_list in leg_throws_for_checkout.items():
+                    leg_throws_list.sort(key=lambda x: x['round_number'])
+                    for i, t in enumerate(leg_throws_list):
+                        if t['remaining_score'] == 0 and i > 0:
+                            checkout_value = leg_throws_list[i-1]['remaining_score']
+                            if checkout_value >= 100:
+                                high_finishes += 1
 
                 # Räkna korta set (≤18 kast per leg)
                 leg_throws = {}
