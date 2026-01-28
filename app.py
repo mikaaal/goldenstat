@@ -383,12 +383,16 @@ def get_weekly_stats():
 
             # Get optional division filter from query parameter
             division = request.args.get('division')
+            # Get optional week_offset parameter (0 = current week, -1 = last week, etc.)
+            week_offset = int(request.args.get('week_offset', 0))
 
-            # Calculate current week's date range (Monday to Sunday)
+            # Calculate week's date range (Monday to Sunday)
             today = datetime.now()
-            # Get the start of the week (Monday)
+            # Get the start of the current week (Monday)
             start_of_week = today - timedelta(days=today.weekday())
             start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Apply week offset
+            start_of_week = start_of_week + timedelta(weeks=week_offset)
             # Get the end of the week (Sunday)
             end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
@@ -543,6 +547,7 @@ def get_weekly_stats():
             return jsonify({
                 'week_start': start_of_week.strftime('%Y-%m-%d'),
                 'week_end': end_of_week.strftime('%Y-%m-%d'),
+                'week_offset': week_offset,
                 'total_matches': total_matches,
                 'division': division,
                 'top_averages': top_averages,
@@ -550,6 +555,72 @@ def get_weekly_stats():
                 'shortest_sets': shortest_sets,
                 'most_100plus': most_100plus
             })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/available-weeks')
+@cache.cached(timeout=3600)  # Cache for 1 hour
+def get_available_weeks():
+    """API endpoint to get list of weeks that have match data"""
+    try:
+        import sqlite3
+        from datetime import datetime, timedelta
+        with sqlite3.connect(db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            # Get the earliest and latest match dates
+            cursor.execute("""
+                SELECT MIN(match_date) as earliest, MAX(match_date) as latest
+                FROM matches
+            """)
+            result = cursor.fetchone()
+
+            if not result['earliest'] or not result['latest']:
+                return jsonify({'weeks': []})
+
+            earliest_date = datetime.strptime(result['earliest'][:10], '%Y-%m-%d')
+            latest_date = datetime.strptime(result['latest'][:10], '%Y-%m-%d')
+
+            # Get current week start
+            today = datetime.now()
+            current_week_start = today - timedelta(days=today.weekday())
+            current_week_start = current_week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # Generate list of weeks from current week back to earliest data
+            weeks = []
+            week_start = current_week_start
+            week_offset = 0
+
+            while week_start >= earliest_date - timedelta(days=7):
+                week_end = week_start + timedelta(days=6)
+
+                # Check if there are any matches in this week
+                cursor.execute("""
+                    SELECT COUNT(*) as match_count
+                    FROM matches
+                    WHERE match_date >= ? AND match_date <= ?
+                """, (week_start.strftime('%Y-%m-%d'), week_end.strftime('%Y-%m-%d 23:59:59')))
+                match_count = cursor.fetchone()['match_count']
+
+                if match_count > 0:
+                    weeks.append({
+                        'week_offset': week_offset,
+                        'week_start': week_start.strftime('%Y-%m-%d'),
+                        'week_end': week_end.strftime('%Y-%m-%d'),
+                        'match_count': match_count,
+                        'label': f"v.{week_start.isocalendar()[1]} ({week_start.strftime('%d/%m')} - {week_end.strftime('%d/%m')})"
+                    })
+
+                week_start = week_start - timedelta(weeks=1)
+                week_offset -= 1
+
+                # Limit to last 52 weeks
+                if len(weeks) >= 52:
+                    break
+
+            return jsonify({'weeks': weeks})
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

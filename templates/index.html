@@ -313,6 +313,25 @@
                         <p class="text-muted mb-0 mt-2" id="weeklyDateRange">Laddar...</p>
                         <p class="text-muted mb-0 mt-1" id="weeklyMatchCount"></p>
 
+                        <!-- Week navigation -->
+                        <div class="row justify-content-center mt-3 align-items-center">
+                            <div class="col-auto">
+                                <button class="btn btn-outline-secondary btn-sm" id="prevWeekBtn" onclick="navigateWeek(-1)">
+                                    &larr; Föregående vecka
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <select id="weeklyWeekSelector" class="form-select form-select-sm" onchange="selectWeek()">
+                                    <option value="0">Denna vecka</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-outline-secondary btn-sm" id="nextWeekBtn" onclick="navigateWeek(1)" disabled>
+                                    Nästa vecka &rarr;
+                                </button>
+                            </div>
+                        </div>
+
                         <!-- Division filter -->
                         <div class="row justify-content-center mt-3">
                             <div class="col-md-4">
@@ -2469,13 +2488,22 @@ async function loadTopStats() {
 
 // Load weekly stats
 let weeklyStatsLoaded = false;
-async function loadWeeklyStats(division = null) {
+let currentWeekOffset = 0;
+let availableWeeks = [];
+
+async function loadWeeklyStats(division = null, weekOffset = null) {
     try {
+        // Use provided weekOffset or current global offset
+        if (weekOffset !== null) {
+            currentWeekOffset = weekOffset;
+        }
+
         // Build query string
         const params = new URLSearchParams();
         if (division) {
             params.append('division', division);
         }
+        params.append('week_offset', currentWeekOffset);
         const queryString = params.toString();
         const url = `/api/weekly-stats${queryString ? '?' + queryString : ''}`;
 
@@ -2492,11 +2520,22 @@ async function loadWeeklyStats(division = null) {
         const formatDate = (d) => d.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
         document.getElementById('weeklyDateRange').textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
+        // Update description based on week
+        const weekDescription = currentWeekOffset === 0 ? 'De bästa prestationerna denna vecka' : 'De bästa prestationerna';
+        document.getElementById('weeklyDescription').textContent = weekDescription;
+
+        const weekText = currentWeekOffset === 0 ? 'denna vecka' : 'den veckan';
         if (data.total_matches === 0) {
-            document.getElementById('weeklyMatchCount').textContent = 'Inga matcher spelade denna vecka ännu';
+            document.getElementById('weeklyMatchCount').textContent = `Inga matcher spelade ${weekText} ännu`;
         } else {
-            document.getElementById('weeklyMatchCount').textContent = `${data.total_matches} matcher spelade denna vecka`;
+            document.getElementById('weeklyMatchCount').textContent = `${data.total_matches} matcher spelade ${weekText}`;
         }
+
+        // Update navigation buttons
+        updateWeekNavigation();
+
+        // Text for empty states
+        const emptyWeekText = currentWeekOffset === 0 ? 'denna vecka ännu' : 'den veckan';
 
         // Populate top averages
         const averagesHtml = data.top_averages.length > 0 ? data.top_averages.map((item, index) => `
@@ -2511,7 +2550,7 @@ async function loadWeeklyStats(division = null) {
                 </div>
                 <span class="badge bg-primary rounded-pill fs-5">${item.average.toFixed(2)}</span>
             </div>
-        `).join('') : '<div class="text-muted text-center py-3">Inga singelmatcher denna vecka ännu</div>';
+        `).join('') : `<div class="text-muted text-center py-3">Inga singelmatcher ${emptyWeekText}</div>`;
         document.getElementById('weeklyTopAverages').innerHTML = averagesHtml;
 
         // Populate top checkouts
@@ -2527,7 +2566,7 @@ async function loadWeeklyStats(division = null) {
                 </div>
                 <span class="badge bg-success rounded-pill fs-5">${item.checkout}</span>
             </div>
-        `).join('') : '<div class="text-muted text-center py-3">Inga utgångar denna vecka ännu</div>';
+        `).join('') : `<div class="text-muted text-center py-3">Inga utgångar ${emptyWeekText}</div>`;
         document.getElementById('weeklyTopCheckouts').innerHTML = checkoutsHtml;
 
         // Populate shortest sets
@@ -2543,7 +2582,7 @@ async function loadWeeklyStats(division = null) {
                 </div>
                 <span class="badge bg-warning text-dark rounded-pill fs-5">${item.darts} pilar</span>
             </div>
-        `).join('') : '<div class="text-muted text-center py-3">Inga korta legs denna vecka ännu</div>';
+        `).join('') : `<div class="text-muted text-center py-3">Inga korta legs ${emptyWeekText}</div>`;
         document.getElementById('weeklyShortestSets').innerHTML = shortestSetsHtml;
 
         // Populate most 100+ throws
@@ -2559,12 +2598,13 @@ async function loadWeeklyStats(division = null) {
                 </div>
                 <span class="badge bg-info rounded-pill fs-5">${item.count_100plus} st</span>
             </div>
-        `).join('') : '<div class="text-muted text-center py-3">Inga 100+ kast denna vecka ännu</div>';
+        `).join('') : `<div class="text-muted text-center py-3">Inga 100+ kast ${emptyWeekText}</div>`;
         document.getElementById('weeklyMost100plus').innerHTML = most100plusHtml;
 
-        // Load divisions for filter on first load
+        // Load divisions and available weeks on first load
         if (!weeklyStatsLoaded) {
             await loadWeeklyDivisions();
+            await loadAvailableWeeks();
             weeklyStatsLoaded = true;
         }
     } catch (error) {
@@ -2594,6 +2634,96 @@ async function loadWeeklyDivisions() {
     }
 }
 
+// Load available weeks for dropdown
+async function loadAvailableWeeks() {
+    try {
+        const response = await fetch('/api/available-weeks');
+        const data = await response.json();
+        availableWeeks = data.weeks;
+
+        const select = document.getElementById('weeklyWeekSelector');
+        select.innerHTML = '';
+
+        availableWeeks.forEach((week, index) => {
+            const option = document.createElement('option');
+            option.value = week.week_offset;
+            if (index === 0) {
+                option.textContent = `Denna vecka (${week.match_count} matcher)`;
+            } else {
+                option.textContent = `${week.label} (${week.match_count} matcher)`;
+            }
+            select.appendChild(option);
+        });
+
+        // Set current selection
+        select.value = currentWeekOffset;
+    } catch (error) {
+        console.error('Kunde inte ladda tillgängliga veckor:', error);
+    }
+}
+
+// Navigate to previous/next week (only weeks with data)
+function navigateWeek(direction) {
+    // Find current index in availableWeeks
+    const currentIndex = availableWeeks.findIndex(w => w.week_offset === currentWeekOffset);
+
+    if (currentIndex === -1) {
+        return; // Current week not found
+    }
+
+    // direction: 1 = next (more recent), -1 = previous (older)
+    // availableWeeks is sorted with most recent first (index 0)
+    const newIndex = currentIndex - direction;
+
+    if (newIndex < 0 || newIndex >= availableWeeks.length) {
+        return; // Out of bounds
+    }
+
+    currentWeekOffset = availableWeeks[newIndex].week_offset;
+    document.getElementById('weeklyWeekSelector').value = currentWeekOffset;
+
+    // Show loading
+    document.getElementById('weeklyLoading').style.display = 'block';
+    document.getElementById('weeklyContent').style.display = 'none';
+
+    const division = document.getElementById('weeklyDivisionFilter').value;
+    loadWeeklyStats(division, currentWeekOffset);
+}
+
+// Select week from dropdown
+function selectWeek() {
+    const select = document.getElementById('weeklyWeekSelector');
+    currentWeekOffset = parseInt(select.value, 10);
+
+    // Show loading
+    document.getElementById('weeklyLoading').style.display = 'block';
+    document.getElementById('weeklyContent').style.display = 'none';
+
+    const division = document.getElementById('weeklyDivisionFilter').value;
+    loadWeeklyStats(division, currentWeekOffset);
+}
+
+// Update navigation button states
+function updateWeekNavigation() {
+    const prevBtn = document.getElementById('prevWeekBtn');
+    const nextBtn = document.getElementById('nextWeekBtn');
+
+    // Find current index in availableWeeks (most recent is index 0)
+    const currentIndex = availableWeeks.findIndex(w => w.week_offset === currentWeekOffset);
+
+    // Disable next if we're at the most recent week (index 0)
+    nextBtn.disabled = currentIndex <= 0;
+
+    // Disable prev if we're at the oldest available week (last index)
+    prevBtn.disabled = currentIndex >= availableWeeks.length - 1;
+
+    // Update selector value
+    const selector = document.getElementById('weeklyWeekSelector');
+    if (selector) {
+        selector.value = currentWeekOffset;
+    }
+}
+
 // Filter weekly stats by division
 function filterWeeklyStats() {
     let division = document.getElementById('weeklyDivisionFilter').value;
@@ -2611,8 +2741,8 @@ function filterWeeklyStats() {
     document.getElementById('weeklyLoading').style.display = 'block';
     document.getElementById('weeklyContent').style.display = 'none';
 
-    // Reload with filter
-    loadWeeklyStats(division);
+    // Reload with filter (keep current week offset)
+    loadWeeklyStats(division, currentWeekOffset);
 }
 
 // Load last import info
