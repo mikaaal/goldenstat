@@ -771,7 +771,7 @@ def get_player_stats(player_name):
             for match in stats['recent_matches']:
                 if 'match_date' in match and match['match_date']:
                     match['match_date'] = str(match['match_date'])
-        
+
         # Add filter information to response
         stats['filters'] = {
             'season': season,
@@ -831,7 +831,7 @@ def get_player_detailed_stats(player_name):
             """.format(','.join(['?' for _ in all_player_ids])), all_player_ids)
             
             matches = [dict(row) for row in cursor.fetchall()]
-            
+
             # Get match type breakdown
             cursor.execute("""
                 SELECT 
@@ -1242,11 +1242,27 @@ def get_player_throws(player_name):
                 throws_under_20 = len([s for s in scores if s < 20])
 
                 # High finishes (checkouts 100+)
-                high_finishes = len([t['score'] for t in dedup_throws if t['remaining_score'] == 0 and t['score'] >= 100])
+                # Group throws by leg to find the previous throw's remaining_score
+                from collections import defaultdict
+                leg_throws_grouped = defaultdict(list)
+                for t in dedup_throws:
+                    leg_key = f"{t['match_date']}_{t['match_name']}_{t['leg_number']}"
+                    leg_throws_grouped[leg_key].append(t)
+
+                # Sort throws in each leg by round_number
+                high_finishes = 0
+                for leg_key, throws_in_leg in leg_throws_grouped.items():
+                    throws_in_leg.sort(key=lambda x: x['round_number'])
+                    for i, t in enumerate(throws_in_leg):
+                        if t['remaining_score'] == 0:  # This is a checkout
+                            # Get the previous throw's remaining_score (that's the checkout value)
+                            if i > 0:
+                                checkout_value = throws_in_leg[i-1]['remaining_score']
+                                if checkout_value >= 100:
+                                    high_finishes += 1
                 
                 # Short sets (legs won in 18 darts or fewer)
                 # Count legs where player won and used <= 18 darts
-                from collections import defaultdict
                 leg_darts = defaultdict(int)
                 leg_winners = {}
 
@@ -1372,7 +1388,21 @@ def get_player_throws(player_name):
                     all_time_throws_over_100 = len([s for s in all_time_scores if s >= 100])
                     all_time_throws_180 = len([s for s in all_time_scores if s == 180])
                     all_time_throws_over_140 = len([s for s in all_time_scores if s >= 140])
-                    all_time_high_finishes = len([t['score'] for t in dedup_all_time if t['remaining_score'] == 0 and t['score'] >= 100])
+
+                    # High finishes - group by leg and check previous throw's remaining_score
+                    all_time_leg_throws = defaultdict(list)
+                    for t in dedup_all_time:
+                        leg_key = f"{t['match_date']}_{t['match_name']}_{t['leg_number']}"
+                        all_time_leg_throws[leg_key].append(t)
+
+                    all_time_high_finishes = 0
+                    for leg_key, throws_in_leg in all_time_leg_throws.items():
+                        throws_in_leg.sort(key=lambda x: x['round_number'])
+                        for i, t in enumerate(throws_in_leg):
+                            if t['remaining_score'] == 0 and i > 0:
+                                checkout_value = throws_in_leg[i-1]['remaining_score']
+                                if checkout_value >= 100:
+                                    all_time_high_finishes += 1
 
                     all_time_statistics = {
                         'throws_over_100': all_time_throws_over_100,
@@ -2943,8 +2973,22 @@ def get_memorable_matches(player_id):
                 total_throws = len(throws)
                 average_score = total_score / total_throws if total_throws > 0 else 0
 
-                # Räkna höga utgångar (100+)
-                high_finishes = len([t for t in throws if t['remaining_score'] == 0 and t['score'] >= 100])
+                # Räkna höga utgångar (100+) - kolla föregående kasts remaining_score
+                leg_throws_for_checkout = {}
+                for t in throws:
+                    leg_id = t['leg_id']
+                    if leg_id not in leg_throws_for_checkout:
+                        leg_throws_for_checkout[leg_id] = []
+                    leg_throws_for_checkout[leg_id].append(t)
+
+                high_finishes = 0
+                for leg_id, leg_throws_list in leg_throws_for_checkout.items():
+                    leg_throws_list.sort(key=lambda x: x['round_number'])
+                    for i, t in enumerate(leg_throws_list):
+                        if t['remaining_score'] == 0 and i > 0:
+                            checkout_value = leg_throws_list[i-1]['remaining_score']
+                            if checkout_value >= 100:
+                                high_finishes += 1
 
                 # Räkna korta set (≤18 kast per leg)
                 leg_throws = {}
