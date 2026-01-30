@@ -1202,6 +1202,8 @@ def get_player_throws(player_name):
             throws = [dict(row) for row in cursor.fetchall()]
             
             # Calculate throw statistics
+            from collections import defaultdict, Counter
+
             if throws:
                 # Remove duplicates by creating unique identifier for each throw
                 unique_throws = {}
@@ -1214,7 +1216,7 @@ def get_player_throws(player_name):
                 # Use deduplicated throws for calculations
                 dedup_throws = list(unique_throws.values())
                 scores = [t['score'] for t in dedup_throws if t['score'] > 0]  # For max and ranges
-                
+
                 # Calculate weighted average (same method as database.py)
                 # Group throws by match to get player_avg and won/lost status
                 unique_matches = {}
@@ -1291,7 +1293,7 @@ def get_player_throws(player_name):
                 avg_score_won = (won_total_score / won_total_darts * 3.0) if won_total_darts > 0 else 0
                 avg_score_lost = (lost_total_score / lost_total_darts * 3.0) if lost_total_darts > 0 else 0
                 max_score = max(scores) if scores else 0
-                
+
                 # Count different score ranges
                 score_ranges = {
                     '0-20': len([s for s in scores if 0 <= s <= 20]),
@@ -1301,7 +1303,7 @@ def get_player_throws(player_name):
                     '81-99': len([s for s in scores if 81 <= s <= 99]),
                     '100+': len([s for s in scores if s >= 100])
                 }
-                
+
                 # Calculate checkouts (scores when remaining_score became 0)
                 checkouts = [t['score'] for t in dedup_throws if t['remaining_score'] == 0 and t['score'] > 0]
 
@@ -1314,7 +1316,6 @@ def get_player_throws(player_name):
 
                 # High finishes (checkouts 100+)
                 # Group throws by leg to find the previous throw's remaining_score
-                from collections import defaultdict
                 leg_throws_grouped = defaultdict(list)
                 for t in dedup_throws:
                     leg_key = f"{t['match_date']}_{t['match_name']}_{t['leg_number']}"
@@ -1349,7 +1350,6 @@ def get_player_throws(player_name):
                 short_sets = sum(1 for leg_id in leg_winners.keys() if leg_darts[leg_id] <= 18)
                 
                 # Most common scores
-                from collections import Counter
                 score_frequency = Counter(scores)
                 most_common_scores = score_frequency.most_common(5)
                 
@@ -1475,11 +1475,21 @@ def get_player_throws(player_name):
                                 if checkout_value >= 100:
                                     all_time_high_finishes += 1
 
+                    all_time_score_ranges = {
+                        '0-20': len([s for s in all_time_scores if 0 <= s <= 20]),
+                        '21-40': len([s for s in all_time_scores if 21 <= s <= 40]),
+                        '41-60': len([s for s in all_time_scores if 41 <= s <= 60]),
+                        '61-80': len([s for s in all_time_scores if 61 <= s <= 80]),
+                        '81-99': len([s for s in all_time_scores if 81 <= s <= 99]),
+                        '100+': len([s for s in all_time_scores if s >= 100])
+                    }
+
                     all_time_statistics = {
                         'throws_over_100': all_time_throws_over_100,
                         'throws_over_140': all_time_throws_over_140,
                         'throws_180': all_time_throws_180,
-                        'high_finishes': all_time_high_finishes
+                        'high_finishes': all_time_high_finishes,
+                        'score_ranges': all_time_score_ranges
                     }
             else:
                 # No filters applied, use current statistics as all-time
@@ -1487,7 +1497,8 @@ def get_player_throws(player_name):
                     'throws_over_100': statistics.get('throws_over_100', 0),
                     'throws_over_140': statistics.get('throws_over_140', 0),
                     'throws_180': statistics.get('throws_180', 0),
-                    'high_finishes': statistics.get('high_finishes', 0)
+                    'high_finishes': statistics.get('high_finishes', 0),
+                    'score_ranges': statistics.get('score_ranges', {})
                 } if statistics else {}
 
             return jsonify({
