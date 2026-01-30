@@ -1230,9 +1230,14 @@ async function showPlayerStats(stats) {
         // Översiktsdiagram
         goldenStat.createProgressChart('progressChart', stats.recent_matches);
         
-        // Kastfördelningsdiagram i översikt
-        if (throwData && throwData.statistics && throwData.statistics.score_ranges) {
-            goldenStat.createThrowDistributionChart('throwDistributionChart', throwData.statistics.score_ranges);
+        // Kastfördelningsdiagram i översikt (fallback till all-time om säsongsdata saknas)
+        const scoreRanges = (throwData && throwData.statistics && throwData.statistics.score_ranges)
+            ? throwData.statistics.score_ranges
+            : (throwData && throwData.all_time_statistics && throwData.all_time_statistics.score_ranges)
+                ? throwData.all_time_statistics.score_ranges
+                : null;
+        if (scoreRanges) {
+            goldenStat.createThrowDistributionChart('throwDistributionChart', scoreRanges);
         }
         
         // Matchpositionsdiagram
@@ -2531,9 +2536,6 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
             document.getElementById('weeklyMatchCount').textContent = `${data.total_matches} matcher spelade ${weekText}`;
         }
 
-        // Update navigation buttons
-        updateWeekNavigation();
-
         // Text for empty states
         const emptyWeekText = currentWeekOffset === 0 ? 'denna vecka ännu' : 'den veckan';
 
@@ -2607,6 +2609,9 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
             await loadAvailableWeeks();
             weeklyStatsLoaded = true;
         }
+
+        // Update navigation buttons (must be after availableWeeks is loaded)
+        updateWeekNavigation();
     } catch (error) {
         console.error('Kunde inte ladda veckans statistik:', error);
         document.getElementById('weeklyLoading').innerHTML = '<p class="text-danger">Kunde inte ladda veckans statistik</p>';
