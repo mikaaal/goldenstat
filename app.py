@@ -4,7 +4,7 @@ GoldenStat Web Application
 A Flask web app for viewing dart player statistics
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, g
 from flask_caching import Cache
 import json
 import sqlite3
@@ -30,8 +30,8 @@ def get_effective_sub_match_query(player_name):
     Returns a WHERE clause that includes both direct matches and mapped sub-matches.
     """
     # Get player ID for exclusion logic
-    db_path = os.getenv('DATABASE_PATH', 'goldenstat.db')
-    with sqlite3.connect(db_path) as conn:
+    current_db_path = get_current_db_path()
+    with sqlite3.connect(current_db_path) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
         result = cursor.fetchone()
@@ -87,6 +87,24 @@ cache = Cache(app, config={
 db_path = os.getenv('DATABASE_PATH', 'goldenstat.db')
 db = DartDatabase(db_path=db_path)
 
+# Riksserien database
+rs_db_path = os.getenv('RS_DATABASE_PATH', 'riksserien.db')
+rs_db = DartDatabase(db_path=rs_db_path)
+
+def get_current_db_path():
+    """Get the database path for the current request based on league parameter"""
+    league = request.args.get('league', '')
+    if league == 'riksserien':
+        return rs_db.db_path
+    return db.db_path
+
+def get_current_db():
+    """Get the DartDatabase instance for the current request"""
+    league = request.args.get('league', '')
+    if league == 'riksserien':
+        return rs_db
+    return db
+
 # Global flag to track if warmup has run
 _warmup_done = False
 _warmup_disabled = False
@@ -105,7 +123,8 @@ def init_app():
 @app.route('/')
 def index():
     """Main page with player search"""
-    return render_template('index.html')
+    league = request.args.get('league', '')
+    return render_template('index.html', league=league)
 
 
 @app.route('/api/last-import')
@@ -118,7 +137,11 @@ def get_last_import():
         from datetime import datetime
 
         log_dir = 'import_logs'
-        files = glob.glob(os.path.join(log_dir, 'daily_import_*.json'))
+        league = request.args.get('league', '')
+        if league == 'riksserien':
+            files = glob.glob(os.path.join(log_dir, 'riksserien_daily_import_*.json'))
+        else:
+            files = glob.glob(os.path.join(log_dir, 'daily_import_*.json'))
 
         if not files:
             return jsonify({'error': 'No import logs found'}), 404
@@ -166,13 +189,12 @@ def get_teams():
     """API endpoint to get all team names with season info for autocomplete"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             # Get all team names with their seasons and divisions
             # Only show combinations that have at least 1 match
-            # Filter out Unknown divisions
             cursor.execute("""
                 SELECT DISTINCT
                     t.name as team_name,
@@ -180,6 +202,8 @@ def get_teams():
                     m.division,
                     COUNT(m.id) as matches_count,
                     CASE
+                        WHEN m.division = 'Unknown' OR m.division IS NULL THEN
+                            t.name || ' (' || REPLACE(m.season, '/', '-') || ')'
                         WHEN t.name LIKE '%(%' THEN
                             -- Team name already contains division, just add season
                             t.name || ' (' || REPLACE(m.season, '/', '-') || ')'
@@ -190,8 +214,6 @@ def get_teams():
                 FROM teams t
                 JOIN matches m ON (t.id = m.team1_id OR t.id = m.team2_id)
                 WHERE m.season IS NOT NULL
-                    AND m.division IS NOT NULL
-                    AND m.division != 'Unknown'
                 GROUP BY t.name, m.season, m.division
                 HAVING COUNT(m.id) >= 1
                 ORDER BY t.name, m.season DESC, m.division
@@ -212,7 +234,7 @@ def get_top_stats():
     """API endpoint to get top statistics"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -377,7 +399,7 @@ def get_weekly_stats():
     try:
         import sqlite3
         from datetime import datetime, timedelta
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -566,7 +588,7 @@ def get_available_weeks():
     try:
         import sqlite3
         from datetime import datetime, timedelta
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -679,7 +701,7 @@ def get_divisions():
     """API endpoint to get all divisions for current season"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             cursor = conn.cursor()
 
             # Get current season (most recent)
@@ -748,7 +770,7 @@ def get_players():
     """API endpoint to get all player names for autocomplete"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -815,7 +837,7 @@ def get_player_stats(player_name):
 
         # Check if this is a contextual player (exists as exact name in database)
         is_contextual_player = False
-        with sqlite3.connect("goldenstat.db") as temp_conn:
+        with sqlite3.connect(get_current_db_path()) as temp_conn:
             temp_cursor = temp_conn.cursor()
             temp_cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
             if temp_cursor.fetchone():
@@ -829,7 +851,7 @@ def get_player_stats(player_name):
             player_name = base_name
             # Don't set team_filter - we want ALL matches for the player
         
-        stats = db.get_player_stats(player_name, season=season, division=division, team_filter=None)
+        stats = get_current_db().get_player_stats(player_name, season=season, division=division, team_filter=None)
         if not stats:
             return jsonify({'error': 'Player not found'}), 404
         
@@ -864,7 +886,7 @@ def get_player_detailed_stats(player_name):
         player_name = unquote(player_name)
 
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -951,24 +973,27 @@ def get_player_detailed_stats(player_name):
 @app.route('/player/<player_name>')
 def player_detail(player_name):
     """Player detail page"""
-    return render_template('player_detail.html', player_name=player_name)
+    league = request.args.get('league', '')
+    return render_template('player_detail.html', player_name=player_name, league=league)
 
 @app.route('/sub_match_throws')
 def sub_match_throws():
     """Sub-match throws visualization page"""
-    return render_template('sub_match_throws.html')
+    league = request.args.get('league', '')
+    return render_template('sub_match_throws.html', league=league)
 
 @app.route('/test_throws')
 def test_throws():
     """Test page for throws visualization"""
-    return render_template('test_throws.html')
+    league = request.args.get('league', '')
+    return render_template('test_throws.html', league=league)
 
 @app.route('/api/leagues')
 def get_leagues():
     """Get available leagues and seasons"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             cursor = conn.cursor()
             
             # Get distinct seasons and divisions
@@ -1004,7 +1029,7 @@ def get_overview():
     """Get database overview statistics"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             cursor = conn.cursor()
             
             # Get query parameters for filtering
@@ -1094,7 +1119,7 @@ def get_player_throws(player_name):
         player_name = unquote(player_name)
 
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -1522,7 +1547,7 @@ def get_sub_match_info(sub_match_id):
     """Get basic sub-match information with corrected player names"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -1622,7 +1647,7 @@ def get_sub_match_player_throws(sub_match_id, player_name):
         player_name = unquote(player_name)
 
         # Handle team disambiguation like "Robban (Bålsta)" -> "Robban"
-        with sqlite3.connect(db.db_path) as temp_conn:
+        with sqlite3.connect(get_current_db_path()) as temp_conn:
             temp_cursor = temp_conn.cursor()
             temp_cursor.execute("SELECT id FROM players WHERE name = ?", (player_name,))
             is_exact_match = temp_cursor.fetchone() is not None
@@ -1630,7 +1655,7 @@ def get_sub_match_player_throws(sub_match_id, player_name):
         if '(' in player_name and player_name.endswith(')') and not is_exact_match:
             player_name = player_name.split(' (')[0]
 
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -1997,7 +2022,7 @@ def get_team_lineup(team_name):
     """Get team lineup prediction based on historical position data"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -2180,6 +2205,23 @@ def get_team_lineup(team_name):
                         'total_matches': data['total_position_matches']
                     }
             
+            # If division is still unknown, look it up from matches
+            if not division:
+                div_params = [team_id, team_id]
+                div_where = "(m.team1_id = ? OR m.team2_id = ?)"
+                if season:
+                    div_where += " AND m.season = ?"
+                    div_params.append(season)
+                cursor.execute(f"""
+                    SELECT DISTINCT m.division FROM matches m
+                    WHERE {div_where} AND m.division IS NOT NULL AND m.division != 'Unknown'
+                """, div_params)
+                div_rows = [r['division'] for r in cursor.fetchall()]
+                if len(div_rows) == 1:
+                    division = div_rows[0]
+                elif len(div_rows) > 1:
+                    division = ', '.join(div_rows)
+
             return jsonify({
                 'team_name': team_name,
                 'total_matches': total_matches,
@@ -2187,7 +2229,7 @@ def get_team_lineup(team_name):
                 'division': division,
                 'positions': formatted_positions
             })
-            
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -2196,7 +2238,7 @@ def get_team_players(team_name):
     """Get all players who have played for a team"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -2452,6 +2494,23 @@ def get_team_players(team_name):
                 -(p['average'] if p['average'] is not None else -float('inf'))
             ))
 
+            # If division is still unknown, look it up from matches
+            if not division:
+                div_params = [team_id, team_id]
+                div_where = "(m.team1_id = ? OR m.team2_id = ?)"
+                if season:
+                    div_where += " AND m.season = ?"
+                    div_params.append(season)
+                cursor.execute(f"""
+                    SELECT DISTINCT m.division FROM matches m
+                    WHERE {div_where} AND m.division IS NOT NULL AND m.division != 'Unknown'
+                """, div_params)
+                div_rows = [r['division'] for r in cursor.fetchall()]
+                if len(div_rows) == 1:
+                    division = div_rows[0]
+                elif len(div_rows) > 1:
+                    division = ', '.join(div_rows)
+
             return jsonify({
                 'team_name': team_name,
                 'total_matches': total_matches,
@@ -2472,7 +2531,7 @@ def get_team_doubles_pairs(team_name):
         import re
         from collections import defaultdict
 
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -2674,7 +2733,7 @@ def get_club_players(club_name):
     try:
         import sqlite3
         import re
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -2921,7 +2980,7 @@ def get_match_legs(match_id):
     """Get detailed leg information for a match"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
@@ -2990,7 +3049,7 @@ def get_match_legs(match_id):
 def get_memorable_matches(player_id):
     """Hämta de tre mest minnesvärda matcherna för en spelare baserat på pilsnitt, korta set och höga utgångar"""
     try:
-        with sqlite3.connect("goldenstat.db") as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -3122,7 +3181,8 @@ def get_memorable_matches(player_id):
 @app.route('/match_overview')
 def match_overview():
     """Page to show all sub-matches in a series match"""
-    return render_template('match_overview.html')
+    league = request.args.get('league', '')
+    return render_template('match_overview.html', league=league)
 
 
 @app.route('/api/match/<int:match_id>/overview')
@@ -3130,7 +3190,7 @@ def get_match_overview(match_id):
     """Get overview of all sub-matches in a series match"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -3246,17 +3306,46 @@ def get_match_overview(match_id):
                     'team2_avg': round(team2_avg, 2) if team2_avg else None
                 })
 
-            # Sort sub_matches by position order: D1, S1, S2, D2, S3, S4, D3, S5, S6, AD (AD always last)
-            position_order = {
-                'D1': 1, 'S1': 2, 'S2': 3, 'D2': 4, 'S3': 5, 'S4': 6,
-                'D3': 7, 'S5': 8, 'S6': 9,
-                'AD': 100  # AD always last
-            }
+            # Sort sub_matches by position order (differs between leagues)
+            league = request.args.get('league', '')
+            if league == 'riksserien':
+                if len(sub_matches) <= 10:
+                    # Elit Dam format: S1-S4, D1, S5-S8, D2
+                    position_order = {
+                        'S1': 1, 'S2': 2, 'S3': 3, 'S4': 4,
+                        'D1': 5,
+                        'S5': 6, 'S6': 7, 'S7': 8, 'S8': 9,
+                        'D2': 10,
+                        'AD': 100
+                    }
+                else:
+                    # Standard Riksserien: S1-S8, D1, S9-S16, D2
+                    position_order = {
+                        'S1': 1, 'S2': 2, 'S3': 3, 'S4': 4, 'S5': 5, 'S6': 6, 'S7': 7, 'S8': 8,
+                        'D1': 9,
+                        'S9': 10, 'S10': 11, 'S11': 12, 'S12': 13, 'S13': 14, 'S14': 15, 'S15': 16, 'S16': 17,
+                        'D2': 18,
+                        'AD': 100
+                    }
+            else:
+                # Stockholmsserien: D1, S1, S2, D2, S3, S4, D3, S5, S6, AD
+                position_order = {
+                    'D1': 1, 'S1': 2, 'S2': 3, 'D2': 4, 'S3': 5, 'S4': 6,
+                    'D3': 7, 'S5': 8, 'S6': 9,
+                    'AD': 100
+                }
             sub_matches.sort(key=lambda x: position_order.get(x['position'], 50))
 
             # Calculate sub-match wins for each team
-            team1_sub_wins = sum(1 for sm in sub_matches if sm['team1_legs'] > sm['team2_legs'])
-            team2_sub_wins = sum(1 for sm in sub_matches if sm['team2_legs'] > sm['team1_legs'])
+            # In Riksserien, doubles wins are worth 2 points
+            team1_sub_wins = 0
+            team2_sub_wins = 0
+            for sm in sub_matches:
+                points = 2 if (league == 'riksserien' and sm['match_type'] == 'Doubles') else 1
+                if sm['team1_legs'] > sm['team2_legs']:
+                    team1_sub_wins += points
+                elif sm['team2_legs'] > sm['team1_legs']:
+                    team2_sub_wins += points
 
             return jsonify({
                 'match_info': dict(match_info),
@@ -3297,7 +3386,7 @@ def get_sub_match_match_id(sub_match_id):
     """Get the parent match_id for a sub_match"""
     try:
         import sqlite3
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -3318,7 +3407,8 @@ def get_sub_match_match_id(sub_match_id):
 @app.route('/series_matches')
 def series_matches():
     """Page to show all series matches grouped by week"""
-    return render_template('series_matches.html')
+    league = request.args.get('league', '')
+    return render_template('series_matches.html', league=league)
 
 
 @app.route('/api/series_matches')
@@ -3332,7 +3422,7 @@ def get_series_matches():
         season = request.args.get('season')
         division = request.args.get('division')
 
-        with sqlite3.connect(db.db_path) as conn:
+        with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
@@ -3350,6 +3440,22 @@ def get_series_matches():
             where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
             # Get all matches with sub-match win counts
+            # In Riksserien, doubles wins are worth 2 points
+            league = request.args.get('league', '')
+            if league == 'riksserien':
+                sub_wins_expr1 = "(SELECT COALESCE(SUM(CASE WHEN sm.match_type = 'Doubles' THEN 2 ELSE 1 END), 0) FROM sub_matches sm WHERE sm.match_id = m.id AND sm.team1_legs > sm.team2_legs)"
+                sub_wins_expr2 = "(SELECT COALESCE(SUM(CASE WHEN sm.match_type = 'Doubles' THEN 2 ELSE 1 END), 0) FROM sub_matches sm WHERE sm.match_id = m.id AND sm.team2_legs > sm.team1_legs)"
+            else:
+                sub_wins_expr1 = "(SELECT COUNT(*) FROM sub_matches sm WHERE sm.match_id = m.id AND sm.team1_legs > sm.team2_legs)"
+                sub_wins_expr2 = "(SELECT COUNT(*) FROM sub_matches sm WHERE sm.match_id = m.id AND sm.team2_legs > sm.team1_legs)"
+
+            # Exclude matches where no sub-match has been decided (0-0)
+            no_result_filter = f"({sub_wins_expr1} + {sub_wins_expr2}) > 0"
+            if where_sql:
+                where_sql += f" AND {no_result_filter}"
+            else:
+                where_sql = f"WHERE {no_result_filter}"
+
             cursor.execute(f"""
                 SELECT
                     m.id,
@@ -3360,8 +3466,8 @@ def get_series_matches():
                     t2.name as team2_name,
                     m.team1_score,
                     m.team2_score,
-                    (SELECT COUNT(*) FROM sub_matches sm WHERE sm.match_id = m.id AND sm.team1_legs > sm.team2_legs) as team1_sub_wins,
-                    (SELECT COUNT(*) FROM sub_matches sm WHERE sm.match_id = m.id AND sm.team2_legs > sm.team1_legs) as team2_sub_wins
+                    {sub_wins_expr1} as team1_sub_wins,
+                    {sub_wins_expr2} as team2_sub_wins
                 FROM matches m
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id

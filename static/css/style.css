@@ -25,6 +25,42 @@ body {
     flex-direction: column;
 }
 
+/* League Selector */
+.league-selector {
+    gap: 6px;
+}
+
+.league-btn {
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+}
+
+.league-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.league-btn.active {
+    color: #fff;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+@media (max-width: 576px) {
+    .league-btn {
+        font-size: 12px;
+        padding: 5px 12px;
+    }
+}
+
 /* Sticky Tab Navigation */
 .sticky-tabs {
     position: sticky;
@@ -35,32 +71,6 @@ body {
     border-bottom: 2px solid var(--light-color);
 }
 
-/* Last update badge */
-.last-update-badge {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: rgba(37, 99, 235, 0.9);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    z-index: 1050;
-    white-space: pre-line;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    font-weight: 500;
-    line-height: 1.4;
-}
-
-@media (max-width: 767px) {
-    .last-update-badge {
-        font-size: 10px;
-        padding: 4px 8px;
-        top: 8px;
-        right: 8px;
-    }
-}
 
 .sticky-tabs .nav-tabs {
     border-bottom: none;
@@ -1240,4 +1250,49 @@ body {
         flex-direction: row;
         gap: 0.75rem;
     }
+}
+
+/* ========== RIKSSERIEN PURPLE THEME ========== */
+.riksserien-theme {
+    --primary-color: #7c3aed;
+    --header-bg: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 100%);
+    --footer-bg: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 100%);
+    --tab-active: #7c3aed;
+    --accent-gold: #a78bfa;
+}
+
+/* Sticky tabs hover/active borders */
+.riksserien-theme .sticky-tabs .nav-link:hover {
+    color: #7c3aed;
+    border-bottom-color: #7c3aed;
+}
+
+.riksserien-theme .sticky-tabs .nav-link.active {
+    color: #7c3aed;
+    border-bottom-color: #7c3aed;
+}
+
+/* Week header accent */
+.riksserien-theme .week-header {
+    border-left-color: #7c3aed;
+}
+
+/* Division header */
+.riksserien-theme .division-header {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+
+/* Footer top line */
+.riksserien-theme .footer-minimal::before {
+    background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.6), transparent);
+}
+
+/* Logo icon glow */
+.riksserien-theme .logo-icon {
+    box-shadow: 0 4px 15px rgba(167, 139, 250, 0.3);
+}
+
+.riksserien-theme .logo-icon:hover {
+    box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4);
 }

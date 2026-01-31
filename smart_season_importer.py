@@ -523,7 +523,7 @@ class SmartSeasonImporter(NewSeasonImporter):
             self.import_log["errors"].append(error_msg)
             raise
 
-    def import_from_url_file_smart(self, url_file_path: str, division_id: str) -> Dict[str, int]:
+    def import_from_url_file_smart(self, url_file_path: str, division_id: str, division_name: str = None) -> Dict[str, int]:
         """Import från URL-fil med smart spelarmappning"""
         matches_imported = 0
 
@@ -546,7 +546,7 @@ class SmartSeasonImporter(NewSeasonImporter):
 
                     if match_data and len(match_data) > 0:
                         # Använd samma logik som NewSeasonImporter
-                        match_info = self.extract_match_info(match_data, "2025/2026")
+                        match_info = self.extract_match_info(match_data, "2025/2026", division_override=division_name)
 
                         if match_info:
                             success, is_new = self.import_match_with_smart_players(match_info)

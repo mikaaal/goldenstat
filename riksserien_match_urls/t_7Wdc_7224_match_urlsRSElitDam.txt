@@ -1,0 +1,44 @@
+# Match URLs for division t_7Wdc_7224
+# Generated: 2026-01-30 15:10:13
+# Total URLs: 40
+#
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_8d3r_6d3K_4FBF
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_8d3r_4FBF_6d3K
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_j78p_NKV0_RHw4
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_j78p_RHw4_NKV0
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_16xi_BP41_5Ynj
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_16xi_5Ynj_BP41
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_njto_PE6C_0U3C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_njto_0U3C_PE6C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_84he_4FBF_NKV0
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_84he_NKV0_4FBF
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_ucvq_5Ynj_6d3K
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_ucvq_6d3K_5Ynj
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_t2yu_RHw4_PE6C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_t2yu_PE6C_RHw4
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_6jnb_0U3C_BP41
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_6jnb_BP41_0U3C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_q17x_PE6C_4FBF
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_q17x_4FBF_PE6C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_b67g_NKV0_5Ynj
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_b67g_5Ynj_NKV0
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_s7nr_6d3K_BP41
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_s7nr_BP41_6d3K
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_8o3q_RHw4_0U3C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_8o3q_0U3C_RHw4
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_kqo6_5Ynj_PE6C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_kqo6_PE6C_5Ynj
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_7s5h_BP41_NKV0
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_7s5h_NKV0_BP41
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_1f7b_4FBF_RHw4
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_1f7b_RHw4_4FBF
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_17p9_0U3C_6d3K
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_17p9_6d3K_0U3C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_atga_PE6C_BP41
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_atga_BP41_PE6C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_js7u_RHw4_5Ynj
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_js7u_5Ynj_RHw4
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_3nw3_NKV0_6d3K
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_3nw3_6d3K_NKV0
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_s4wm_4FBF_0U3C
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_7Wdc_7224_lg_0_s4wm_0U3C_4FBF
