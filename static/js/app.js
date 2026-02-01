@@ -265,7 +265,7 @@ class GoldenStat {
         if (!scoreRanges || Object.keys(scoreRanges).length === 0) return;
 
         // Explicit order: low to high
-        const orderedLabels = ['26', '41-59', '60', '61-80', '81-99', '100', '101-119', '120-139', '140+'];
+        const orderedLabels = ['26', '41-59', '60', '61-80', '81-99', '100', '101-139', '140+'];
         const labels = orderedLabels.filter(label => scoreRanges.hasOwnProperty(label));
         const data = labels.map(label => scoreRanges[label]);
 
@@ -277,8 +277,7 @@ class GoldenStat {
             '61-80':  '#8cc084',  // Soft sage
             '81-99':  '#6cb4c4',  // Soft teal
             '100':    '#5a9bcf',  // Soft blue
-            '101-119':'#4a7fbf',  // Medium blue
-            '120-139':'#7c6bbf',  // Soft purple
+            '101-139':'#4a7fbf',  // Medium blue
             '140+':   '#c05a9b'   // Soft magenta
         };
         const colors = labels.map(label => colorMap[label]);

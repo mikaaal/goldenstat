@@ -170,12 +170,13 @@ def track_tab_click():
         data = request.get_json()
         tab = data.get('tab', 'unknown')
         context = data.get('context', '')
+        league = request.args.get('league', '')
 
         # Get client info
         ip = request.headers.get('X-Forwarded-For', request.remote_addr)
         user_agent = request.headers.get('User-Agent', '')[:100]
 
-        usage_logger.info(f"TAB | {tab} | context={context} | ip={ip} | ua={user_agent}")
+        usage_logger.info(f"TAB | {tab} | league={league or 'stockholm'} | context={context} | ip={ip} | ua={user_agent}")
 
         return jsonify({'status': 'ok'})
     except Exception as e:
@@ -708,38 +709,22 @@ def get_available_weeks():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/track-tab', methods=['POST'])
-def track_tab():
-    """Track tab navigation for analytics"""
-    try:
-        data = request.get_json()
-        tab_name = data.get('tab', 'unknown')
-        client_ip = request.remote_addr
-        user_agent = request.headers.get('User-Agent', 'unknown')
-
-        # Log to console/file
-        app.logger.info(f"Tab navigation: {tab_name} | IP: {client_ip} | User-Agent: {user_agent[:50]}")
-
-        return jsonify({'status': 'ok'}), 200
-    except Exception as e:
-        app.logger.error(f"Error tracking tab: {e}")
-        return jsonify({'status': 'error'}), 500
-
 @app.route('/api/track-click', methods=['POST'])
 def track_click():
     """Track click events for analytics"""
     try:
         data = request.get_json()
         event_name = data.get('event', 'unknown')
-        client_ip = request.remote_addr
-        user_agent = request.headers.get('User-Agent', 'unknown')
+        league = request.args.get('league', '')
 
-        app.logger.info(f"Click event: {event_name} | IP: {client_ip} | User-Agent: {user_agent[:50]}")
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')[:100]
 
-        return jsonify({'status': 'ok'}), 200
+        usage_logger.info(f"CLICK | {event_name} | league={league or 'stockholm'} | ip={ip} | ua={user_agent}")
+
+        return jsonify({'status': 'ok'})
     except Exception as e:
-        app.logger.error(f"Error tracking click: {e}")
-        return jsonify({'status': 'error'}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/track-pageview', methods=['POST'])
 def track_pageview():
@@ -747,15 +732,33 @@ def track_pageview():
     try:
         data = request.get_json()
         page_name = data.get('page', 'unknown')
-        client_ip = request.remote_addr
-        user_agent = request.headers.get('User-Agent', 'unknown')
+        league = request.args.get('league', '')
 
-        app.logger.info(f"Page view: {page_name} | IP: {client_ip} | User-Agent: {user_agent[:50]}")
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')[:100]
 
-        return jsonify({'status': 'ok'}), 200
+        usage_logger.info(f"PAGEVIEW | {page_name} | league={league or 'stockholm'} | ip={ip} | ua={user_agent}")
+
+        return jsonify({'status': 'ok'})
     except Exception as e:
-        app.logger.error(f"Error tracking pageview: {e}")
-        return jsonify({'status': 'error'}), 500
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/track-search', methods=['POST'])
+def track_search():
+    """Track player searches for analytics"""
+    try:
+        data = request.get_json()
+        query = data.get('query', '')
+        league = request.args.get('league', '')
+
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')[:100]
+
+        usage_logger.info(f"SEARCH | {query} | league={league or 'stockholm'} | ip={ip} | ua={user_agent}")
+
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/divisions')
 def get_divisions():
@@ -1396,8 +1399,7 @@ def get_player_throws(player_name):
                     '61-80': len([s for s in scores if 61 <= s <= 80]),
                     '81-99': len([s for s in scores if 81 <= s <= 99]),
                     '100': len([s for s in scores if s == 100]),
-                    '101-119': len([s for s in scores if 101 <= s <= 119]),
-                    '120-139': len([s for s in scores if 120 <= s <= 139]),
+                    '101-139': len([s for s in scores if 101 <= s <= 139]),
                     '140+': len([s for s in scores if s >= 140])
                 }
 
@@ -1579,8 +1581,7 @@ def get_player_throws(player_name):
                         '61-80': len([s for s in all_time_scores if 61 <= s <= 80]),
                         '81-99': len([s for s in all_time_scores if 81 <= s <= 99]),
                         '100': len([s for s in all_time_scores if s == 100]),
-                        '101-119': len([s for s in all_time_scores if 101 <= s <= 119]),
-                        '120-139': len([s for s in all_time_scores if 120 <= s <= 139]),
+                        '101-139': len([s for s in all_time_scores if 101 <= s <= 139]),
                         '140+': len([s for s in all_time_scores if s >= 140])
                     }
 
