@@ -146,34 +146,36 @@ class NewSeasonImporter:
             print(f"❌ Error fetching {match_url}: {e}")
             return None
     
-    def extract_match_info(self, match_data: List[Dict], season: str = "2025/2026") -> Dict[str, Any]:
+    def extract_match_info(self, match_data: List[Dict], season: str = "2025/2026", division_override: str = None) -> Dict[str, Any]:
         """Extract match information from API response"""
         if not match_data:
             return {}
-        
+
         # Get basic info from first sub-match
         first_submatch = match_data[0]
-        
+
         # Extract teams from statsData
         stats_data = first_submatch.get('statsData', [])
         if len(stats_data) < 2:
             return {}
-        
+
         team1_name = stats_data[0]['name']
         team2_name = stats_data[1]['name']
-        
+
         # Calculate match date from timestamp
         start_time = first_submatch.get('startTime', 0)
         if start_time > 1000000000000:  # Milliseconds
             start_time = start_time / 1000
         match_date = datetime.fromtimestamp(start_time)
-        
+
         # Extract season and division from title
         title = first_submatch.get('title', '')
         # Season is passed as parameter
         division = "Unknown"
-        
-        if 'Division' in title:
+
+        if division_override:
+            division = division_override
+        elif 'Division' in title:
             parts = title.split('Division')
             if len(parts) > 1:
                 division = parts[1].strip().split()[0]
@@ -258,7 +260,7 @@ class NewSeasonImporter:
             # Extract sub-match info
             title = submatch_data.get('title', '')
             # AD (Avgörande Dubbel) is always Doubles
-            if 'Doubles' in title or ' AD' in title or title.endswith('AD'):
+            if 'Doubles' in title or 'Dubbel' in title or ' AD' in title or title.endswith('AD'):
                 match_type = 'Doubles'
             else:
                 match_type = 'Singles'

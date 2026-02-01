@@ -6,28 +6,28 @@
     <div class="container">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="players-main-tab" data-bs-toggle="tab" data-bs-target="#players-tab-content" type="button" role="tab">
+                <button class="nav-link{% if tab == 'players' %} active{% endif %}" id="players-main-tab" data-bs-toggle="tab" data-bs-target="#players-tab-content" type="button" role="tab">
                     👤 Spelare
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="teams-main-tab" data-bs-toggle="tab" data-bs-target="#teams-tab-content" type="button" role="tab">
+                <button class="nav-link{% if tab == 'teams' %} active{% endif %}" id="teams-main-tab" data-bs-toggle="tab" data-bs-target="#teams-tab-content" type="button" role="tab">
                     👥 Lag
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/series_matches">
+                <a class="nav-link" href="/series_matches{% if league == 'riksserien' %}?league=riksserien{% endif %}">
                     📋 Seriematcher
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="stats-main-tab" data-bs-toggle="tab" data-bs-target="#stats-tab-content" type="button" role="tab">
+                <button class="nav-link{% if tab == 'stats' %} active{% endif %}" id="stats-main-tab" data-bs-toggle="tab" data-bs-target="#stats-tab-content" type="button" role="tab">
                     🎯 Topplistor
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="weekly-main-tab" data-bs-toggle="tab" data-bs-target="#weekly-tab-content" type="button" role="tab">
-                    ⭐ Veckans prestationer!
+                <button class="nav-link{% if tab == 'weekly' %} active{% endif %}" id="weekly-main-tab" data-bs-toggle="tab" data-bs-target="#weekly-tab-content" type="button" role="tab">
+                    ⭐ {% if league == 'riksserien' %}Omgångens bästa{% else %}Veckans prestationer!{% endif %}
                 </button>
             </li>
         </ul>
@@ -40,7 +40,7 @@
 <!-- Tab Content -->
 <div class="tab-content" id="mainTabContent">
     <!-- Players Tab -->
-    <div class="tab-pane fade show active" id="players-tab-content" role="tabpanel">
+    <div class="tab-pane fade{% if tab == 'players' %} show active{% endif %}" id="players-tab-content" role="tabpanel">
 
 <!-- Nyhetsbanner -->
 <div class="news-banner mb-4">
@@ -50,12 +50,27 @@
         <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert" aria-label="Close" onclick="this.closest('.news-banner').style.display='none'"></button>
     </div>
     <div class="news-banner-body">
+        {% if league == 'riksserien' %}
+        <a href="/series_matches?league=riksserien" class="news-item-link" onclick="trackClick('news_seriematcher_riksserien')">
+            <span class="news-item-icon">📋</span>
+            <div>
+                <strong>Seriematcher</strong> - Se alla spelade seriematcher i Riksserien, grupperat per vecka och division. Klicka på en match för att se detaljer!
+            </div>
+        </a>
+        {% else %}
+        <a href="/?league=riksserien" class="news-item-link" onclick="trackClick('news_riksserien')">
+            <span class="news-item-icon"><svg class="flag-icon-lg" viewBox="0 0 16 10" width="24" height="15"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg></span>
+            <div>
+                <strong>Riksserien</strong> - Nu finns även Riksserien på EasyStat! Klicka här för att utforska statistik från Sveriges nationella dartserie!
+            </div>
+        </a>
         <a href="/series_matches" class="news-item-link" onclick="trackClick('news_seriematcher')">
             <span class="news-item-icon">📋</span>
             <div>
                 <strong>Seriematcher</strong> - Se alla spelade seriematcher, grupperat per vecka och division. Klicka på en match för att se detaljer!
             </div>
         </a>
+        {% endif %}
     </div>
 </div>
 
@@ -144,7 +159,7 @@
     <!-- End Players Tab -->
 
     <!-- Teams Tab -->
-    <div class="tab-pane fade" id="teams-tab-content" role="tabpanel">
+    <div class="tab-pane fade{% if tab == 'teams' %} show active{% endif %}" id="teams-tab-content" role="tabpanel">
 
 <!-- Söksektion för lag -->
 <div class="row justify-content-center">
@@ -200,7 +215,7 @@
     <!-- End Teams Tab -->
 
     <!-- Stats Tab -->
-    <div class="tab-pane fade" id="stats-tab-content" role="tabpanel">
+    <div class="tab-pane fade{% if tab == 'stats' %} show active{% endif %}" id="stats-tab-content" role="tabpanel">
 
         <div class="row justify-content-center mb-4 mt-4">
             <div class="col-md-10">
@@ -303,31 +318,31 @@
     <!-- End Stats Tab -->
 
     <!-- Weekly Stats Tab -->
-    <div class="tab-pane fade" id="weekly-tab-content" role="tabpanel">
+    <div class="tab-pane fade{% if tab == 'weekly' %} show active{% endif %}" id="weekly-tab-content" role="tabpanel">
 
         <div class="row justify-content-center mb-4 mt-4">
             <div class="col-md-10">
                 <div class="card shadow-sm border-0">
                     <div class="card-body p-4 text-center">
-                        <p class="text-muted mb-0" id="weeklyDescription">De bästa prestationerna denna vecka</p>
+                        <p class="text-muted mb-0" id="weeklyDescription">{% if league == 'riksserien' %}De bästa prestationerna denna omgång{% else %}De bästa prestationerna denna vecka{% endif %}</p>
                         <p class="text-muted mb-0 mt-2" id="weeklyDateRange">Laddar...</p>
                         <p class="text-muted mb-0 mt-1" id="weeklyMatchCount"></p>
 
-                        <!-- Week navigation -->
+                        <!-- Week/Round navigation -->
                         <div class="row justify-content-center mt-3 align-items-center">
                             <div class="col-auto">
                                 <button class="btn btn-outline-secondary btn-sm" id="prevWeekBtn" onclick="navigateWeek(-1)">
-                                    &larr; Föregående vecka
+                                    &larr; {% if league == 'riksserien' %}Föregående omgång{% else %}Föregående vecka{% endif %}
                                 </button>
                             </div>
                             <div class="col-md-3">
                                 <select id="weeklyWeekSelector" class="form-select form-select-sm" onchange="selectWeek()">
-                                    <option value="0">Denna vecka</option>
+                                    <option value="0">{% if league == 'riksserien' %}Senaste omgången{% else %}Denna vecka{% endif %}</option>
                                 </select>
                             </div>
                             <div class="col-auto">
                                 <button class="btn btn-outline-secondary btn-sm" id="nextWeekBtn" onclick="navigateWeek(1)" disabled>
-                                    Nästa vecka &rarr;
+                                    {% if league == 'riksserien' %}Nästa omgång{% else %}Nästa vecka{% endif %} &rarr;
                                 </button>
                             </div>
                         </div>
@@ -349,9 +364,9 @@
         <!-- Loading indicator -->
         <div id="weeklyLoading" class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Laddar veckans statistik...</span>
+                <span class="visually-hidden">Laddar {% if league == 'riksserien' %}omgångens{% else %}veckans{% endif %} statistik...</span>
             </div>
-            <p class="mt-2 text-muted">Laddar veckans statistik...</p>
+            <p class="mt-2 text-muted">Laddar {% if league == 'riksserien' %}omgångens{% else %}veckans{% endif %} statistik...</p>
         </div>
 
         <!-- Weekly content -->
@@ -468,24 +483,20 @@ document.addEventListener('DOMContentLoaded', async function() {
     loadPlayerList();
     loadTeamList();
     await loadFilters();
-    loadLastImport();
-
     // Check URL parameters
     const urlParams = new URLSearchParams(window.location.search);
 
-    // Check if we should activate teams tab from URL
-    if (urlParams.get('tab') === 'teams') {
-        document.getElementById('teams-main-tab').click();
+    // Load data for the active tab (tab is set server-side, no .click() needed)
+    const activeTab = urlParams.get('tab') || 'players';
+    if (activeTab === 'teams') {
         const teamParam = urlParams.get('team');
         if (teamParam) {
             document.getElementById('teamSearch').value = teamParam;
             searchTeam();
         }
-    } else if (urlParams.get('tab') === 'stats') {
-        document.getElementById('stats-main-tab').click();
+    } else if (activeTab === 'stats') {
         loadCurrentSeasonStats();
-    } else if (urlParams.get('tab') === 'weekly') {
-        document.getElementById('weekly-main-tab').click();
+    } else if (activeTab === 'weekly') {
         loadWeeklyStats();
     }
 
@@ -787,13 +798,20 @@ function selectPlayer(playerName) {
 async function searchPlayer() {
     const playerName = document.getElementById('playerSearch').value.trim();
     if (!playerName) return;
-    
+
+    // Track search
+    fetch('/api/track-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: playerName })
+    }).catch(err => console.debug('Search tracking failed:', err));
+
     try {
         const url = `/api/player/${encodeURIComponent(playerName)}`;
-        
+
         const response = await fetch(url);
         const data = await response.json();
-        
+
         if (response.ok) {
             showPlayerStats(data);
         } else {
@@ -1107,6 +1125,7 @@ async function showPlayerStats(stats) {
                 </div>
 
                 <!-- Match Position Chart -->
+                {% if league != 'riksserien' %}
                 <div class="row g-2 mb-3">
                     <div class="col-12">
                         <div class="card">
@@ -1118,6 +1137,7 @@ async function showPlayerStats(stats) {
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
 
             </div>
@@ -1139,7 +1159,7 @@ async function showPlayerStats(stats) {
                             </thead>
                             <tbody id="matchesTableBody">
                                 ${stats.recent_matches.map(match => `
-                                    <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
+                                    <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="navigateTo(\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\')" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                                         <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
                                         <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${parseMatchPosition(match.match_name) || (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                                         <td><small>
@@ -1184,7 +1204,7 @@ async function showPlayerStats(stats) {
                     <div id="mobileMatchesList">
                     ${stats.recent_matches.map(match => `
                         <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
-                            <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\'"' : ''}>
+                            <div class="card-body py-2" ${match.sub_match_id ? 'onclick="navigateTo(\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\')"' : ''}>
                                 <div class="row">
                                     <div class="col-8">
                                         <div class="d-flex justify-content-between align-items-start">
@@ -1240,9 +1260,11 @@ async function showPlayerStats(stats) {
             goldenStat.createThrowDistributionChart('throwDistributionChart', scoreRanges);
         }
         
-        // Matchpositionsdiagram
-        const positionStats = goldenStat.calculateMatchPositions(stats.recent_matches);
-        goldenStat.createMatchPositionChart('matchPositionChart', positionStats);
+        // Matchpositionsdiagram (ej relevant för riksserien)
+        if (!IS_RIKSSERIEN) {
+            const positionStats = goldenStat.calculateMatchPositions(stats.recent_matches);
+            goldenStat.createMatchPositionChart('matchPositionChart', positionStats);
+        }
     }, 100);
 }
 
@@ -1448,7 +1470,7 @@ function updateMatchesDisplay(matches) {
     const tableBody = document.getElementById('matchesTableBody');
     if (tableBody) {
         tableBody.innerHTML = matches.map(match => `
-            <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\'" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
+            <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="navigateTo(\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\')" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                 <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
                 <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${parseMatchPosition(match.match_name) || (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                 <td><small>
@@ -1476,7 +1498,7 @@ function updateMatchesDisplay(matches) {
     if (mobileList) {
         mobileList.innerHTML = matches.map(match => `
             <div class="card mb-2 ${match.sub_match_id ? 'card-clickable' : ''}" ${match.sub_match_id ? 'title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
-                <div class="card-body py-2" ${match.sub_match_id ? 'onclick="window.location.href=\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\'"' : ''}>
+                <div class="card-body py-2" ${match.sub_match_id ? 'onclick="navigateTo(\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\')"' : ''}>
                     <div class="row">
                         <div class="col-8">
                             <div class="d-flex justify-content-between align-items-start">
@@ -2393,7 +2415,7 @@ function populateStatsWithData(data) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-primary rounded-pill fs-5">${item.average.toFixed(2)}</span>
             </div>
@@ -2408,7 +2430,7 @@ function populateStatsWithData(data) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-success rounded-pill fs-5">${item.checkout}</span>
             </div>
@@ -2423,7 +2445,7 @@ function populateStatsWithData(data) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-warning text-dark rounded-pill fs-5">${item.darts} pilar</span>
             </div>
@@ -2438,7 +2460,7 @@ function populateStatsWithData(data) {
                 <br>
                 <small class="text-muted">${item.team_name} vs ${item.opponent_name} - ${item.match_date}</small>
                 <br>
-                <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
+                <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="small text-primary">Visa match →</a>
             </div>
             <span class="badge bg-info rounded-pill fs-5">${item.count_180} st</span>
         </div>
@@ -2495,6 +2517,7 @@ async function loadTopStats() {
 let weeklyStatsLoaded = false;
 let currentWeekOffset = 0;
 let availableWeeks = [];
+const IS_RIKSSERIEN = LEAGUE === 'riksserien';
 
 async function loadWeeklyStats(division = null, weekOffset = null) {
     try {
@@ -2508,7 +2531,19 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
         if (division) {
             params.append('division', division);
         }
-        params.append('week_offset', currentWeekOffset);
+
+        // Riksserien: use explicit date range from round data
+        if (IS_RIKSSERIEN && availableWeeks.length > 0) {
+            const currentRound = availableWeeks.find((w, i) => i === currentWeekOffset);
+            if (currentRound) {
+                params.append('date_start', currentRound.week_start);
+                params.append('date_end', currentRound.week_end);
+            } else {
+                params.append('week_offset', currentWeekOffset);
+            }
+        } else {
+            params.append('week_offset', currentWeekOffset);
+        }
         const queryString = params.toString();
         const url = `/api/weekly-stats${queryString ? '?' + queryString : ''}`;
 
@@ -2525,19 +2560,30 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
         const formatDate = (d) => d.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
         document.getElementById('weeklyDateRange').textContent = `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
-        // Update description based on week
-        const weekDescription = currentWeekOffset === 0 ? 'De bästa prestationerna denna vecka' : 'De bästa prestationerna';
-        document.getElementById('weeklyDescription').textContent = weekDescription;
-
-        const weekText = currentWeekOffset === 0 ? 'denna vecka' : 'den veckan';
-        if (data.total_matches === 0) {
-            document.getElementById('weeklyMatchCount').textContent = `Inga matcher spelade ${weekText} ännu`;
+        // Update description based on week/round
+        if (IS_RIKSSERIEN) {
+            const roundLabel = availableWeeks.length > 0 && availableWeeks[currentWeekOffset]
+                ? availableWeeks[currentWeekOffset].label : '';
+            document.getElementById('weeklyDescription').textContent =
+                currentWeekOffset === 0 ? 'De bästa prestationerna senaste omgången' : 'De bästa prestationerna';
         } else {
-            document.getElementById('weeklyMatchCount').textContent = `${data.total_matches} matcher spelade ${weekText}`;
+            const weekDescription = currentWeekOffset === 0 ? 'De bästa prestationerna denna vecka' : 'De bästa prestationerna';
+            document.getElementById('weeklyDescription').textContent = weekDescription;
+        }
+
+        const periodText = IS_RIKSSERIEN
+            ? (currentWeekOffset === 0 ? 'denna omgång' : 'den omgången')
+            : (currentWeekOffset === 0 ? 'denna vecka' : 'den veckan');
+        if (data.total_matches === 0) {
+            document.getElementById('weeklyMatchCount').textContent = `Inga matcher spelade ${periodText} ännu`;
+        } else {
+            document.getElementById('weeklyMatchCount').textContent = `${data.total_matches} matcher spelade ${periodText}`;
         }
 
         // Text for empty states
-        const emptyWeekText = currentWeekOffset === 0 ? 'denna vecka ännu' : 'den veckan';
+        const emptyWeekText = IS_RIKSSERIEN
+            ? (currentWeekOffset === 0 ? 'denna omgång ännu' : 'den omgången')
+            : (currentWeekOffset === 0 ? 'denna vecka ännu' : 'den veckan');
 
         // Populate top averages
         const averagesHtml = data.top_averages.length > 0 ? data.top_averages.map((item, index) => `
@@ -2548,7 +2594,7 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-primary rounded-pill fs-5">${item.average.toFixed(2)}</span>
             </div>
@@ -2564,7 +2610,7 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-success rounded-pill fs-5">${item.checkout}</span>
             </div>
@@ -2580,7 +2626,7 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-warning text-dark rounded-pill fs-5">${item.darts} pilar</span>
             </div>
@@ -2596,7 +2642,7 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
                     <br>
                     <small class="text-muted">${item.team_name} vs ${item.opponent_name}</small>
                     <br>
-                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}" class="small text-primary">Visa match →</a>
+                    <a href="/sub_match_throws?sub_match_id=${item.sub_match_id}&team=${item.team_number}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="small text-primary">Visa match →</a>
                 </div>
                 <span class="badge bg-info rounded-pill fs-5">${item.count_100plus} st</span>
             </div>
@@ -2608,13 +2654,23 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
             await loadWeeklyDivisions();
             await loadAvailableWeeks();
             weeklyStatsLoaded = true;
+
+            // For riksserien, reload with correct date range now that rounds are loaded
+            if (IS_RIKSSERIEN && availableWeeks.length > 0) {
+                currentWeekOffset = 0;
+                const division = document.getElementById('weeklyDivisionFilter').value;
+                await loadWeeklyStats(division, 0);
+                return;
+            }
         }
 
         // Update navigation buttons (must be after availableWeeks is loaded)
         updateWeekNavigation();
     } catch (error) {
-        console.error('Kunde inte ladda veckans statistik:', error);
-        document.getElementById('weeklyLoading').innerHTML = '<p class="text-danger">Kunde inte ladda veckans statistik</p>';
+        console.error('Kunde inte ladda statistik:', error);
+        document.getElementById('weeklyLoading').innerHTML = IS_RIKSSERIEN
+            ? '<p class="text-danger">Kunde inte ladda omgångens statistik</p>'
+            : '<p class="text-danger">Kunde inte ladda veckans statistik</p>';
     }
 }
 
@@ -2639,7 +2695,7 @@ async function loadWeeklyDivisions() {
     }
 }
 
-// Load available weeks for dropdown
+// Load available weeks (or rounds for riksserien) for dropdown
 async function loadAvailableWeeks() {
     try {
         const response = await fetch('/api/available-weeks');
@@ -2651,40 +2707,43 @@ async function loadAvailableWeeks() {
 
         availableWeeks.forEach((week, index) => {
             const option = document.createElement('option');
-            option.value = week.week_offset;
+            option.value = IS_RIKSSERIEN ? index : week.week_offset;
             if (index === 0) {
-                option.textContent = `Denna vecka (${week.match_count} matcher)`;
+                option.textContent = IS_RIKSSERIEN
+                    ? `${week.label} (${week.match_count} matcher)`
+                    : `Denna vecka (${week.match_count} matcher)`;
             } else {
                 option.textContent = `${week.label} (${week.match_count} matcher)`;
             }
             select.appendChild(option);
         });
 
-        // Set current selection
+        // For riksserien, use index-based offset (0 = most recent round)
+        if (IS_RIKSSERIEN) {
+            currentWeekOffset = 0;
+        }
         select.value = currentWeekOffset;
     } catch (error) {
         console.error('Kunde inte ladda tillgängliga veckor:', error);
     }
 }
 
-// Navigate to previous/next week (only weeks with data)
+// Navigate to previous/next week or round (only entries with data)
 function navigateWeek(direction) {
-    // Find current index in availableWeeks
-    const currentIndex = availableWeeks.findIndex(w => w.week_offset === currentWeekOffset);
-
-    if (currentIndex === -1) {
-        return; // Current week not found
+    if (IS_RIKSSERIEN) {
+        // Index-based: 0 = most recent, higher = older
+        const newIndex = currentWeekOffset - direction;
+        if (newIndex < 0 || newIndex >= availableWeeks.length) return;
+        currentWeekOffset = newIndex;
+    } else {
+        // Offset-based for Stockholmsserien
+        const currentIndex = availableWeeks.findIndex(w => w.week_offset === currentWeekOffset);
+        if (currentIndex === -1) return;
+        const newIndex = currentIndex - direction;
+        if (newIndex < 0 || newIndex >= availableWeeks.length) return;
+        currentWeekOffset = availableWeeks[newIndex].week_offset;
     }
 
-    // direction: 1 = next (more recent), -1 = previous (older)
-    // availableWeeks is sorted with most recent first (index 0)
-    const newIndex = currentIndex - direction;
-
-    if (newIndex < 0 || newIndex >= availableWeeks.length) {
-        return; // Out of bounds
-    }
-
-    currentWeekOffset = availableWeeks[newIndex].week_offset;
     document.getElementById('weeklyWeekSelector').value = currentWeekOffset;
 
     // Show loading
@@ -2695,7 +2754,7 @@ function navigateWeek(direction) {
     loadWeeklyStats(division, currentWeekOffset);
 }
 
-// Select week from dropdown
+// Select week/round from dropdown
 function selectWeek() {
     const select = document.getElementById('weeklyWeekSelector');
     currentWeekOffset = parseInt(select.value, 10);
@@ -2713,14 +2772,16 @@ function updateWeekNavigation() {
     const prevBtn = document.getElementById('prevWeekBtn');
     const nextBtn = document.getElementById('nextWeekBtn');
 
-    // Find current index in availableWeeks (most recent is index 0)
-    const currentIndex = availableWeeks.findIndex(w => w.week_offset === currentWeekOffset);
-
-    // Disable next if we're at the most recent week (index 0)
-    nextBtn.disabled = currentIndex <= 0;
-
-    // Disable prev if we're at the oldest available week (last index)
-    prevBtn.disabled = currentIndex >= availableWeeks.length - 1;
+    if (IS_RIKSSERIEN) {
+        // Index-based: 0 = most recent, higher = older
+        nextBtn.disabled = currentWeekOffset <= 0;
+        prevBtn.disabled = currentWeekOffset >= availableWeeks.length - 1;
+    } else {
+        // Offset-based for Stockholmsserien
+        const currentIndex = availableWeeks.findIndex(w => w.week_offset === currentWeekOffset);
+        nextBtn.disabled = currentIndex <= 0;
+        prevBtn.disabled = currentIndex >= availableWeeks.length - 1;
+    }
 
     // Update selector value
     const selector = document.getElementById('weeklyWeekSelector');
@@ -2750,21 +2811,5 @@ function filterWeeklyStats() {
     loadWeeklyStats(division, currentWeekOffset);
 }
 
-// Load last import info
-async function loadLastImport() {
-    try {
-        const response = await fetch('/api/last-import');
-        const data = await response.json();
-
-        if (response.ok && data.end_time) {
-            const badge = document.createElement('div');
-            badge.className = 'last-update-badge';
-            badge.textContent = `Uppdaterad ${data.end_time.split(' ')[0]}`;
-            document.body.appendChild(badge);
-        }
-    } catch (error) {
-        console.error('Kunde inte ladda importinfo:', error);
-    }
-}
 </script>
 {% endblock %}

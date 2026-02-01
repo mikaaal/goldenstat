@@ -8,28 +8,28 @@
     <div class="container">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/">
+                <a class="nav-link" href="/{% if league == 'riksserien' %}?league=riksserien{% endif %}">
                     👤 Spelare
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=teams">
+                <a class="nav-link" href="/?tab=teams{% if league == 'riksserien' %}&league=riksserien{% endif %}">
                     👥 Lag
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/series_matches">
+                <a class="nav-link" href="/series_matches{% if league == 'riksserien' %}?league=riksserien{% endif %}">
                     📋 Seriematcher
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=stats">
+                <a class="nav-link" href="/?tab=stats{% if league == 'riksserien' %}&league=riksserien{% endif %}">
                     🎯 Topplistor
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=weekly">
-                    ⭐ Veckans prestationer!
+                <a class="nav-link" href="/?tab=weekly{% if league == 'riksserien' %}&league=riksserien{% endif %}">
+                    ⭐ {% if league == 'riksserien' %}Omgångens bästa{% else %}Veckans prestationer!{% endif %}
                 </a>
             </li>
         </ul>
@@ -345,7 +345,7 @@ function navigateToPlayer(playerName, e) {
     if (e) e.stopPropagation();
     if (!playerName) return;
     try {
-        window.location.href = '/?player=' + encodeURIComponent(playerName);
+        navigateTo('/?player=' + encodeURIComponent(playerName));
     } catch (error) {
         console.error('Navigation error:', error);
     }
@@ -353,7 +353,7 @@ function navigateToPlayer(playerName, e) {
 
 function navigateToSubMatch(subMatchId) {
     if (!subMatchId) return;
-    window.location.href = '/sub_match_throws?sub_match_id=' + subMatchId + '&team=1';
+    navigateTo('/sub_match_throws?sub_match_id=' + subMatchId + '&team=1');
 }
 
 function makePlayerNameClickable(playerName) {
@@ -476,7 +476,7 @@ function displayMatchOverview(data) {
         </div>
         <div class="row text-center mb-4 align-items-center">
             <div class="col-md-5">
-                <a href="/?tab=teams&team=${encodeURIComponent(matchInfo.team1_name)}" class="team-link ${team1BoxClass}">
+                <a href="/?tab=teams&team=${encodeURIComponent(matchInfo.team1_name)}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="team-link ${team1BoxClass}">
                     <span class="team-icon">${team1Icon}</span>
                     <h5 class="team-name mb-0">${matchInfo.team1_name}</h5>
                 </a>
@@ -487,7 +487,7 @@ function displayMatchOverview(data) {
                 </div>
             </div>
             <div class="col-md-5">
-                <a href="/?tab=teams&team=${encodeURIComponent(matchInfo.team2_name)}" class="team-link ${team2BoxClass}">
+                <a href="/?tab=teams&team=${encodeURIComponent(matchInfo.team2_name)}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="team-link ${team2BoxClass}">
                     <span class="team-icon">${team2Icon}</span>
                     <h5 class="team-name mb-0">${matchInfo.team2_name}</h5>
                 </a>
@@ -596,27 +596,9 @@ function displayMatchOverview(data) {
     }
 }
 
-// Load last import info
-async function loadLastImport() {
-    try {
-        const response = await fetch('/api/last-import');
-        const data = await response.json();
-
-        if (response.ok && data.end_time) {
-            const badge = document.createElement('div');
-            badge.className = 'last-update-badge';
-            badge.textContent = 'Uppdaterad\n' + data.end_time.split(' ')[0];
-            document.body.appendChild(badge);
-        }
-    } catch (error) {
-        console.error('Kunde inte ladda importinfo:', error);
-    }
-}
-
 // Initialize when DOM is ready
 function initPage() {
     loadMatchOverview();
-    loadLastImport();
 }
 
 if (document.readyState === 'loading') {

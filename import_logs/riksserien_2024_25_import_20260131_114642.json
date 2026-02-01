@@ -1,0 +1,62 @@
+{
+  "season": "2024/2025",
+  "timestamp": "2026-01-31T11:46:42.350073",
+  "total_matches": 326,
+  "total_players": 12910,
+  "results": [
+    {
+      "division": "Elit",
+      "status": "ok",
+      "matches": 45,
+      "players": 1776
+    },
+    {
+      "division": "Elit Dam",
+      "status": "ok",
+      "matches": 20,
+      "players": 768
+    },
+    {
+      "division": "Superettan",
+      "status": "ok",
+      "matches": 36,
+      "players": 1440
+    },
+    {
+      "division": "Superettan Dam",
+      "status": "ok",
+      "matches": 29,
+      "players": 1128
+    },
+    {
+      "division": "Div 1A",
+      "status": "ok",
+      "matches": 45,
+      "players": 1798
+    },
+    {
+      "division": "Div 1B",
+      "status": "ok",
+      "matches": 20,
+      "players": 762
+    },
+    {
+      "division": "Div 2A",
+      "status": "ok",
+      "matches": 45,
+      "players": 1798
+    },
+    {
+      "division": "Div 2B",
+      "status": "ok",
+      "matches": 45,
+      "players": 1800
+    },
+    {
+      "division": "Div 2C",
+      "status": "ok",
+      "matches": 41,
+      "players": 1640
+    }
+  ]
+}

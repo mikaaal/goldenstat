@@ -25,6 +25,74 @@ body {
     flex-direction: column;
 }
 
+/* Swedish flag icon */
+.flag-icon {
+    display: inline-block;
+    vertical-align: -1px;
+    border-radius: 2px;
+}
+
+.flag-icon-lg {
+    display: inline-block;
+    vertical-align: middle;
+    border-radius: 2px;
+}
+
+.flag-icon-hero {
+    display: inline-block;
+    border-radius: 3px;
+}
+
+/* League Selector */
+.league-selector {
+    gap: 6px;
+}
+
+.league-btn {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: 1.5px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.league-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateY(-1px);
+}
+
+.league-btn.active {
+    color: #fff;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Stockholmsserien button: lighter blue */
+.league-btn[href="/"]:not(.active) {
+    border-color: rgba(96, 165, 250, 0.5);
+}
+
+.league-btn[href="/"].active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
+}
+
+@media (max-width: 576px) {
+    .league-btn {
+        font-size: 12px;
+        padding: 5px 12px;
+    }
+}
+
 /* Sticky Tab Navigation */
 .sticky-tabs {
     position: sticky;
@@ -35,32 +103,6 @@ body {
     border-bottom: 2px solid var(--light-color);
 }
 
-/* Last update badge */
-.last-update-badge {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    background: rgba(37, 99, 235, 0.9);
-    color: white;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    z-index: 1050;
-    white-space: pre-line;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    font-weight: 500;
-    line-height: 1.4;
-}
-
-@media (max-width: 767px) {
-    .last-update-badge {
-        font-size: 10px;
-        padding: 4px 8px;
-        top: 8px;
-        right: 8px;
-    }
-}
 
 .sticky-tabs .nav-tabs {
     border-bottom: none;
@@ -1240,4 +1282,285 @@ body {
         flex-direction: row;
         gap: 0.75rem;
     }
+}
+
+/* ========== RIKSSERIEN PURPLE THEME ========== */
+
+/* --- B. Extended CSS Variables --- */
+.riksserien-theme {
+    --primary-color: #7c3aed;
+    --primary-dark: #4c1d95;
+    --primary-light: #a78bfa;
+    --primary-ultralight: #ede9fe;
+    --primary-ghost: #f5f3ff;
+    --card-accent: #c4b5fd;
+    --body-bg: #f5f3ff;
+    --header-bg: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 100%);
+    --footer-bg: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 100%);
+    --tab-active: #7c3aed;
+    --accent-gold: #a78bfa;
+}
+
+.riksserien-theme body,
+.riksserien-theme {
+    background-color: #f5f3ff;
+}
+
+/* --- A. League Hero Banner (shared) --- */
+.league-hero {
+    padding: 1.25rem 0;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.league-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    pointer-events: none;
+}
+
+.league-hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.league-hero-icon {
+    font-size: 1.75rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.league-hero-title {
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.league-hero-subtitle {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    margin: 0.15rem 0 0;
+    font-weight: 400;
+}
+
+@media (max-width: 576px) {
+    .league-hero {
+        padding: 0.9rem 0;
+    }
+    .league-hero-icon {
+        font-size: 1.4rem;
+    }
+    .league-hero-title {
+        font-size: 1.15rem;
+    }
+    .league-hero-subtitle {
+        font-size: 0.75rem;
+    }
+}
+
+/* Riksserien hero */
+.riksserien-hero {
+    background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #7c3aed 100%);
+}
+
+.riksserien-hero::before {
+    background: radial-gradient(circle at 30% 50%, rgba(167, 139, 250, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(196, 181, 253, 0.1) 0%, transparent 50%);
+}
+
+/* Stockholmsserien hero */
+.stockholm-hero {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #3b82f6 100%);
+}
+
+.stockholm-hero::before {
+    background: radial-gradient(circle at 30% 50%, rgba(96, 165, 250, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 70% 50%, rgba(147, 197, 253, 0.1) 0%, transparent 50%);
+}
+
+/* --- Sticky tabs hover/active borders --- */
+.riksserien-theme .sticky-tabs .nav-link:hover {
+    color: #7c3aed;
+    border-bottom-color: #7c3aed;
+}
+
+.riksserien-theme .sticky-tabs .nav-link.active {
+    color: #7c3aed;
+    border-bottom-color: #7c3aed;
+}
+
+/* --- C. Card Style Overrides --- */
+.riksserien-theme .card {
+    border-left: 4px solid #c4b5fd;
+    border-color: rgba(196, 181, 253, 0.4);
+    box-shadow: 0 4px 6px rgba(124, 58, 237, 0.06);
+}
+
+.riksserien-theme .card:hover {
+    border-color: #7c3aed;
+    box-shadow: 0 6px 16px rgba(124, 58, 237, 0.15);
+}
+
+.riksserien-theme .card-header.bg-primary,
+.riksserien-theme .card .card-header.bg-primary {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+}
+
+.riksserien-theme .card-clickable:hover {
+    background-color: #f5f3ff;
+}
+
+/* --- D. Search Hero Override --- */
+.riksserien-theme .search-hero {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 50%, #ddd6fe 100%);
+}
+
+.riksserien-theme .search-hero h2,
+.riksserien-theme .search-hero .search-title {
+    color: #4c1d95;
+}
+
+.riksserien-theme .search-hero .btn-primary {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    border: none;
+}
+
+.riksserien-theme .search-hero .btn-primary:hover {
+    background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+    box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+}
+
+/* --- E. News Banner Override --- */
+.riksserien-theme .news-banner {
+    background: linear-gradient(135deg, #3b0764 0%, #4c1d95 100%);
+}
+
+.riksserien-theme .news-banner .news-accent,
+.riksserien-theme .news-banner .accent-text {
+    color: #c4b5fd;
+}
+
+/* --- F. Match Card Override (series_matches) --- */
+.riksserien-theme .match-card {
+    border: 1px solid rgba(196, 181, 253, 0.4);
+    border-left: 4px solid #c4b5fd;
+}
+
+.riksserien-theme .match-card:hover,
+.riksserien-theme .match-card:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+}
+
+.riksserien-theme .week-header {
+    background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+    border-left-color: #7c3aed;
+}
+
+.riksserien-theme .week-header h5 {
+    color: #4c1d95;
+}
+
+/* Division header */
+.riksserien-theme .division-header {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+}
+
+/* --- G. Table Styling --- */
+.riksserien-theme .table thead th {
+    background-color: #f5f3ff;
+    color: #4c1d95;
+}
+
+.riksserien-theme .table tbody tr[onclick]:hover,
+.riksserien-theme .table tbody tr.clickable:hover {
+    background-color: #ede9fe;
+}
+
+/* --- H. Buttons, Badges, Form Focus, Spinner --- */
+.riksserien-theme .btn-primary {
+    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+    border: none;
+}
+
+.riksserien-theme .btn-primary:hover {
+    background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+    box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+}
+
+.riksserien-theme .badge.bg-primary {
+    background-color: #7c3aed !important;
+}
+
+.riksserien-theme input:focus,
+.riksserien-theme select:focus,
+.riksserien-theme textarea:focus,
+.riksserien-theme .form-control:focus,
+.riksserien-theme .form-select:focus {
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 0.2rem rgba(124, 58, 237, 0.25);
+}
+
+.riksserien-theme .spinner-border {
+    color: #7c3aed;
+}
+
+/* --- I. Player Links --- */
+.riksserien-theme .player-link {
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.1);
+    border-color: rgba(124, 58, 237, 0.2);
+}
+
+.riksserien-theme .player-link:hover {
+    color: #fff;
+    background: #7c3aed;
+}
+
+.riksserien-theme .player-name-link {
+    color: #7c3aed;
+    border-bottom-color: #7c3aed;
+}
+
+.riksserien-theme .player-name-link:hover {
+    color: #4c1d95;
+    border-color: #4c1d95;
+    background: rgba(124, 58, 237, 0.05);
+}
+
+.riksserien-theme .sort-btn.active {
+    background: #7c3aed;
+    border-color: #7c3aed;
+    color: #fff;
+}
+
+.riksserien-theme .sort-btn:hover {
+    border-color: #7c3aed;
+    color: #7c3aed;
+}
+
+/* --- J. Stats Card --- */
+.riksserien-theme .stats-card {
+    background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+}
+
+/* --- Footer & Logo (kept from original) --- */
+.riksserien-theme .footer-minimal::before {
+    background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.6), transparent);
+}
+
+.riksserien-theme .logo-icon {
+    box-shadow: 0 4px 15px rgba(167, 139, 250, 0.3);
+}
+
+.riksserien-theme .logo-icon:hover {
+    box-shadow: 0 6px 20px rgba(167, 139, 250, 0.4);
 }

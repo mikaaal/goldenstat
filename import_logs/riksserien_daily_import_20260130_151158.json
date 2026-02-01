@@ -1,0 +1,153 @@
+{
+  "import_id": "20260130_151158",
+  "start_time": "2026-01-30T15:11:58.094467",
+  "end_time": "2026-01-30T15:11:58.128739",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "riksserien_match_urls\\t_1rgH_4782_match_urlsRS3A.txt",
+      "division_id": "t_1rgH_4782",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.102786"
+    },
+    {
+      "file": "riksserien_match_urls\\t_2FJR_8262_match_urlsRS3E.txt",
+      "division_id": "t_2FJR_8262",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.104665"
+    },
+    {
+      "file": "riksserien_match_urls\\t_2FUf_5544_match_urlsRS3H.txt",
+      "division_id": "t_2FUf_5544",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.106224"
+    },
+    {
+      "file": "riksserien_match_urls\\t_6smw_3432_match_urlsRSSup.txt",
+      "division_id": "t_6smw_3432",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.107641"
+    },
+    {
+      "file": "riksserien_match_urls\\t_7Wdc_7224_match_urlsRSElitDam.txt",
+      "division_id": "t_7Wdc_7224",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.108988"
+    },
+    {
+      "file": "riksserien_match_urls\\t_DlP2_4392_match_urlsRS1B.txt",
+      "division_id": "t_DlP2_4392",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.110376"
+    },
+    {
+      "file": "riksserien_match_urls\\t_e1G6_0710_match_urlsRS3F.txt",
+      "division_id": "t_e1G6_0710",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.111805"
+    },
+    {
+      "file": "riksserien_match_urls\\t_fmcd_9609_match_urlsRS3D.txt",
+      "division_id": "t_fmcd_9609",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.113134"
+    },
+    {
+      "file": "riksserien_match_urls\\t_FVOb_1354_match_urlsRS3G.txt",
+      "division_id": "t_FVOb_1354",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.114460"
+    },
+    {
+      "file": "riksserien_match_urls\\t_gQRT_6754_match_urlsRS2A.txt",
+      "division_id": "t_gQRT_6754",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.116663"
+    },
+    {
+      "file": "riksserien_match_urls\\t_HvB3_4403_match_urlsRS2C.txt",
+      "division_id": "t_HvB3_4403",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.118238"
+    },
+    {
+      "file": "riksserien_match_urls\\t_iBbo_6823_match_urlsRS1A.txt",
+      "division_id": "t_iBbo_6823",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.121053"
+    },
+    {
+      "file": "riksserien_match_urls\\t_LE0h_2674_match_urlsRS2B.txt",
+      "division_id": "t_LE0h_2674",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.123695"
+    },
+    {
+      "file": "riksserien_match_urls\\t_MaL9_9167_match_urlsRSElit.txt",
+      "division_id": "t_MaL9_9167",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.125470"
+    },
+    {
+      "file": "riksserien_match_urls\\t_OKK6_8421_match_urlsRS3C.txt",
+      "division_id": "t_OKK6_8421",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.126841"
+    },
+    {
+      "file": "riksserien_match_urls\\t_qV0g_7643_match_urlsRS3B.txt",
+      "division_id": "t_qV0g_7643",
+      "status": "failed",
+      "error": "no such table: players",
+      "processed_at": "2026-01-30T15:11:58.128688"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [
+    "Fel vid import av t_1rgH_4782_match_urlsRS3A.txt: no such table: players",
+    "Fel vid import av t_2FJR_8262_match_urlsRS3E.txt: no such table: players",
+    "Fel vid import av t_2FUf_5544_match_urlsRS3H.txt: no such table: players",
+    "Fel vid import av t_6smw_3432_match_urlsRSSup.txt: no such table: players",
+    "Fel vid import av t_7Wdc_7224_match_urlsRSElitDam.txt: no such table: players",
+    "Fel vid import av t_DlP2_4392_match_urlsRS1B.txt: no such table: players",
+    "Fel vid import av t_e1G6_0710_match_urlsRS3F.txt: no such table: players",
+    "Fel vid import av t_fmcd_9609_match_urlsRS3D.txt: no such table: players",
+    "Fel vid import av t_FVOb_1354_match_urlsRS3G.txt: no such table: players",
+    "Fel vid import av t_gQRT_6754_match_urlsRS2A.txt: no such table: players",
+    "Fel vid import av t_HvB3_4403_match_urlsRS2C.txt: no such table: players",
+    "Fel vid import av t_iBbo_6823_match_urlsRS1A.txt: no such table: players",
+    "Fel vid import av t_LE0h_2674_match_urlsRS2B.txt: no such table: players",
+    "Fel vid import av t_MaL9_9167_match_urlsRSElit.txt: no such table: players",
+    "Fel vid import av t_OKK6_8421_match_urlsRS3C.txt: no such table: players",
+    "Fel vid import av t_qV0g_7643_match_urlsRS3B.txt: no such table: players"
+  ],
+  "statistics": {
+    "total_files": 16,
+    "successful_files": 0,
+    "failed_files": 16,
+    "total_matches_imported": 0,
+    "total_players_processed": 0,
+    "auto_matched_high_confidence": 0,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 0
+  }
+}

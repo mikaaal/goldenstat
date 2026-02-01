@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}EasyStat - Statistik för seriespel{% endblock %}</title>
+    <title>{% block title %}EasyStat - {% if league == 'riksserien' %}Riksserien{% else %}Statistik för seriespel{% endif %}{% endblock %}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/gif" href="{{ url_for('static', filename='images/gr2.gif') }}">
@@ -12,27 +12,79 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- League-aware routing (must be in head, before any page scripts) -->
+    <script>
+    const LEAGUE = '{{ league|default("") }}';
+    const LEAGUE_PARAM = LEAGUE ? 'league=' + LEAGUE : '';
+
+    // Intercept fetch calls to add league parameter to API requests
+    if (LEAGUE) {
+        const _originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+            if (typeof url === 'string' && url.startsWith('/api/')) {
+                const sep = url.includes('?') ? '&' : '?';
+                url = url + sep + LEAGUE_PARAM;
+            }
+            return _originalFetch.call(this, url, options);
+        };
+    }
+
+    // Helper for page navigation that preserves league context
+    function navigateTo(path) {
+        if (LEAGUE) {
+            const sep = path.includes('?') ? '&' : '?';
+            path = path + sep + LEAGUE_PARAM;
+        }
+        window.location.href = path;
+    }
+    </script>
+
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
-<body>
+<body{% if league == 'riksserien' %} class="riksserien-theme"{% endif %}>
     <!-- Header -->
     <header class="header-modern">
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container">
-                <a class="navbar-brand d-flex align-items-center" href="/">
+                <a class="navbar-brand d-flex align-items-center" href="{% if league == 'riksserien' %}/?league=riksserien{% else %}/{% endif %}">
                     <div class="logo-icon me-3">
                         <img src="{{ url_for('static', filename='images/gr.png') }}" alt="EasyStat Logo" class="logo-image">
                     </div>
                     <div class="brand-text">
                         <h1 class="brand-title mb-0">EasyStat [beta]</h1>
-                        <small class="brand-subtitle">Dartstatistik & Analys</small>
+                        <small class="brand-subtitle">{% if league == 'riksserien' %}Riksserien - Statistik{% else %}Dartstatistik & Analys{% endif %}</small>
                     </div>
                 </a>
-
+                <div class="league-selector d-flex align-items-center ms-auto">
+                    <a href="/" class="league-btn {% if league != 'riksserien' %}active{% endif %}">👑 Stockholmsserien</a>
+                    <a href="/?league=riksserien" class="league-btn {% if league == 'riksserien' %}active{% endif %}"><svg class="flag-icon" viewBox="0 0 16 10" width="16" height="10"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg> Riksserien</a>
+                </div>
             </div>
         </nav>
     </header>
+
+    <!-- League Hero Banner -->
+    {% if league == 'riksserien' %}
+    <div class="league-hero riksserien-hero">
+        <div class="container">
+            <div class="league-hero-content">
+                <span class="league-hero-icon"><svg class="flag-icon-hero" viewBox="0 0 16 10" width="40" height="25"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg></span>
+                <h2 class="league-hero-title">Riksserien</h2>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="league-hero stockholm-hero">
+        <div class="container">
+            <div class="league-hero-content">
+                <span class="league-hero-icon">👑</span>
+                <h2 class="league-hero-title">Stockholmsserien</h2>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Sticky Tabs (if any) -->
     {% block sticky_tabs %}{% endblock %}
@@ -56,10 +108,11 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    
-    
+
+
     {% block scripts %}{% endblock %}
 </body>
 </html>
