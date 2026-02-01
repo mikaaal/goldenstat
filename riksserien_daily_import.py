@@ -129,8 +129,10 @@ class RiksserienDailyImport:
 
     DIVISION_NAME_MAP = {
         'RSElit': 'Elit',
+        'RSElitSP': 'Elit Slutspel',
         'RSElitDam': 'Elit Dam',
         'RSSup': 'Superettan',
+        'RSSupDam': 'Superettan Dam',
         'RS1A': 'Div 1A',
         'RS1B': 'Div 1B',
         'RS2A': 'Div 2A',

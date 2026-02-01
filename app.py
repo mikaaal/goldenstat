@@ -87,22 +87,18 @@ cache = Cache(app, config={
 db_path = os.getenv('DATABASE_PATH', 'goldenstat.db')
 db = DartDatabase(db_path=db_path)
 
-# Riksserien database
-rs_db_path = os.getenv('RS_DATABASE_PATH', 'riksserien.db')
-rs_db = DartDatabase(db_path=rs_db_path)
-
 def get_current_db_path():
     """Get the database path for the current request based on league parameter"""
     league = request.args.get('league', '')
     if league == 'riksserien':
-        return rs_db.db_path
+        return 'riksserien.db'
     return db.db_path
 
 def get_current_db():
     """Get the DartDatabase instance for the current request"""
     league = request.args.get('league', '')
     if league == 'riksserien':
-        return rs_db
+        return DartDatabase(db_path='riksserien.db')
     return db
 
 # Global flag to track if warmup has run
@@ -124,7 +120,8 @@ def init_app():
 def index():
     """Main page with player search"""
     league = request.args.get('league', '')
-    return render_template('index.html', league=league)
+    tab = request.args.get('tab', 'players')
+    return render_template('index.html', league=league, tab=tab)
 
 
 @app.route('/api/last-import')
@@ -405,18 +402,28 @@ def get_weekly_stats():
 
             # Get optional division filter from query parameter
             division = request.args.get('division')
-            # Get optional week_offset parameter (0 = current week, -1 = last week, etc.)
-            week_offset = int(request.args.get('week_offset', 0))
 
-            # Calculate week's date range (Monday to Sunday)
-            today = datetime.now()
-            # Get the start of the current week (Monday)
-            start_of_week = today - timedelta(days=today.weekday())
-            start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
-            # Apply week offset
-            start_of_week = start_of_week + timedelta(weeks=week_offset)
-            # Get the end of the week (Sunday)
-            end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
+            # Support explicit date range (used by riksserien rounds)
+            date_start = request.args.get('date_start')
+            date_end = request.args.get('date_end')
+
+            if date_start and date_end:
+                start_of_week = datetime.strptime(date_start, '%Y-%m-%d')
+                end_of_week = datetime.strptime(date_end, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+                week_offset = 0
+            else:
+                # Get optional week_offset parameter (0 = current week, -1 = last week, etc.)
+                week_offset = int(request.args.get('week_offset', 0))
+
+                # Calculate week's date range (Monday to Sunday)
+                today = datetime.now()
+                # Get the start of the current week (Monday)
+                start_of_week = today - timedelta(days=today.weekday())
+                start_of_week = start_of_week.replace(hour=0, minute=0, second=0, microsecond=0)
+                # Apply week offset
+                start_of_week = start_of_week + timedelta(weeks=week_offset)
+                # Get the end of the week (Sunday)
+                end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
             # Build filter for SQL
             week_filter = f"AND m.match_date >= '{start_of_week.strftime('%Y-%m-%d %H:%M:%S')}' AND m.match_date <= '{end_of_week.strftime('%Y-%m-%d %H:%M:%S')}'"
@@ -582,17 +589,71 @@ def get_weekly_stats():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/available-weeks')
-@cache.cached(timeout=3600)  # Cache for 1 hour
+@cache.cached(timeout=3600, query_string=True)  # Cache for 1 hour, vary by league
 def get_available_weeks():
-    """API endpoint to get list of weeks that have match data"""
+    """API endpoint to get list of weeks (or rounds for riksserien) that have match data"""
     try:
         import sqlite3
         from datetime import datetime, timedelta
+        league = request.args.get('league', '')
+
         with sqlite3.connect(get_current_db_path()) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
 
-            # Get the earliest and latest match dates
+            if league == 'riksserien':
+                # Riksserien: group matches into rounds (clusters of matches played close together)
+                cursor.execute("""
+                    SELECT DISTINCT DATE(match_date) as play_date, COUNT(*) as match_count
+                    FROM matches
+                    WHERE match_date IS NOT NULL
+                    GROUP BY DATE(match_date)
+                    ORDER BY play_date ASC
+                """)
+                dates = cursor.fetchall()
+
+                if not dates:
+                    return jsonify({'weeks': []})
+
+                # Cluster dates into rounds (gap > 14 days = new round)
+                rounds = []
+                current_round_dates = [dates[0]]
+
+                for i in range(1, len(dates)):
+                    prev_date = datetime.strptime(current_round_dates[-1]['play_date'], '%Y-%m-%d')
+                    curr_date = datetime.strptime(dates[i]['play_date'], '%Y-%m-%d')
+
+                    if (curr_date - prev_date).days > 14:
+                        rounds.append(current_round_dates)
+                        current_round_dates = [dates[i]]
+                    else:
+                        current_round_dates.append(dates[i])
+
+                rounds.append(current_round_dates)
+
+                # Build response (most recent round first)
+                weeks = []
+                for idx, round_dates in enumerate(reversed(rounds)):
+                    round_num = len(rounds) - idx
+                    round_start = round_dates[0]['play_date']
+                    round_end = round_dates[-1]['play_date']
+                    match_count = sum(d['match_count'] for d in round_dates)
+
+                    start_dt = datetime.strptime(round_start, '%Y-%m-%d')
+                    end_dt = datetime.strptime(round_end, '%Y-%m-%d')
+
+                    weeks.append({
+                        'week_offset': idx,  # index in the list (0 = most recent)
+                        'week_start': round_start,
+                        'week_end': round_end,
+                        'match_count': match_count,
+                        'label': f"Omg\u00e5ng {round_num} ({start_dt.strftime('%d/%m')} - {end_dt.strftime('%d/%m')})",
+                        'round_number': round_num
+                    })
+
+                return jsonify({'weeks': weeks})
+
+            # Stockholmsserien: original weekly logic
             cursor.execute("""
                 SELECT MIN(match_date) as earliest, MAX(match_date) as latest
                 FROM matches
@@ -752,16 +813,24 @@ def get_divisions():
                 else:
                     divisions.append(div)
 
-            # Custom sort: SL6 first, then SL4, then rest in ascending order, Mixed last
-            sl_divisions = [d for d in divisions if d in ["SL6", "SL4"]]
-            mixed_divisions = [d for d in divisions if "Mixed" in d]
-            other_divisions = [d for d in divisions if d not in ["SL6", "SL4"] and "Mixed" not in d]
-
-            # Sort other divisions in ascending order (1A, 1FA, 1FB, ... 4FA)
-            other_divisions.sort()
-
-            # Combine: SL6, SL4, others ascending, Mixed last
-            return jsonify(sl_divisions + other_divisions + mixed_divisions)
+            # Custom sort per league
+            league = request.args.get('league', '')
+            if league == 'riksserien':
+                # Riksserien: Elit, Elit Dam, Superettan, Superettan Dam, then Div descending
+                rs_priority = {
+                    'Elit': 0, 'Elit Dam': 1,
+                    'Superettan': 2, 'Superettan Dam': 3,
+                }
+                top_divs = sorted([d for d in divisions if d in rs_priority], key=lambda d: rs_priority[d])
+                rest_divs = sorted([d for d in divisions if d not in rs_priority])
+                return jsonify(top_divs + rest_divs)
+            else:
+                # Stockholmsserien: SL6 first, then SL4, then rest ascending, Mixed last
+                sl_divisions = [d for d in divisions if d in ["SL6", "SL4"]]
+                mixed_divisions = [d for d in divisions if "Mixed" in d]
+                other_divisions = [d for d in divisions if d not in ["SL6", "SL4"] and "Mixed" not in d]
+                other_divisions.sort()
+                return jsonify(sl_divisions + other_divisions + mixed_divisions)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1321,12 +1390,15 @@ def get_player_throws(player_name):
 
                 # Count different score ranges
                 score_ranges = {
-                    '0-20': len([s for s in scores if 0 <= s <= 20]),
-                    '21-40': len([s for s in scores if 21 <= s <= 40]),
-                    '41-60': len([s for s in scores if 41 <= s <= 60]),
+                    '26': len([s for s in scores if s == 26]),
+                    '41-59': len([s for s in scores if 41 <= s <= 59]),
+                    '60': len([s for s in scores if s == 60]),
                     '61-80': len([s for s in scores if 61 <= s <= 80]),
                     '81-99': len([s for s in scores if 81 <= s <= 99]),
-                    '100+': len([s for s in scores if s >= 100])
+                    '100': len([s for s in scores if s == 100]),
+                    '101-119': len([s for s in scores if 101 <= s <= 119]),
+                    '120-139': len([s for s in scores if 120 <= s <= 139]),
+                    '140+': len([s for s in scores if s >= 140])
                 }
 
                 # Calculate checkouts (scores when remaining_score became 0)
@@ -1501,12 +1573,15 @@ def get_player_throws(player_name):
                                     all_time_high_finishes += 1
 
                     all_time_score_ranges = {
-                        '0-20': len([s for s in all_time_scores if 0 <= s <= 20]),
-                        '21-40': len([s for s in all_time_scores if 21 <= s <= 40]),
-                        '41-60': len([s for s in all_time_scores if 41 <= s <= 60]),
+                        '26': len([s for s in all_time_scores if s == 26]),
+                        '41-59': len([s for s in all_time_scores if 41 <= s <= 59]),
+                        '60': len([s for s in all_time_scores if s == 60]),
                         '61-80': len([s for s in all_time_scores if 61 <= s <= 80]),
                         '81-99': len([s for s in all_time_scores if 81 <= s <= 99]),
-                        '100+': len([s for s in all_time_scores if s >= 100])
+                        '100': len([s for s in all_time_scores if s == 100]),
+                        '101-119': len([s for s in all_time_scores if 101 <= s <= 119]),
+                        '120-139': len([s for s in all_time_scores if 120 <= s <= 139]),
+                        '140+': len([s for s in all_time_scores if s >= 140])
                     }
 
                     all_time_statistics = {
@@ -3294,10 +3369,13 @@ def get_match_overview(match_id):
                     if player['player_avg']:
                         team2_avg = max(team2_avg, player['player_avg'])
 
+                # Derive match_type from position (handles imports where Dubbel was tagged as Singles)
+                effective_match_type = 'Doubles' if position.startswith('D') or position == 'AD' else 'Singles'
+
                 sub_matches.append({
                     'id': sm['id'],
                     'position': position,
-                    'match_type': sm['match_type'],
+                    'match_type': effective_match_type,
                     'team1_players': ' / '.join(team1_players),
                     'team2_players': ' / '.join(team2_players),
                     'team1_legs': sm['team1_legs'],
@@ -3360,6 +3438,7 @@ def get_match_overview(match_id):
 
 def parse_match_position(match_name, match_type):
     """Parse match position (D1, S1, S2, D2, S3, S4, AD) from match_name"""
+    import re
     if not match_name:
         return 'S1' if match_type == 'Singles' else 'D1'
 
@@ -3367,15 +3446,14 @@ def parse_match_position(match_name, match_type):
     if ' AD' in match_name:
         return 'AD'
 
-    # Extract Singles/Doubles number
-    if 'Singles' in match_name:
-        import re
-        match = re.search(r'Singles(\d+)', match_name)
-        return f'S{match.group(1)}' if match else 'S1'
-    elif 'Doubles' in match_name:
-        import re
-        match = re.search(r'Doubles(\d+)', match_name)
-        return f'D{match.group(1)}' if match else 'D1'
+    # Extract Singles/Doubles number (supports Swedish: Singel/Dubbel)
+    singles_match = re.search(r'(?:Singles|Singel)\s*(\d+)', match_name)
+    if singles_match:
+        return f'S{singles_match.group(1)}'
+
+    doubles_match = re.search(r'(?:Doubles|Dubbel)\s*(\d+)', match_name)
+    if doubles_match:
+        return f'D{doubles_match.group(1)}'
 
     # Fallback
     return 'S1' if match_type == 'Singles' else 'D1'

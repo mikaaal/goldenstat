@@ -54,16 +54,37 @@
                     </div>
                     <div class="brand-text">
                         <h1 class="brand-title mb-0">EasyStat [beta]</h1>
-                        <small class="brand-subtitle">Dartstatistik & Analys</small>
+                        <small class="brand-subtitle">{% if league == 'riksserien' %}Riksserien - Statistik{% else %}Dartstatistik & Analys{% endif %}</small>
                     </div>
                 </a>
                 <div class="league-selector d-flex align-items-center ms-auto">
-                    <a href="/" class="league-btn {% if league != 'riksserien' %}active{% endif %}">🏠 Stockholmsserien</a>
-                    <a href="/?league=riksserien" class="league-btn {% if league == 'riksserien' %}active{% endif %}">🇸🇪 Riksserien</a>
+                    <a href="/" class="league-btn {% if league != 'riksserien' %}active{% endif %}">👑 Stockholmsserien</a>
+                    <a href="/?league=riksserien" class="league-btn {% if league == 'riksserien' %}active{% endif %}"><svg class="flag-icon" viewBox="0 0 16 10" width="16" height="10"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg> Riksserien</a>
                 </div>
             </div>
         </nav>
     </header>
+
+    <!-- League Hero Banner -->
+    {% if league == 'riksserien' %}
+    <div class="league-hero riksserien-hero">
+        <div class="container">
+            <div class="league-hero-content">
+                <span class="league-hero-icon"><svg class="flag-icon-hero" viewBox="0 0 16 10" width="40" height="25"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg></span>
+                <h2 class="league-hero-title">Riksserien</h2>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="league-hero stockholm-hero">
+        <div class="container">
+            <div class="league-hero-content">
+                <span class="league-hero-icon">👑</span>
+                <h2 class="league-hero-title">Stockholmsserien</h2>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Sticky Tabs (if any) -->
     {% block sticky_tabs %}{% endblock %}

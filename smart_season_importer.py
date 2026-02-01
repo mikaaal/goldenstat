@@ -491,8 +491,8 @@ class SmartSeasonImporter(NewSeasonImporter):
             game_name = submatch_data.get('gameName', 'Unknown')
             game_mode = submatch_data.get('gameMode', 'Singles')
 
-            # AD (Avgörande Dubbel) should always be Doubles, regardless of gameMode
-            if ' AD' in game_name or game_name.endswith('AD'):
+            # AD (Avgörande Dubbel) and Dubbel/Doubles should always be Doubles, regardless of gameMode
+            if ' AD' in game_name or game_name.endswith('AD') or 'Dubbel' in game_name or 'Doubles' in game_name:
                 game_mode = 'Doubles'
 
             sub_match_info = {
@@ -523,7 +523,7 @@ class SmartSeasonImporter(NewSeasonImporter):
             self.import_log["errors"].append(error_msg)
             raise
 
-    def import_from_url_file_smart(self, url_file_path: str, division_id: str, division_name: str = None) -> Dict[str, int]:
+    def import_from_url_file_smart(self, url_file_path: str, division_id: str, division_name: str = None, season: str = "2025/2026") -> Dict[str, int]:
         """Import från URL-fil med smart spelarmappning"""
         matches_imported = 0
 
@@ -546,7 +546,7 @@ class SmartSeasonImporter(NewSeasonImporter):
 
                     if match_data and len(match_data) > 0:
                         # Använd samma logik som NewSeasonImporter
-                        match_info = self.extract_match_info(match_data, "2025/2026", division_override=division_name)
+                        match_info = self.extract_match_info(match_data, season, division_override=division_name)
 
                         if match_info:
                             success, is_new = self.import_match_with_smart_players(match_info)

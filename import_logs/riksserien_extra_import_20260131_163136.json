@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-01-31T16:31:36.548364",
+  "total_matches": 180,
+  "total_players": 7087,
+  "results": [
+    {
+      "division": "Div 3A",
+      "season": "2024/2025",
+      "status": "ok",
+      "matches": 45,
+      "players": 1798
+    },
+    {
+      "division": "Div 3B",
+      "season": "2024/2025",
+      "status": "ok",
+      "matches": 42,
+      "players": 1674
+    },
+    {
+      "division": "Div 3C",
+      "season": "2024/2025",
+      "status": "ok",
+      "matches": 14,
+      "players": 480
+    },
+    {
+      "division": "Elit",
+      "season": "2023/2024",
+      "status": "ok",
+      "matches": 46,
+      "players": 1826
+    },
+    {
+      "division": "Superettan",
+      "season": "2023/2024",
+      "status": "ok",
+      "matches": 33,
+      "players": 1309
+    },
+    {
+      "division": "Superettan Dam",
+      "season": "2023/2024",
+      "status": "ok",
+      "matches": 0,
+      "players": 0
+    }
+  ]
+}

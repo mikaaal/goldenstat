@@ -236,9 +236,11 @@ function populateFilters(seasons, divisions) {
     }
 
     if (divisionSelect.options.length <= 1) {
-        // Filter out Unknown and sort with same priority as in table
-        const priorityDivisions = ['Superligan', 'SL6', 'SL4'];
+        // Filter out Unknown and sort with league-specific priority
         const filteredDivisions = divisions.filter(d => d && d !== 'Unknown');
+        const priorityDivisions = LEAGUE === 'riksserien'
+            ? ['Elit', 'Elit Dam', 'Superettan', 'Superettan Dam']
+            : ['Superligan', 'SL6', 'SL4'];
         const sortedDivisions = filteredDivisions.sort((a, b) => {
             const priorityA = priorityDivisions.indexOf(a);
             const priorityB = priorityDivisions.indexOf(b);
@@ -313,8 +315,10 @@ function displayMatches() {
                 matchesByDivision[div].push(match);
             });
 
-            // Sort divisions with priority
-            const priorityDivisions = ['Superligan', 'SL6', 'SL4'];
+            // Sort divisions with league-specific priority
+            const priorityDivisions = LEAGUE === 'riksserien'
+                ? ['Elit', 'Elit Dam', 'Superettan', 'Superettan Dam']
+                : ['Superligan', 'SL6', 'SL4'];
             const sortedDivisions = Object.keys(matchesByDivision).sort((a, b) => {
                 const priorityA = priorityDivisions.indexOf(a);
                 const priorityB = priorityDivisions.indexOf(b);

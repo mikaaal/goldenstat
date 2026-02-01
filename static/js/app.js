@@ -264,20 +264,24 @@ class GoldenStat {
     createThrowDistributionChart(canvasId, scoreRanges) {
         if (!scoreRanges || Object.keys(scoreRanges).length === 0) return;
 
-        // Explicit order: low to high, with 100+ last
-        const orderedLabels = ['0-20', '21-40', '41-60', '61-80', '81-99', '100+'];
+        // Explicit order: low to high
+        const orderedLabels = ['26', '41-59', '60', '61-80', '81-99', '100', '101-119', '120-139', '140+'];
         const labels = orderedLabels.filter(label => scoreRanges.hasOwnProperty(label));
         const data = labels.map(label => scoreRanges[label]);
 
-        // Soft, muted colors from low to high scores
-        const colors = [
-            '#e879a0',  // Soft rose - 0-20
-            '#f0a875',  // Soft peach - 21-40
-            '#e8c46e',  // Soft gold - 41-60
-            '#8cc084',  // Soft sage - 61-80
-            '#6cb4c4',  // Soft teal - 81-99
-            '#5a9bcf'   // Soft blue - 100+
-        ];
+        // Colors from low to high scores
+        const colorMap = {
+            '26':     '#f07070',  // Red - the infamous 26
+            '41-59':  '#e8c46e',  // Soft gold
+            '60':     '#d4a017',  // Distinct gold
+            '61-80':  '#8cc084',  // Soft sage
+            '81-99':  '#6cb4c4',  // Soft teal
+            '100':    '#5a9bcf',  // Soft blue
+            '101-119':'#4a7fbf',  // Medium blue
+            '120-139':'#7c6bbf',  // Soft purple
+            '140+':   '#c05a9b'   // Soft magenta
+        };
+        const colors = labels.map(label => colorMap[label]);
 
         const config = {
             type: 'bar',

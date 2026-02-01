@@ -260,7 +260,7 @@ class NewSeasonImporter:
             # Extract sub-match info
             title = submatch_data.get('title', '')
             # AD (Avgörande Dubbel) is always Doubles
-            if 'Doubles' in title or ' AD' in title or title.endswith('AD'):
+            if 'Doubles' in title or 'Dubbel' in title or ' AD' in title or title.endswith('AD'):
                 match_type = 'Doubles'
             else:
                 match_type = 'Singles'
