@@ -10,10 +10,14 @@ Usage:
 import sys
 import os
 import json
+import re
 import time
 import requests
 from datetime import datetime
 from cup_database import CupDatabase
+
+# Regex for common team name separators: " & ", " / ", " + ", " och "
+TEAM_NAME_SEPARATOR = re.compile(r'\s+&\s+|\s+/\s+|\s+\+\s+|\s+och\s+', re.IGNORECASE)
 
 BASE_URL = "https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament"
 
@@ -100,11 +104,8 @@ class CupImporter:
             self.stats['participants'] += 1
 
             # Parse player names and link
-            if team_games == 1 or ' & ' in name:
-                # Doubles: split on " & "
-                player_names = [n.strip() for n in name.split(' & ')]
-            else:
-                player_names = [name]
+            parts = TEAM_NAME_SEPARATOR.split(name)
+            player_names = [n.strip() for n in parts if n.strip()]
 
             for player_name in player_names:
                 player_id = self.db.get_or_create_player(player_name)

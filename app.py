@@ -3699,15 +3699,17 @@ def api_tournament_detail(tid):
                    cm.p1_legs_won, cm.p2_legs_won,
                    cm.p1_average, cm.p2_average,
                    cm.has_detail,
-                   COALESCE(pl1.name, p1.name) as p1_name,
-                   COALESCE(pl2.name, p2.name) as p2_name
+                   COALESCE(
+                       (SELECT GROUP_CONCAT(pl.name, ' & ') FROM participant_players pp
+                        JOIN players pl ON pp.player_id = pl.id
+                        WHERE pp.participant_id = p1.id), p1.name) as p1_name,
+                   COALESCE(
+                       (SELECT GROUP_CONCAT(pl.name, ' & ') FROM participant_players pp
+                        JOIN players pl ON pp.player_id = pl.id
+                        WHERE pp.participant_id = p2.id), p2.name) as p2_name
             FROM cup_matches cm
             JOIN participants p1 ON cm.participant1_id = p1.id
             JOIN participants p2 ON cm.participant2_id = p2.id
-            LEFT JOIN participant_players pp1 ON pp1.participant_id = p1.id
-            LEFT JOIN players pl1 ON pp1.player_id = pl1.id
-            LEFT JOIN participant_players pp2 ON pp2.participant_id = p2.id
-            LEFT JOIN players pl2 ON pp2.player_id = pl2.id
             WHERE cm.tournament_id = ?
             ORDER BY cm.phase, cm.phase_detail, cm.id
         """, (tid,))
@@ -3758,17 +3760,20 @@ def api_tournament_match_detail(mid):
 
         # Match info with normalized player names and tournament start_score
         cursor.execute("""
-            SELECT cm.*, COALESCE(pl1.name, p1.name) as p1_name,
-                   COALESCE(pl2.name, p2.name) as p2_name,
+            SELECT cm.*,
+                   COALESCE(
+                       (SELECT GROUP_CONCAT(pl.name, ' & ') FROM participant_players pp
+                        JOIN players pl ON pp.player_id = pl.id
+                        WHERE pp.participant_id = p1.id), p1.name) as p1_name,
+                   COALESCE(
+                       (SELECT GROUP_CONCAT(pl.name, ' & ') FROM participant_players pp
+                        JOIN players pl ON pp.player_id = pl.id
+                        WHERE pp.participant_id = p2.id), p2.name) as p2_name,
                    t.start_score, t.title as tournament_title
             FROM cup_matches cm
             JOIN participants p1 ON cm.participant1_id = p1.id
             JOIN participants p2 ON cm.participant2_id = p2.id
             JOIN tournaments t ON cm.tournament_id = t.id
-            LEFT JOIN participant_players pp1 ON pp1.participant_id = p1.id
-            LEFT JOIN players pl1 ON pp1.player_id = pl1.id
-            LEFT JOIN participant_players pp2 ON pp2.participant_id = p2.id
-            LEFT JOIN players pl2 ON pp2.player_id = pl2.id
             WHERE cm.id = ?
         """, (mid,))
         match = cursor.fetchone()
@@ -3843,8 +3848,14 @@ def api_tournament_player_matches(player_name):
                    cm.p1_average, cm.p2_average,
                    cm.has_detail,
                    cm.participant1_id, cm.participant2_id,
-                   COALESCE(pl1.name, p1.name) as p1_name,
-                   COALESCE(pl2.name, p2.name) as p2_name,
+                   COALESCE(
+                       (SELECT GROUP_CONCAT(pl.name, ' & ') FROM participant_players pp
+                        JOIN players pl ON pp.player_id = pl.id
+                        WHERE pp.participant_id = p1.id), p1.name) as p1_name,
+                   COALESCE(
+                       (SELECT GROUP_CONCAT(pl.name, ' & ') FROM participant_players pp
+                        JOIN players pl ON pp.player_id = pl.id
+                        WHERE pp.participant_id = p2.id), p2.name) as p2_name,
                    t.title as tournament_title,
                    t.tournament_date,
                    t.start_score,
@@ -3853,11 +3864,13 @@ def api_tournament_player_matches(player_name):
             JOIN participants p1 ON cm.participant1_id = p1.id
             JOIN participants p2 ON cm.participant2_id = p2.id
             JOIN tournaments t ON cm.tournament_id = t.id
-            LEFT JOIN participant_players pp1 ON pp1.participant_id = p1.id
-            LEFT JOIN players pl1 ON pp1.player_id = pl1.id
-            LEFT JOIN participant_players pp2 ON pp2.participant_id = p2.id
-            LEFT JOIN players pl2 ON pp2.player_id = pl2.id
-            WHERE COALESCE(pl1.name, p1.name) = ? OR COALESCE(pl2.name, p2.name) = ?
+            WHERE cm.participant1_id IN (
+                SELECT pp.participant_id FROM participant_players pp
+                JOIN players pl ON pp.player_id = pl.id WHERE pl.name = ?
+            ) OR cm.participant2_id IN (
+                SELECT pp.participant_id FROM participant_players pp
+                JOIN players pl ON pp.player_id = pl.id WHERE pl.name = ?
+            )
             ORDER BY t.tournament_date DESC, cm.phase, cm.phase_detail, cm.id
         """, (player_name, player_name))
         all_matches = [dict(r) for r in cursor.fetchall()]
