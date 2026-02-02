@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}EasyStat - {% if league == 'riksserien' %}Riksserien{% else %}Statistik för seriespel{% endif %}{% endblock %}</title>
+    <title>{% block title %}EasyStat - {% if cups_active %}Cupspel{% elif league == 'riksserien' %}Riksserien{% else %}Statistik för seriespel{% endif %}{% endblock %}</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/gif" href="{{ url_for('static', filename='images/gr2.gif') }}">
@@ -43,30 +43,40 @@
     <!-- Custom CSS -->
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
-<body{% if league == 'riksserien' %} class="riksserien-theme"{% endif %}>
+<body{% if cups_active %} class="cups-theme"{% elif league == 'riksserien' %} class="riksserien-theme"{% endif %}>
     <!-- Header -->
     <header class="header-modern">
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container">
-                <a class="navbar-brand d-flex align-items-center" href="{% if league == 'riksserien' %}/?league=riksserien{% else %}/{% endif %}">
+                <a class="navbar-brand d-flex align-items-center" href="{% if cups_active %}/tournaments{% elif league == 'riksserien' %}/?league=riksserien{% else %}/{% endif %}">
                     <div class="logo-icon me-3">
                         <img src="{{ url_for('static', filename='images/gr.png') }}" alt="EasyStat Logo" class="logo-image">
                     </div>
                     <div class="brand-text">
                         <h1 class="brand-title mb-0">EasyStat [beta]</h1>
-                        <small class="brand-subtitle">{% if league == 'riksserien' %}Riksserien - Statistik{% else %}Dartstatistik & Analys{% endif %}</small>
+                        <small class="brand-subtitle">{% if cups_active %}Cupspel - Statistik{% elif league == 'riksserien' %}Riksserien - Statistik{% else %}Dartstatistik & Analys{% endif %}</small>
                     </div>
                 </a>
                 <div class="league-selector d-flex align-items-center ms-auto">
-                    <a href="/" class="league-btn {% if league != 'riksserien' %}active{% endif %}">👑 Stockholmsserien</a>
-                    <a href="/?league=riksserien" class="league-btn {% if league == 'riksserien' %}active{% endif %}"><svg class="flag-icon" viewBox="0 0 16 10" width="16" height="10"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg> Riksserien</a>
+                    <a href="/" class="league-btn {% if not cups_active and league != 'riksserien' %}active{% endif %}">👑 Stockholmsserien</a>
+                    <a href="/?league=riksserien" class="league-btn {% if not cups_active and league == 'riksserien' %}active{% endif %}"><svg class="flag-icon" viewBox="0 0 16 10" width="16" height="10"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg> Riksserien</a>
+                    <a href="/tournaments" class="league-btn cups-btn {% if cups_active %}active{% endif %}">🏆 Cupspel</a>
                 </div>
             </div>
         </nav>
     </header>
 
     <!-- League Hero Banner -->
-    {% if league == 'riksserien' %}
+    {% if cups_active %}
+    <div class="league-hero cups-hero">
+        <div class="container">
+            <div class="league-hero-content">
+                <span class="league-hero-icon">🏆</span>
+                <h2 class="league-hero-title">Cupspel</h2>
+            </div>
+        </div>
+    </div>
+    {% elif league == 'riksserien' %}
     <div class="league-hero riksserien-hero">
         <div class="container">
             <div class="league-hero-content">
