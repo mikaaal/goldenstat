@@ -1,0 +1,1122 @@
+{% extends "base.html" %}
+
+{% block sticky_tabs %}
+<div class="sticky-tabs">
+    <div class="container">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link{% if request.path in ['/tournaments', '/tournaments/players'] %} active{% endif %}" href="/tournaments">
+                    🔍 Sök spelare
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link{% if request.path in ['/tournaments/list', '/tournaments/tournament', '/tournaments/match'] %} active{% endif %}" href="/tournaments/list">
+                    🏆 Turneringar
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="cups-app">
+    <!-- View 1: Tournament List -->
+    <div id="view-tournaments" class="cups-view d-none">
+        <div class="card fade-in-up">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Turneringar</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-3 pb-0">
+                    <input type="text" id="tournament-filter" class="form-control form-control-sm" placeholder="Filtrera på titel..." oninput="filterTournaments()">
+                </div>
+                <div id="tournaments-loading" class="text-center py-4">
+                    <div class="spinner-border" role="status"></div>
+                </div>
+                <!-- Desktop table -->
+                <div class="table-responsive d-none d-md-block">
+                    <table id="tournaments-table" class="table table-hover mb-0 d-none">
+                        <thead>
+                            <tr>
+                                <th class="text-center sortable-col sortable-header" data-sort="date">Datum <span class="sort-arrow sort-indicator">▼</span></th>
+                                <th class="sortable-col sortable-header" data-sort="title">Titel <span class="sort-arrow sort-indicator"></span></th>
+                                <th class="text-center sortable-col sortable-header" data-sort="participants">Deltagare <span class="sort-arrow sort-indicator"></span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tournaments-body"></tbody>
+                    </table>
+                </div>
+                <!-- Mobile cards -->
+                <div id="tournaments-mobile" class="d-md-none d-none"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View 2: Tournament Detail -->
+    <div id="view-tournament-detail" class="cups-view d-none">
+        <a href="/tournaments/list" class="btn btn-outline-secondary btn-sm mb-3">&larr; Tillbaka till turneringar</a>
+
+        <div id="tournament-loading" class="text-center py-4">
+            <div class="spinner-border" role="status"></div>
+        </div>
+
+        <div id="tournament-content" class="d-none">
+            <!-- Tournament info card -->
+            <div class="card mb-4 fade-in-up">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0" id="detail-title"></h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6 col-md-3 mb-2">
+                            <div class="text-muted small">Datum</div>
+                            <strong id="detail-date"></strong>
+                        </div>
+                        <div class="col-6 col-md-3 mb-2">
+                            <div class="text-muted small">Startpoäng</div>
+                            <strong id="detail-start-score"></strong>
+                        </div>
+                        <div class="col-6 col-md-3 mb-2">
+                            <div class="text-muted small">Deltagare</div>
+                            <strong id="detail-participants"></strong>
+                        </div>
+                        <div class="col-6 col-md-3 mb-2">
+                            <div class="text-muted small">Matcher</div>
+                            <strong id="detail-matches"></strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Participants -->
+            <div class="card mb-4 fade-in-up">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center"
+                     style="cursor:pointer" onclick="toggleCollapse('participants-body')">
+                    <h6 class="mb-0">Deltagare</h6>
+                    <span class="collapse-icon">&#9654;</span>
+                </div>
+                <div id="participants-body" class="collapse-section collapsed">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Namn</th>
+                                        <th class="text-center">Handicap</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="participants-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matches by phase -->
+            <div class="card fade-in-up">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0">Matcher</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs cups-phase-tabs mb-3" id="phase-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-phase="rr" href="#" onclick="switchPhase('rr', event)">Poolspel</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-phase="t" href="#" onclick="switchPhase('t', event)">Slutspel</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-phase="s2" href="#" onclick="switchPhase('s2', event)">B-slutspel</a>
+                        </li>
+                    </ul>
+                    <div id="matches-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View 3: Match Detail -->
+    <div id="view-match-detail" class="cups-view d-none">
+        <button class="btn btn-outline-secondary btn-sm mb-3" onclick="window.history.back()">Tillbaka</button>
+        <a class="btn btn-outline-secondary btn-sm mb-3 d-none" id="btn-to-tournament">Se hela turneringen</a>
+
+        <div id="match-loading" class="text-center py-4">
+            <div class="spinner-border" role="status"></div>
+        </div>
+
+        <div id="match-content" class="d-none">
+            <!-- Match overview: stats cards + result -->
+            <div id="match-overview" class="mb-4"></div>
+            <!-- Legs -->
+            <div id="legs-container"></div>
+        </div>
+    </div>
+
+    <!-- View 4: Player Search -->
+    <div id="view-player-search" class="cups-view d-none">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8">
+                <div class="search-hero">
+                    <h2 class="search-hero-title">🔍 Hitta en spelare</h2>
+                    <div class="search-box-wrapper">
+                        <div class="search-input-wrapper">
+                            <div class="input-group input-group-lg">
+                                <input type="text"
+                                       id="cupPlayerSearch"
+                                       class="form-control"
+                                       placeholder="Skriv namnet här..."
+                                       autocomplete="off">
+                                <button class="btn btn-outline-secondary" type="button" onclick="clearCupPlayerSearch()" id="clearCupPlayerBtn" style="display: none;">
+                                    ✕
+                                </button>
+                                <button class="btn btn-primary" type="button" onclick="searchCupPlayer()">
+                                    🔍 Sök
+                                </button>
+                            </div>
+                            <div id="cupSearchSuggestions" class="list-group" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Results -->
+        <div id="cupPlayerResults" class="mt-4" style="display: none;">
+            <div class="card fade-in-up mb-3">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0" id="cupPlayerResultsTitle">Matcher</h5>
+                    <div class="small mt-1 opacity-75" id="cupPlayerAvgNote"></div>
+                </div>
+            </div>
+            <div id="cupPlayerMatchesContainer"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Cups match overview cards - reuse series match patterns */
+.cups-stats-card {
+    border-radius: 12px;
+    padding: 1.25rem;
+    height: 100%;
+}
+.cups-stats-card-header {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+.cups-stats-card .player-names {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+.cups-stat-highlight {
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+.cups-stat-highlight .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #212529;
+    display: block;
+}
+.cups-stat-highlight .stat-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.cups-stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+.cups-stat-row:last-child { margin-bottom: 0; }
+.cups-stat-item {
+    flex: 1;
+    text-align: center;
+    padding: 0.25rem;
+}
+.cups-stat-item .stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #212529;
+    display: block;
+}
+.cups-stat-item .stat-label {
+    font-size: 0.65rem;
+    color: #6c757d;
+    display: block;
+}
+.cups-winner-card {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 2px solid #34d399;
+}
+.cups-loser-card {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border: 2px solid #f87171;
+}
+.cups-draw-card {
+    background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%);
+    border: 2px solid #facc15;
+}
+.cups-result-center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+.cups-result-score {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #212529;
+}
+.cups-result-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
+}
+
+/* Short set / high finish - same as series matches */
+.cups-short-set-container {
+    background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcf7f, #4d4ae8, #ff6b6b);
+    background-size: 400% 400%;
+    border-radius: 8px;
+    padding: 4px;
+    animation: shortSetGlow 2s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+}
+.cups-short-set-container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shortSetShine 2s ease-in-out infinite;
+}
+.cups-short-set-inner {
+    background: rgba(255,255,255,0.95);
+    border-radius: 4px;
+    padding: 2px;
+    position: relative;
+    z-index: 1;
+}
+.cups-short-set-text {
+    text-shadow: 0 0 10px rgba(255,215,0,0.8);
+    font-weight: bold;
+    color: #d4af37 !important;
+}
+.cups-high-finish-container {
+    background: linear-gradient(45deg, #ff4757, #ff6348, #ff7675, #fd79a8, #fdcb6e, #f39c12);
+    background-size: 300% 300%;
+    border-radius: 8px;
+    padding: 4px;
+    animation: highFinishPulse 1.5s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(255,71,87,0.5);
+}
+.cups-high-finish-container::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+    animation: highFinishRotate 3s linear infinite;
+}
+.cups-high-finish-inner {
+    background: rgba(255,255,255,0.9);
+    border-radius: 4px;
+    padding: 2px;
+    position: relative;
+    z-index: 1;
+}
+.cups-high-finish-text {
+    text-shadow: 0 0 8px rgba(255,71,87,0.9);
+    font-weight: bold;
+    color: #e74c3c !important;
+}
+
+/* Cups avg badge - inline with name */
+.cups-avg-badge {
+    font-weight: 700;
+    color: #495057;
+    font-size: 0.85em;
+}
+
+@media (max-width: 767px) {
+    .cups-stats-card { padding: 0.75rem; }
+    .cups-stat-highlight .stat-value { font-size: 1.5rem; }
+    .cups-result-score { font-size: 1.8rem; }
+    .cups-avg-badge { font-size: 0.75em; }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ============= URL-based routing =============
+const urlParams = new URLSearchParams(window.location.search);
+const PAGE_PATH = window.location.pathname;
+
+// State for tournament detail (needed for phase tabs)
+let tournamentData = null;
+let currentPhase = 'rr';
+
+// ============= Collapsible sections =============
+function toggleCollapse(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle('collapsed');
+    const icon = el.previousElementSibling.querySelector('.collapse-icon');
+    if (icon) icon.textContent = el.classList.contains('collapsed') ? '\u25B6' : '\u25BC';
+}
+
+// ============= Score helpers (same as series matches) =============
+function getScoreClass(score) {
+    const s = Math.abs(score);
+    if (s === 180) return 'score-180';
+    if (s >= 140) return 'score-140-179';
+    if (s >= 101) return 'score-101-139';
+    if (s === 100) return 'score-100';
+    if (s >= 61) return 'score-61-99';
+    if (s === 60) return 'score-60';
+    return 'score-under-60';
+}
+
+function calculateTotalDarts(throws) {
+    let total = 0;
+    throws.forEach(t => { total += t.darts_used || 3; });
+    return total;
+}
+
+function knockoutRoundName(posFromEnd) {
+    switch (posFromEnd) {
+        case 0: return 'Final';
+        case 1: return 'Semifinal';
+        case 2: return 'Kvartsfinal';
+        case 3: return '8-delsfinal';
+        case 4: return '16-delsfinal';
+        case 5: return '32-delsfinal';
+        default: return 'Omgång ' + (posFromEnd + 1);
+    }
+}
+
+function phaseBadgeClass(label) {
+    if (!label) return 'bg-secondary';
+    const isB = label.startsWith('B-');
+    const l = label.replace(/^B-/, '');
+    if (l === 'Final') return isB ? 'bg-cups-b-final' : 'bg-cups-final';
+    if (l === 'Semifinal') return isB ? 'bg-cups-b-semi' : 'bg-cups-semi';
+    if (l === 'Kvartsfinal') return isB ? 'bg-cups-b-quarter' : 'bg-cups-quarter';
+    if (l.includes('delsfinal')) return isB ? 'bg-cups-b-knockout' : 'bg-cups-knockout';
+    if (l === 'Poolspel') return 'bg-cups-pool';
+    return 'bg-secondary';
+}
+
+function makePlayerClickable(name) {
+    if (!name) return '';
+    // Split on " & " for doubles - make each player individually clickable
+    return name.split(' & ').map(p => {
+        const trimmed = p.trim();
+        const escaped = esc(trimmed);
+        return `<span class="player-link" onclick="event.stopPropagation(); window.location.href='/tournaments/players?name=${encodeURIComponent(trimmed)}'" title="Se matcher för ${trimmed}">${escaped}</span>`;
+    }).join(' &amp; ');
+}
+
+function isShortSet(totalDarts, startScore) {
+    if (startScore && startScore <= 301) return totalDarts <= 9;
+    return totalDarts <= 18;
+}
+function isHighFinish(score) { return Math.abs(score) >= 100; }
+function pluralizeDarts(n) { return n === 1 ? 'pil' : 'pilar'; }
+
+// ============= View 1: Tournament List =============
+let tournamentListData = [];
+let tournamentSort = { key: 'date', dir: -1 }; // default: newest first
+
+function filterTournaments() {
+    const query = document.getElementById('tournament-filter').value.toLowerCase().trim();
+    const filtered = query
+        ? tournamentListData.filter(t => (t.title || '').toLowerCase().includes(query))
+        : tournamentListData;
+    const sorted = sortTournaments(filtered, tournamentSort.key, tournamentSort.dir);
+    renderTournamentList(sorted);
+}
+
+function sortTournaments(data, key, dir) {
+    return [...data].sort((a, b) => {
+        let va, vb;
+        if (key === 'date') {
+            va = a.tournament_date || '';
+            vb = b.tournament_date || '';
+        } else if (key === 'title') {
+            va = (a.title || '').toLowerCase();
+            vb = (b.title || '').toLowerCase();
+        } else if (key === 'participants') {
+            va = a.participant_count || 0;
+            vb = b.participant_count || 0;
+        }
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+    });
+}
+
+function renderTournamentList(data) {
+    const tbody = document.getElementById('tournaments-body');
+    tbody.innerHTML = '';
+    let mobileHtml = '';
+    data.forEach(t => {
+        const date = t.tournament_date ? new Date(t.tournament_date).toLocaleDateString('sv-SE') : '-';
+        const url = `/tournaments/tournament?id=${t.id}`;
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => { window.location.href = url; };
+        tr.innerHTML = `
+            <td class="text-center">${date}</td>
+            <td>${esc(t.title)}</td>
+            <td class="text-center">${t.participant_count}</td>
+        `;
+        tbody.appendChild(tr);
+
+        mobileHtml += `
+            <a href="${url}" class="tournament-mobile-card">
+                <small class="text-muted">${date}</small>
+                <div class="fw-bold">${esc(t.title)}</div>
+            </a>`;
+    });
+    document.getElementById('tournaments-mobile').innerHTML = mobileHtml;
+
+    // Update sort arrows
+    document.querySelectorAll('.sortable-col').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (th.dataset.sort === tournamentSort.key) {
+            arrow.textContent = tournamentSort.dir === -1 ? '▼' : '▲';
+        } else {
+            arrow.textContent = '';
+        }
+    });
+}
+
+function onSortClick(key) {
+    if (tournamentSort.key === key) {
+        tournamentSort.dir *= -1;
+    } else {
+        tournamentSort.key = key;
+        tournamentSort.dir = key === 'title' ? 1 : -1;
+    }
+    filterTournaments();
+}
+
+async function initTournamentList() {
+    document.getElementById('view-tournaments').classList.remove('d-none');
+    try {
+        const resp = await fetch('/api/tournaments');
+        tournamentListData = await resp.json();
+        const sorted = sortTournaments(tournamentListData, tournamentSort.key, tournamentSort.dir);
+        renderTournamentList(sorted);
+
+        document.querySelectorAll('.sortable-col').forEach(th => {
+            th.addEventListener('click', () => onSortClick(th.dataset.sort));
+        });
+
+        document.getElementById('tournaments-loading').classList.add('d-none');
+        document.getElementById('tournaments-table').classList.remove('d-none');
+        document.getElementById('tournaments-mobile').classList.remove('d-none');
+    } catch (e) {
+        document.getElementById('tournaments-loading').innerHTML =
+            '<div class="text-danger">Kunde inte ladda turneringar</div>';
+    }
+}
+
+// ============= View 2: Tournament Detail =============
+async function initTournamentDetail() {
+    const id = urlParams.get('id');
+    if (!id) { window.location.href = '/tournaments/list'; return; }
+
+    document.getElementById('view-tournament-detail').classList.remove('d-none');
+
+    try {
+        const resp = await fetch(`/api/tournaments/${id}`);
+        const data = await resp.json();
+        if (resp.status === 404) { window.location.href = '/tournaments/list'; return; }
+        tournamentData = data;
+
+        const t = data.tournament;
+        const date = t.tournament_date ? new Date(t.tournament_date).toLocaleDateString('sv-SE') : '-';
+        document.getElementById('detail-title').textContent = t.title;
+        document.getElementById('detail-date').textContent = date;
+        document.getElementById('detail-start-score').textContent = t.start_score;
+        document.getElementById('detail-participants').textContent = data.participants.length;
+
+        const totalMatches = (data.matches.rr || []).reduce((s, g) => s + g.matches.length, 0)
+            + (data.matches.t || []).reduce((s, g) => s + g.matches.length, 0)
+            + (data.matches.s2 || []).reduce((s, g) => s + g.matches.length, 0);
+        document.getElementById('detail-matches').textContent = totalMatches;
+
+        // Participants table
+        const ptbody = document.getElementById('participants-table');
+        ptbody.innerHTML = '';
+        data.participants.forEach((p, i) => {
+            const tr = document.createElement('tr');
+            const handicap = p.start_score !== null && p.start_score !== undefined ? p.start_score : '-';
+            tr.innerHTML = `
+                <td>${i + 1}</td>
+                <td>${esc(p.players || p.name)}</td>
+                <td class="text-center">${handicap}</td>
+            `;
+            ptbody.appendChild(tr);
+        });
+
+        // Show/hide phase tabs based on available data
+        document.querySelector('[data-phase="rr"]').parentElement.style.display =
+            (data.matches.rr && data.matches.rr.length) ? '' : 'none';
+        document.querySelector('[data-phase="t"]').parentElement.style.display =
+            (data.matches.t && data.matches.t.length) ? '' : 'none';
+        document.querySelector('[data-phase="s2"]').parentElement.style.display =
+            (data.matches.s2 && data.matches.s2.length) ? '' : 'none';
+
+        // Default to first available phase
+        if (data.matches.rr && data.matches.rr.length) switchPhase('rr');
+        else if (data.matches.t && data.matches.t.length) switchPhase('t');
+        else if (data.matches.s2 && data.matches.s2.length) switchPhase('s2');
+
+        document.getElementById('tournament-loading').classList.add('d-none');
+        document.getElementById('tournament-content').classList.remove('d-none');
+    } catch (e) {
+        document.getElementById('tournament-loading').innerHTML =
+            '<div class="text-danger">Kunde inte ladda turneringsdata</div>';
+    }
+}
+
+function switchPhase(phase, event) {
+    if (event) event.preventDefault();
+    currentPhase = phase;
+    document.querySelectorAll('#phase-tabs .nav-link').forEach(a => a.classList.remove('active'));
+    const tab = document.querySelector(`[data-phase="${phase}"]`);
+    if (tab) tab.classList.add('active');
+    renderMatches();
+}
+
+function fmtAvg(val) {
+    return val != null ? val.toFixed(2) : '';
+}
+
+function renderMatches() {
+    if (!tournamentData) return;
+    const container = document.getElementById('matches-content');
+    const groups = tournamentData.matches[currentPhase] || [];
+
+    if (!groups.length) {
+        container.innerHTML = '<div class="text-muted">Inga matcher i denna fas</div>';
+        return;
+    }
+
+    const isRR = currentPhase === 'rr';
+
+    let html = '';
+    groups.forEach(g => {
+        const key = isRR ? g.group : g.round;
+        let groupLabel;
+        if (isRR) {
+            groupLabel = 'Pool ' + (parseInt(key) + 1);
+        } else {
+            const posFromEnd = groups.length - 1 - groups.indexOf(g);
+            groupLabel = knockoutRoundName(posFromEnd);
+        }
+        html += `<div class="mb-4">`;
+        html += `<h6 class="cups-group-header">${groupLabel}</h6>`;
+        html += `<div class="table-responsive"><table class="table table-sm table-hover cups-match-table">`;
+        html += `<colgroup><col style="width:45%"><col style="width:10%"><col style="width:45%"></colgroup>`;
+        html += `<tbody>`;
+
+        g.matches.forEach(m => {
+            const p1Win = m.p1_legs_won > m.p2_legs_won;
+            const p2Win = m.p2_legs_won > m.p1_legs_won;
+            const hasDetail = m.has_detail;
+            const matchUrl = `/tournaments/match?id=${m.id}`;
+
+            const p1Avg = fmtAvg(m.p1_average);
+            const p2Avg = fmtAvg(m.p2_average);
+            const p1Display = esc(m.p1_name) + (p1Avg ? `<br><span class="cups-avg-badge">${p1Avg}</span>` : '');
+            const p2Display = esc(m.p2_name) + (p2Avg ? `<br><span class="cups-avg-badge">${p2Avg}</span>` : '');
+
+            html += `<tr${hasDetail ? ` style="cursor:pointer" onclick="window.location.href='${matchUrl}'"` : ''}>
+                <td class="text-end align-middle ${p1Win ? 'fw-bold' : ''}">${p1Display}</td>
+                <td class="text-center fw-bold align-middle">${m.p1_legs_won}-${m.p2_legs_won}</td>
+                <td class="align-middle ${p2Win ? 'fw-bold' : ''}">${p2Display}</td>
+            </tr>`;
+        });
+
+        html += `</tbody></table></div></div>`;
+    });
+
+    container.innerHTML = html;
+}
+
+// ============= View 3: Match Detail =============
+async function initMatchDetail() {
+    const matchId = urlParams.get('id');
+    if (!matchId) { window.location.href = '/tournaments/list'; return; }
+
+    document.getElementById('view-match-detail').classList.remove('d-none');
+
+    try {
+        const resp = await fetch(`/api/tournaments/match/${matchId}`);
+        const data = await resp.json();
+        if (resp.status === 404) { window.location.href = '/tournaments/list'; return; }
+        const m = data.match;
+
+        // "Se hela turneringen" button
+        const btnTournament = document.getElementById('btn-to-tournament');
+        btnTournament.href = `/tournaments/tournament?id=${m.tournament_id}`;
+        btnTournament.classList.remove('d-none');
+
+        const startScore = m.start_score;
+
+        const p1Won = m.p1_legs_won > m.p2_legs_won;
+        const p2Won = m.p2_legs_won > m.p1_legs_won;
+        const p1Icon = p1Won ? '🥳' : (p2Won ? '😢' : '🤝');
+        const p2Icon = p2Won ? '🥳' : (p1Won ? '😢' : '🤝');
+        const p1Card = p1Won ? 'cups-winner-card' : (p2Won ? 'cups-loser-card' : 'cups-draw-card');
+        const p2Card = p2Won ? 'cups-winner-card' : (p1Won ? 'cups-loser-card' : 'cups-draw-card');
+
+        // Compute per-player stats from legs
+        const p1Stats = { throws100: 0, throws140: 0, throws180: 0, first9Total: 0, first9Count: 0, shortLegs: [], highFinishes: [] };
+        const p2Stats = { throws100: 0, throws140: 0, throws180: 0, first9Total: 0, first9Count: 0, shortLegs: [], highFinishes: [] };
+
+        if (data.legs && data.legs.length) {
+            data.legs.forEach(leg => {
+                const s1Throws = leg.throws.filter(t => t.side_number === 1);
+                const s2Throws = leg.throws.filter(t => t.side_number === 2);
+
+                [s1Throws, s2Throws].forEach((throws, idx) => {
+                    const stats = idx === 0 ? p1Stats : p2Stats;
+                    throws.forEach(t => {
+                        const s = Math.abs(t.score);
+                        if (s === 180) stats.throws180++;
+                        else if (s >= 140) stats.throws140++;
+                        else if (s >= 100) stats.throws100++;
+                    });
+
+                    // First 9 darts average (first 3 rounds, per-round avg across all legs)
+                    const first3 = throws.filter(t => t.round_number <= 3);
+                    first3.forEach(t => {
+                        stats.first9Total += Math.abs(t.score);
+                        stats.first9Count++;
+                    });
+
+                    // Short legs and high finishes for winner
+                    const winnerSide = leg.winner_side;
+                    if ((idx === 0 && winnerSide === 1) || (idx === 1 && winnerSide === 2)) {
+                        const totalDarts = calculateTotalDarts(throws);
+                        if (isShortSet(totalDarts, startScore)) stats.shortLegs.push(totalDarts);
+                        const lastThrow = throws[throws.length - 1];
+                        if (lastThrow && isHighFinish(lastThrow.score)) {
+                            stats.highFinishes.push(Math.abs(lastThrow.score));
+                        }
+                    }
+                });
+            });
+        }
+
+        const p1First9 = p1Stats.first9Count > 0 ? (p1Stats.first9Total / p1Stats.first9Count).toFixed(2) : '-';
+        const p2First9 = p2Stats.first9Count > 0 ? (p2Stats.first9Total / p2Stats.first9Count).toFixed(2) : '-';
+
+        // Match overview (same layout as series matches)
+        document.getElementById('match-overview').innerHTML = `
+        <div class="row g-3 align-items-stretch fade-in-up">
+            <div class="col-md-5">
+                <div class="cups-stats-card ${p1Card}">
+                    <div class="cups-stats-card-header">${p1Icon} ${makePlayerClickable(m.p1_name)}</div>
+                    <div class="cups-stat-highlight">
+                        <span class="stat-value">${m.p1_average != null ? m.p1_average.toFixed(2) : 'N/A'}</span>
+                        <span class="stat-label">Snitt</span>
+                    </div>
+                    <div class="cups-stat-row">
+                        <div class="cups-stat-item"><span class="stat-value">${p1Stats.throws100}</span><span class="stat-label">100+</span></div>
+                        <div class="cups-stat-item"><span class="stat-value">${p1Stats.throws140}</span><span class="stat-label">140+</span></div>
+                        <div class="cups-stat-item"><span class="stat-value">${p1Stats.throws180}</span><span class="stat-label">180</span></div>
+                    </div>
+                    <div class="cups-stat-row">
+                        <div class="cups-stat-item"><span class="stat-value">${p1First9}</span><span class="stat-label">Första 9</span></div>
+                        <div class="cups-stat-item"><span class="stat-value">${p1Stats.shortLegs.length ? p1Stats.shortLegs.join(', ') : '-'}</span><span class="stat-label">Korta legs</span></div>
+                        <div class="cups-stat-item"><span class="stat-value">${p1Stats.highFinishes.length ? p1Stats.highFinishes.join(', ') : '-'}</span><span class="stat-label">Höga utg.</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="cups-result-center">
+                    <div class="cups-result-score">${m.p1_legs_won} - ${m.p2_legs_won}</div>
+                    <div class="cups-result-label">Resultat</div>
+                </div>
+            </div>
+            <div class="col-md-5">
+                <div class="cups-stats-card ${p2Card}">
+                    <div class="cups-stats-card-header">${p2Icon} ${makePlayerClickable(m.p2_name)}</div>
+                    <div class="cups-stat-highlight">
+                        <span class="stat-value">${m.p2_average != null ? m.p2_average.toFixed(2) : 'N/A'}</span>
+                        <span class="stat-label">Snitt</span>
+                    </div>
+                    <div class="cups-stat-row">
+                        <div class="cups-stat-item"><span class="stat-value">${p2Stats.throws100}</span><span class="stat-label">100+</span></div>
+                        <div class="cups-stat-item"><span class="stat-value">${p2Stats.throws140}</span><span class="stat-label">140+</span></div>
+                        <div class="cups-stat-item"><span class="stat-value">${p2Stats.throws180}</span><span class="stat-label">180</span></div>
+                    </div>
+                    <div class="cups-stat-row">
+                        <div class="cups-stat-item"><span class="stat-value">${p2First9}</span><span class="stat-label">Första 9</span></div>
+                        <div class="cups-stat-item"><span class="stat-value">${p2Stats.shortLegs.length ? p2Stats.shortLegs.join(', ') : '-'}</span><span class="stat-label">Korta legs</span></div>
+                        <div class="cups-stat-item"><span class="stat-value">${p2Stats.highFinishes.length ? p2Stats.highFinishes.join(', ') : '-'}</span><span class="stat-label">Höga utg.</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+        // Legs
+        const container = document.getElementById('legs-container');
+
+        if (!data.legs || !data.legs.length) {
+            container.innerHTML = '<div class="text-muted">Ingen detaljdata tillgänglig</div>';
+            document.getElementById('match-loading').classList.add('d-none');
+            document.getElementById('match-content').classList.remove('d-none');
+            return;
+        }
+
+        let legsHtml = '';
+        data.legs.forEach(leg => {
+            const winnerName = leg.winner_side === 1 ? m.p1_name : m.p2_name;
+
+            legsHtml += `
+            <div class="card mb-4 fade-in-up">
+                <div class="card-header bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">Leg ${leg.leg_number}</h6>
+                        <span class="badge bg-success">${esc(winnerName)}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th class="text-primary text-center" style="width: 40%">${makePlayerClickable(m.p1_name)}</th>
+                                    <th class="text-center bg-light" style="width: 20%">Pilar</th>
+                                    <th class="text-danger text-center" style="width: 40%">${makePlayerClickable(m.p2_name)}</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+            const s1Throws = leg.throws.filter(t => t.side_number === 1).sort((a, b) => a.round_number - b.round_number);
+            const s2Throws = leg.throws.filter(t => t.side_number === 2).sort((a, b) => a.round_number - b.round_number);
+            const maxRounds = Math.max(s1Throws.length, s2Throws.length);
+
+            for (let r = 0; r < maxRounds; r++) {
+                const t1 = s1Throws[r];
+                const t2 = s2Throws[r];
+                const dartCount = (r + 1) * 3;
+
+                legsHtml += '<tr>';
+                legsHtml += renderThrowCell(t1, s1Throws, 'left', startScore);
+                legsHtml += `<td class="text-center bg-light fw-bold">${dartCount}</td>`;
+                legsHtml += renderThrowCell(t2, s2Throws, 'right', startScore);
+                legsHtml += '</tr>';
+            }
+
+            legsHtml += `</tbody></table></div></div></div>`;
+        });
+
+        container.innerHTML = legsHtml;
+        document.getElementById('match-loading').classList.add('d-none');
+        document.getElementById('match-content').classList.remove('d-none');
+    } catch (e) {
+        document.getElementById('match-loading').innerHTML =
+            '<div class="text-danger">Kunde inte ladda matchdata</div>';
+    }
+}
+
+function renderThrowCell(throwData, allThrows, side, startScore) {
+    if (!throwData) return '<td></td>';
+
+    const score = throwData.score;
+    const scoreClass = getScoreClass(score);
+    const isWin = throwData.remaining_score === 0;
+    const displayScore = isWin ? `🏆 ${throwData.darts_used || 3} ${pluralizeDarts(throwData.darts_used || 3)}` : score;
+    const winClass = isWin ? 'bg-success bg-opacity-25' : '';
+
+    let dartInfo = '';
+    let containerClass = 'd-flex justify-content-center align-items-center';
+    let textClass = 'text-muted';
+    let isSpecial = false;
+    let isShort = false;
+    let isHigh = false;
+
+    if (isWin) {
+        const totalDarts = calculateTotalDarts(allThrows);
+        isShort = isShortSet(totalDarts, startScore);
+        isHigh = isHighFinish(score);
+        const shortInd = isShort ? ' ⚡' : '';
+        const highInd = isHigh ? ' 🔥' : '';
+        dartInfo = `🎯 ${totalDarts} ${pluralizeDarts(totalDarts)}${shortInd}${highInd}`;
+        if (isShort) { containerClass = 'cups-short-set-container'; textClass = 'cups-short-set-text'; isSpecial = true; }
+        else if (isHigh) { containerClass = 'cups-high-finish-container'; textClass = 'cups-high-finish-text'; isSpecial = true; }
+    } else {
+        dartInfo = throwData.remaining_score;
+    }
+
+    const scoreCard = `<div class="card ${scoreClass} px-2 py-1" style="min-width: 60px;"><div class="fw-bold">${displayScore}</div></div>`;
+    const infoEl = `<small class="${textClass}">${dartInfo}</small>`;
+
+    let innerContent;
+    if (side === 'left') {
+        innerContent = `${scoreCard}<span class="ms-2">${infoEl}</span>`;
+    } else {
+        innerContent = `<span class="me-2">${infoEl}</span>${scoreCard}`;
+    }
+
+    if (isWin && isSpecial) {
+        const innerClass = isShort ? 'cups-short-set-inner' : 'cups-high-finish-inner';
+        return `<td class="text-center ${winClass}"><div class="${containerClass}"><div class="${innerClass} d-flex justify-content-center align-items-center">${innerContent}</div></div></td>`;
+    }
+    return `<td class="text-center ${winClass}"><div class="${containerClass}">${innerContent}</div></td>`;
+}
+
+// ============= View 4: Player Search =============
+let cupPlayerNames = [];
+
+async function initPlayerSearch() {
+    document.getElementById('view-player-search').classList.remove('d-none');
+
+    // Load player names for autocomplete
+    try {
+        const resp = await fetch('/api/tournaments/players');
+        cupPlayerNames = await resp.json();
+    } catch (e) { /* autocomplete won't work, search still will */ }
+
+    const input = document.getElementById('cupPlayerSearch');
+    input.addEventListener('input', onCupPlayerInput);
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') searchCupPlayer();
+    });
+
+    // Check for pre-selected player from URL
+    const preselected = urlParams.get('name');
+    if (preselected) {
+        input.value = preselected;
+        searchCupPlayer();
+    }
+}
+
+function onCupPlayerInput() {
+    const val = document.getElementById('cupPlayerSearch').value.trim().toLowerCase();
+    const sugBox = document.getElementById('cupSearchSuggestions');
+    const clearBtn = document.getElementById('clearCupPlayerBtn');
+
+    clearBtn.style.display = val ? '' : 'none';
+
+    if (val.length < 2) {
+        sugBox.style.display = 'none';
+        return;
+    }
+
+    const matches = cupPlayerNames.filter(n => n.toLowerCase().includes(val)).slice(0, 8);
+    if (!matches.length) {
+        sugBox.style.display = 'none';
+        return;
+    }
+
+    sugBox.innerHTML = matches.map(n =>
+        `<a href="#" class="list-group-item list-group-item-action" onclick="selectCupPlayer('${esc(n)}'); return false;">${esc(n)}</a>`
+    ).join('');
+    sugBox.style.display = '';
+}
+
+function selectCupPlayer(name) {
+    document.getElementById('cupPlayerSearch').value = name;
+    document.getElementById('cupSearchSuggestions').style.display = 'none';
+    searchCupPlayer();
+}
+
+function clearCupPlayerSearch() {
+    document.getElementById('cupPlayerSearch').value = '';
+    document.getElementById('clearCupPlayerBtn').style.display = 'none';
+    document.getElementById('cupSearchSuggestions').style.display = 'none';
+}
+
+function clearCupPlayerResults() {
+    document.getElementById('cupPlayerResults').style.display = 'none';
+}
+
+async function searchCupPlayer() {
+    const name = document.getElementById('cupPlayerSearch').value.trim();
+    if (!name) return;
+
+    document.getElementById('cupSearchSuggestions').style.display = 'none';
+    document.getElementById('clearCupPlayerBtn').style.display = '';
+
+    // Track search
+    fetch('/api/track-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: name, context: 'tournaments' })
+    }).catch(err => console.debug('Search tracking failed:', err));
+
+    try {
+        const resp = await fetch(`/api/tournaments/player/${encodeURIComponent(name)}`);
+        const data = await resp.json();
+
+        if (!data.matches || !data.matches.length) {
+            document.getElementById('cupPlayerResultsTitle').textContent = `Inga matcher hittades för "${name}"`;
+            document.getElementById('cupPlayerMatchesContainer').innerHTML = '';
+            document.getElementById('cupPlayerResults').style.display = '';
+            return;
+        }
+
+        const playerName = data.player_name;
+
+        // Summary stats
+        let wins = 0, losses = 0, totalAvg = 0, avgCount = 0;
+        data.matches.forEach(m => {
+            const isP1 = m.p1_name.includes(playerName);
+            const pLegs = isP1 ? m.p1_legs_won : m.p2_legs_won;
+            const oLegs = isP1 ? m.p2_legs_won : m.p1_legs_won;
+            const avg = isP1 ? m.p1_average : m.p2_average;
+            if (pLegs > oLegs) wins++;
+            else if (oLegs > pLegs) losses++;
+            // Only count 501 singles for average
+            const doublesPattern = /\s+&\s+|\s*\/\s*|\s+\+\s+|\s+och\s+/i;
+            const isSingles = !doublesPattern.test(m.p1_name) && !doublesPattern.test(m.p2_name);
+            if (avg != null && isSingles && m.start_score === 501) { totalAvg += avg; avgCount++; }
+        });
+
+        const avgStr = avgCount > 0 ? (totalAvg / avgCount).toFixed(2) : '-';
+        document.getElementById('cupPlayerResultsTitle').textContent =
+            `${playerName} — ${data.matches.length} matcher (${wins}V / ${losses}F) — Snitt: ${avgStr}`;
+        document.getElementById('cupPlayerAvgNote').textContent =
+            avgCount > 0 ? `Snitt baserat på ${avgCount} singelmatcher (501:or utan handicap)` : 'Inga singelmatcher (501) att beräkna snitt på';
+
+        // Group matches by tournament
+        const grouped = [];
+        let currentGroup = null;
+        data.matches.forEach(m => {
+            if (!currentGroup || currentGroup.tournament_id !== m.tournament_id) {
+                currentGroup = {
+                    tournament_id: m.tournament_id,
+                    title: m.tournament_title,
+                    date: m.tournament_date,
+                    matches: []
+                };
+                grouped.push(currentGroup);
+            }
+            currentGroup.matches.push(m);
+        });
+
+        // Render grouped cards
+        const container = document.getElementById('cupPlayerMatchesContainer');
+        let html = '';
+        grouped.forEach(g => {
+            const date = g.date ? new Date(g.date).toLocaleDateString('sv-SE') : '';
+            html += `<div class="card mb-3 fade-in-up">
+                <div class="card-header bg-dark bg-opacity-75 text-white d-flex justify-content-between align-items-center"
+                     style="cursor:pointer" onclick="window.location.href='/tournaments/tournament?id=${g.tournament_id}'">
+                    <h6 class="mb-0">${esc(g.title)}</h6>
+                    <small>${date}</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive d-none d-md-block">
+                        <table class="table table-hover table-sm mb-0">
+                            <colgroup><col style="width:25%"><col style="width:30%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>
+                            <tbody>`;
+
+            let mobileCards = '';
+            g.matches.forEach(m => {
+                const isP1 = m.p1_name.includes(playerName);
+                const opponent = isP1 ? m.p2_name : m.p1_name;
+                const pLegs = isP1 ? m.p1_legs_won : m.p2_legs_won;
+                const oLegs = isP1 ? m.p2_legs_won : m.p1_legs_won;
+                const avg = isP1 ? m.p1_average : m.p2_average;
+                const won = pLegs > oLegs;
+                const lost = oLegs > pLegs;
+                const matchUrl = `/tournaments/match?id=${m.id}`;
+                const clickAttr = m.has_detail ? ` style="cursor:pointer" onclick="window.location.href='${matchUrl}'"` : '';
+
+                // Desktop row
+                html += `<tr${clickAttr}>
+                    <td><span class="badge ${phaseBadgeClass(m.phase_label)}">${esc(m.phase_label)}</span></td>
+                    <td>${esc(opponent)}</td>
+                    <td class="text-center fw-bold">${pLegs}-${oLegs}</td>
+                    <td class="text-center">${avg != null ? avg.toFixed(2) : '-'}</td>
+                    <td class="text-center">
+                        <span class="badge ${won ? 'bg-success' : lost ? 'bg-danger' : 'bg-warning'}">${won ? 'Vinst' : lost ? 'Förlust' : 'Oavgjort'}</span>
+                    </td>
+                </tr>`;
+
+                // Mobile card
+                mobileCards += `
+                <div class="player-match-mobile-card"${clickAttr}>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge ${phaseBadgeClass(m.phase_label)}">${esc(m.phase_label)}</span>
+                        <span class="badge ${won ? 'bg-success' : lost ? 'bg-danger' : 'bg-warning'}">${won ? 'Vinst' : lost ? 'Förlust' : 'Oavgjort'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold">${esc(opponent)}</div>
+                        <div class="text-end">
+                            <span class="fw-bold">${pLegs}-${oLegs}</span>
+                            ${avg != null ? `<small class="text-muted ms-2">${avg.toFixed(2)}</small>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            html += `</tbody></table></div>
+                <div class="d-md-none">${mobileCards}</div>
+            </div></div>`;
+        });
+
+        container.innerHTML = html;
+        document.getElementById('cupPlayerResults').style.display = '';
+    } catch (e) {
+        document.getElementById('cupPlayerResultsTitle').textContent = 'Kunde inte söka';
+        document.getElementById('cupPlayerMatchesContainer').innerHTML = '';
+        document.getElementById('cupPlayerResults').style.display = '';
+    }
+}
+
+// ============= Helpers =============
+function esc(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
+// ============= Tracking =============
+function trackPageView(page) {
+    fetch('/api/track-pageview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: page, context: 'tournaments' })
+    }).catch(err => console.debug('Pageview tracking failed:', err));
+}
+
+// ============= Router =============
+if (PAGE_PATH === '/tournaments/match') {
+    trackPageView('tournaments/match');
+    initMatchDetail();
+} else if (PAGE_PATH === '/tournaments/tournament') {
+    trackPageView('tournaments/tournament');
+    initTournamentDetail();
+} else if (PAGE_PATH === '/tournaments/list') {
+    trackPageView('tournaments/list');
+    initTournamentList();
+} else {
+    trackPageView('tournaments/players');
+    initPlayerSearch();
+}
+</script>
+{% endblock %}

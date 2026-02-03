@@ -50,6 +50,12 @@
         <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert" aria-label="Close" onclick="this.closest('.news-banner').style.display='none'"></button>
     </div>
     <div class="news-banner-body">
+        <a href="/tournaments" class="news-item-link" onclick="trackClick('news_cupstatistik')">
+            <span class="news-item-icon">🏆</span>
+            <div>
+                <strong>Cupstatistik</strong> - Nu finns detaljerad statistik från cuper och turneringar! Sök spelare, se matcher, legs och kaststatistik.
+            </div>
+        </a>
         {% if league == 'riksserien' %}
         <a href="/series_matches?league=riksserien" class="news-item-link" onclick="trackClick('news_seriematcher_riksserien')">
             <span class="news-item-icon">📋</span>
