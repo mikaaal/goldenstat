@@ -5,13 +5,13 @@
     <div class="container">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <a class="nav-link{% if request.path in ['/tournaments', '/tournaments/tournament', '/tournaments/match'] %} active{% endif %}" href="/tournaments">
-                    🏆 Turneringar
+                <a class="nav-link{% if request.path in ['/tournaments', '/tournaments/players'] %} active{% endif %}" href="/tournaments">
+                    🔍 Sök spelare
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link{% if request.path == '/tournaments/players' %} active{% endif %}" href="/tournaments/players">
-                    🔍 Sök spelare
+                <a class="nav-link{% if request.path in ['/tournaments/list', '/tournaments/tournament', '/tournaments/match'] %} active{% endif %}" href="/tournaments/list">
+                    🏆 Turneringar
                 </a>
             </li>
         </ul>
@@ -28,31 +28,34 @@
                 <h5 class="mb-0">Turneringar</h5>
             </div>
             <div class="card-body p-0">
+                <div class="p-3 pb-0">
+                    <input type="text" id="tournament-filter" class="form-control form-control-sm" placeholder="Filtrera på titel..." oninput="filterTournaments()">
+                </div>
                 <div id="tournaments-loading" class="text-center py-4">
                     <div class="spinner-border" role="status"></div>
                 </div>
-                <div class="table-responsive">
+                <!-- Desktop table -->
+                <div class="table-responsive d-none d-md-block">
                     <table id="tournaments-table" class="table table-hover mb-0 d-none">
                         <thead>
                             <tr>
-                                <th>Titel</th>
-                                <th class="text-center">Datum</th>
-                                <th class="text-center">Startpoäng</th>
-                                <th class="text-center">Deltagare</th>
-                                <th class="text-center">Matcher</th>
-                                <th class="text-center">Legs</th>
+                                <th class="text-center sortable-col sortable-header" data-sort="date">Datum <span class="sort-arrow sort-indicator">▼</span></th>
+                                <th class="sortable-col sortable-header" data-sort="title">Titel <span class="sort-arrow sort-indicator"></span></th>
+                                <th class="text-center sortable-col sortable-header" data-sort="participants">Deltagare <span class="sort-arrow sort-indicator"></span></th>
                             </tr>
                         </thead>
                         <tbody id="tournaments-body"></tbody>
                     </table>
                 </div>
+                <!-- Mobile cards -->
+                <div id="tournaments-mobile" class="d-md-none d-none"></div>
             </div>
         </div>
     </div>
 
     <!-- View 2: Tournament Detail -->
     <div id="view-tournament-detail" class="cups-view d-none">
-        <a href="/tournaments" class="btn btn-outline-secondary btn-sm mb-3">&larr; Tillbaka till turneringar</a>
+        <a href="/tournaments/list" class="btn btn-outline-secondary btn-sm mb-3">&larr; Tillbaka till turneringar</a>
 
         <div id="tournament-loading" class="text-center py-4">
             <div class="spinner-border" role="status"></div>
@@ -182,9 +185,9 @@
         <!-- Player Results -->
         <div id="cupPlayerResults" class="mt-4" style="display: none;">
             <div class="card fade-in-up mb-3">
-                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <div class="card-header bg-dark text-white">
                     <h5 class="mb-0" id="cupPlayerResultsTitle">Matcher</h5>
-                    <button type="button" class="btn btn-outline-light btn-sm" onclick="clearCupPlayerResults()">✕ Stäng</button>
+                    <div class="small mt-1 opacity-75" id="cupPlayerAvgNote"></div>
                 </div>
             </div>
             <div id="cupPlayerMatchesContainer"></div>
@@ -403,6 +406,28 @@ function knockoutRoundName(posFromEnd) {
     }
 }
 
+function phaseBadgeClass(label) {
+    if (!label) return 'bg-secondary';
+    const isB = label.startsWith('B-');
+    const l = label.replace(/^B-/, '');
+    if (l === 'Final') return isB ? 'bg-cups-b-final' : 'bg-cups-final';
+    if (l === 'Semifinal') return isB ? 'bg-cups-b-semi' : 'bg-cups-semi';
+    if (l === 'Kvartsfinal') return isB ? 'bg-cups-b-quarter' : 'bg-cups-quarter';
+    if (l.includes('delsfinal')) return isB ? 'bg-cups-b-knockout' : 'bg-cups-knockout';
+    if (l === 'Poolspel') return 'bg-cups-pool';
+    return 'bg-secondary';
+}
+
+function makePlayerClickable(name) {
+    if (!name) return '';
+    // Split on " & " for doubles - make each player individually clickable
+    return name.split(' & ').map(p => {
+        const trimmed = p.trim();
+        const escaped = esc(trimmed);
+        return `<span class="player-link" onclick="event.stopPropagation(); window.location.href='/tournaments/players?name=${encodeURIComponent(trimmed)}'" title="Se matcher för ${trimmed}">${escaped}</span>`;
+    }).join(' &amp; ');
+}
+
 function isShortSet(totalDarts, startScore) {
     if (startScore && startScore <= 301) return totalDarts <= 9;
     return totalDarts <= 18;
@@ -411,30 +436,99 @@ function isHighFinish(score) { return Math.abs(score) >= 100; }
 function pluralizeDarts(n) { return n === 1 ? 'pil' : 'pilar'; }
 
 // ============= View 1: Tournament List =============
+let tournamentListData = [];
+let tournamentSort = { key: 'date', dir: -1 }; // default: newest first
+
+function filterTournaments() {
+    const query = document.getElementById('tournament-filter').value.toLowerCase().trim();
+    const filtered = query
+        ? tournamentListData.filter(t => (t.title || '').toLowerCase().includes(query))
+        : tournamentListData;
+    const sorted = sortTournaments(filtered, tournamentSort.key, tournamentSort.dir);
+    renderTournamentList(sorted);
+}
+
+function sortTournaments(data, key, dir) {
+    return [...data].sort((a, b) => {
+        let va, vb;
+        if (key === 'date') {
+            va = a.tournament_date || '';
+            vb = b.tournament_date || '';
+        } else if (key === 'title') {
+            va = (a.title || '').toLowerCase();
+            vb = (b.title || '').toLowerCase();
+        } else if (key === 'participants') {
+            va = a.participant_count || 0;
+            vb = b.participant_count || 0;
+        }
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+    });
+}
+
+function renderTournamentList(data) {
+    const tbody = document.getElementById('tournaments-body');
+    tbody.innerHTML = '';
+    let mobileHtml = '';
+    data.forEach(t => {
+        const date = t.tournament_date ? new Date(t.tournament_date).toLocaleDateString('sv-SE') : '-';
+        const url = `/tournaments/tournament?id=${t.id}`;
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => { window.location.href = url; };
+        tr.innerHTML = `
+            <td class="text-center">${date}</td>
+            <td>${esc(t.title)}</td>
+            <td class="text-center">${t.participant_count}</td>
+        `;
+        tbody.appendChild(tr);
+
+        mobileHtml += `
+            <a href="${url}" class="tournament-mobile-card">
+                <small class="text-muted">${date}</small>
+                <div class="fw-bold">${esc(t.title)}</div>
+            </a>`;
+    });
+    document.getElementById('tournaments-mobile').innerHTML = mobileHtml;
+
+    // Update sort arrows
+    document.querySelectorAll('.sortable-col').forEach(th => {
+        const arrow = th.querySelector('.sort-arrow');
+        if (th.dataset.sort === tournamentSort.key) {
+            arrow.textContent = tournamentSort.dir === -1 ? '▼' : '▲';
+        } else {
+            arrow.textContent = '';
+        }
+    });
+}
+
+function onSortClick(key) {
+    if (tournamentSort.key === key) {
+        tournamentSort.dir *= -1;
+    } else {
+        tournamentSort.key = key;
+        tournamentSort.dir = key === 'title' ? 1 : -1;
+    }
+    filterTournaments();
+}
+
 async function initTournamentList() {
     document.getElementById('view-tournaments').classList.remove('d-none');
     try {
         const resp = await fetch('/api/tournaments');
-        const data = await resp.json();
-        const tbody = document.getElementById('tournaments-body');
-        tbody.innerHTML = '';
-        data.forEach(t => {
-            const date = t.tournament_date ? new Date(t.tournament_date).toLocaleDateString('sv-SE') : '-';
-            const tr = document.createElement('tr');
-            tr.style.cursor = 'pointer';
-            tr.onclick = () => { window.location.href = `/tournaments/tournament?id=${t.id}`; };
-            tr.innerHTML = `
-                <td>${esc(t.title)}</td>
-                <td class="text-center">${date}</td>
-                <td class="text-center">${t.start_score}</td>
-                <td class="text-center">${t.participant_count}</td>
-                <td class="text-center">${t.match_count}</td>
-                <td class="text-center">${t.leg_count}</td>
-            `;
-            tbody.appendChild(tr);
+        tournamentListData = await resp.json();
+        const sorted = sortTournaments(tournamentListData, tournamentSort.key, tournamentSort.dir);
+        renderTournamentList(sorted);
+
+        document.querySelectorAll('.sortable-col').forEach(th => {
+            th.addEventListener('click', () => onSortClick(th.dataset.sort));
         });
+
         document.getElementById('tournaments-loading').classList.add('d-none');
         document.getElementById('tournaments-table').classList.remove('d-none');
+        document.getElementById('tournaments-mobile').classList.remove('d-none');
     } catch (e) {
         document.getElementById('tournaments-loading').innerHTML =
             '<div class="text-danger">Kunde inte ladda turneringar</div>';
@@ -444,14 +538,14 @@ async function initTournamentList() {
 // ============= View 2: Tournament Detail =============
 async function initTournamentDetail() {
     const id = urlParams.get('id');
-    if (!id) { window.location.href = '/tournaments'; return; }
+    if (!id) { window.location.href = '/tournaments/list'; return; }
 
     document.getElementById('view-tournament-detail').classList.remove('d-none');
 
     try {
         const resp = await fetch(`/api/tournaments/${id}`);
         const data = await resp.json();
-        if (resp.status === 404) { window.location.href = '/tournaments'; return; }
+        if (resp.status === 404) { window.location.href = '/tournaments/list'; return; }
         tournamentData = data;
 
         const t = data.tournament;
@@ -569,14 +663,14 @@ function renderMatches() {
 // ============= View 3: Match Detail =============
 async function initMatchDetail() {
     const matchId = urlParams.get('id');
-    if (!matchId) { window.location.href = '/tournaments'; return; }
+    if (!matchId) { window.location.href = '/tournaments/list'; return; }
 
     document.getElementById('view-match-detail').classList.remove('d-none');
 
     try {
         const resp = await fetch(`/api/tournaments/match/${matchId}`);
         const data = await resp.json();
-        if (resp.status === 404) { window.location.href = '/tournaments'; return; }
+        if (resp.status === 404) { window.location.href = '/tournaments/list'; return; }
         const m = data.match;
 
         // "Se hela turneringen" button
@@ -640,7 +734,7 @@ async function initMatchDetail() {
         <div class="row g-3 align-items-stretch fade-in-up">
             <div class="col-md-5">
                 <div class="cups-stats-card ${p1Card}">
-                    <div class="cups-stats-card-header">${p1Icon} ${esc(m.p1_name)}</div>
+                    <div class="cups-stats-card-header">${p1Icon} ${makePlayerClickable(m.p1_name)}</div>
                     <div class="cups-stat-highlight">
                         <span class="stat-value">${m.p1_average != null ? m.p1_average.toFixed(2) : 'N/A'}</span>
                         <span class="stat-label">Snitt</span>
@@ -665,7 +759,7 @@ async function initMatchDetail() {
             </div>
             <div class="col-md-5">
                 <div class="cups-stats-card ${p2Card}">
-                    <div class="cups-stats-card-header">${p2Icon} ${esc(m.p2_name)}</div>
+                    <div class="cups-stats-card-header">${p2Icon} ${makePlayerClickable(m.p2_name)}</div>
                     <div class="cups-stat-highlight">
                         <span class="stat-value">${m.p2_average != null ? m.p2_average.toFixed(2) : 'N/A'}</span>
                         <span class="stat-label">Snitt</span>
@@ -711,9 +805,9 @@ async function initMatchDetail() {
                         <table class="table table-sm">
                             <thead>
                                 <tr>
-                                    <th class="text-primary text-center" style="width: 40%">${esc(m.p1_name)}</th>
+                                    <th class="text-primary text-center" style="width: 40%">${makePlayerClickable(m.p1_name)}</th>
                                     <th class="text-center bg-light" style="width: 20%">Pilar</th>
-                                    <th class="text-danger text-center" style="width: 40%">${esc(m.p2_name)}</th>
+                                    <th class="text-danger text-center" style="width: 40%">${makePlayerClickable(m.p2_name)}</th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -865,6 +959,13 @@ async function searchCupPlayer() {
     document.getElementById('cupSearchSuggestions').style.display = 'none';
     document.getElementById('clearCupPlayerBtn').style.display = '';
 
+    // Track search
+    fetch('/api/track-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: name, context: 'tournaments' })
+    }).catch(err => console.debug('Search tracking failed:', err));
+
     try {
         const resp = await fetch(`/api/tournaments/player/${encodeURIComponent(name)}`);
         const data = await resp.json();
@@ -881,18 +982,23 @@ async function searchCupPlayer() {
         // Summary stats
         let wins = 0, losses = 0, totalAvg = 0, avgCount = 0;
         data.matches.forEach(m => {
-            const isP1 = m.p1_name === playerName;
+            const isP1 = m.p1_name.includes(playerName);
             const pLegs = isP1 ? m.p1_legs_won : m.p2_legs_won;
             const oLegs = isP1 ? m.p2_legs_won : m.p1_legs_won;
             const avg = isP1 ? m.p1_average : m.p2_average;
             if (pLegs > oLegs) wins++;
             else if (oLegs > pLegs) losses++;
-            if (avg != null) { totalAvg += avg; avgCount++; }
+            // Only count 501 singles for average
+            const doublesPattern = /\s+&\s+|\s*\/\s*|\s+\+\s+|\s+och\s+/i;
+            const isSingles = !doublesPattern.test(m.p1_name) && !doublesPattern.test(m.p2_name);
+            if (avg != null && isSingles && m.start_score === 501) { totalAvg += avg; avgCount++; }
         });
 
         const avgStr = avgCount > 0 ? (totalAvg / avgCount).toFixed(2) : '-';
         document.getElementById('cupPlayerResultsTitle').textContent =
             `${playerName} — ${data.matches.length} matcher (${wins}V / ${losses}F) — Snitt: ${avgStr}`;
+        document.getElementById('cupPlayerAvgNote').textContent =
+            avgCount > 0 ? `Snitt baserat på ${avgCount} singelmatcher (501:or utan handicap)` : 'Inga singelmatcher (501) att beräkna snitt på';
 
         // Group matches by tournament
         const grouped = [];
@@ -922,23 +1028,26 @@ async function searchCupPlayer() {
                     <small>${date}</small>
                 </div>
                 <div class="card-body p-0">
-                    <div class="table-responsive">
+                    <div class="table-responsive d-none d-md-block">
                         <table class="table table-hover table-sm mb-0">
                             <colgroup><col style="width:25%"><col style="width:30%"><col style="width:15%"><col style="width:15%"><col style="width:15%"></colgroup>
                             <tbody>`;
 
+            let mobileCards = '';
             g.matches.forEach(m => {
-                const isP1 = m.p1_name === playerName;
+                const isP1 = m.p1_name.includes(playerName);
                 const opponent = isP1 ? m.p2_name : m.p1_name;
                 const pLegs = isP1 ? m.p1_legs_won : m.p2_legs_won;
                 const oLegs = isP1 ? m.p2_legs_won : m.p1_legs_won;
                 const avg = isP1 ? m.p1_average : m.p2_average;
                 const won = pLegs > oLegs;
                 const lost = oLegs > pLegs;
-                const clickAttr = m.has_detail ? ` style="cursor:pointer" onclick="window.location.href='/tournaments/match?id=${m.id}'"` : '';
+                const matchUrl = `/tournaments/match?id=${m.id}`;
+                const clickAttr = m.has_detail ? ` style="cursor:pointer" onclick="window.location.href='${matchUrl}'"` : '';
 
+                // Desktop row
                 html += `<tr${clickAttr}>
-                    <td><span class="badge bg-secondary">${esc(m.phase_label)}</span></td>
+                    <td><span class="badge ${phaseBadgeClass(m.phase_label)}">${esc(m.phase_label)}</span></td>
                     <td>${esc(opponent)}</td>
                     <td class="text-center fw-bold">${pLegs}-${oLegs}</td>
                     <td class="text-center">${avg != null ? avg.toFixed(2) : '-'}</td>
@@ -946,9 +1055,27 @@ async function searchCupPlayer() {
                         <span class="badge ${won ? 'bg-success' : lost ? 'bg-danger' : 'bg-warning'}">${won ? 'Vinst' : lost ? 'Förlust' : 'Oavgjort'}</span>
                     </td>
                 </tr>`;
+
+                // Mobile card
+                mobileCards += `
+                <div class="player-match-mobile-card"${clickAttr}>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="badge ${phaseBadgeClass(m.phase_label)}">${esc(m.phase_label)}</span>
+                        <span class="badge ${won ? 'bg-success' : lost ? 'bg-danger' : 'bg-warning'}">${won ? 'Vinst' : lost ? 'Förlust' : 'Oavgjort'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="fw-bold">${esc(opponent)}</div>
+                        <div class="text-end">
+                            <span class="fw-bold">${pLegs}-${oLegs}</span>
+                            ${avg != null ? `<small class="text-muted ms-2">${avg.toFixed(2)}</small>` : ''}
+                        </div>
+                    </div>
+                </div>`;
             });
 
-            html += `</tbody></table></div></div></div>`;
+            html += `</tbody></table></div>
+                <div class="d-md-none">${mobileCards}</div>
+            </div></div>`;
         });
 
         container.innerHTML = html;
@@ -968,15 +1095,28 @@ function esc(str) {
     return d.innerHTML;
 }
 
+// ============= Tracking =============
+function trackPageView(page) {
+    fetch('/api/track-pageview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ page: page, context: 'tournaments' })
+    }).catch(err => console.debug('Pageview tracking failed:', err));
+}
+
 // ============= Router =============
 if (PAGE_PATH === '/tournaments/match') {
+    trackPageView('tournaments/match');
     initMatchDetail();
 } else if (PAGE_PATH === '/tournaments/tournament') {
+    trackPageView('tournaments/tournament');
     initTournamentDetail();
-} else if (PAGE_PATH === '/tournaments/players') {
-    initPlayerSearch();
-} else {
+} else if (PAGE_PATH === '/tournaments/list') {
+    trackPageView('tournaments/list');
     initTournamentList();
+} else {
+    trackPageView('tournaments/players');
+    initPlayerSearch();
 }
 </script>
 {% endblock %}

@@ -5,6 +5,118 @@ import sqlite3
 import time
 from datetime import datetime
 
+
+def warmup_league(app, league_name, db_path, league_param):
+    """
+    Warm up cache for a specific league.
+    league_param is the query string suffix, e.g. '' or '&league=riksserien'
+    """
+    sep = '?' if not league_param else '&'
+    prefix = f"?league={league_param}" if league_param else ''
+
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT season
+            FROM matches
+            WHERE season IS NOT NULL
+            ORDER BY match_date DESC
+            LIMIT 1
+        """)
+        current_season_row = cursor.fetchone()
+
+        if not current_season_row:
+            print(f"  No data found for {league_name} - skipping")
+            return 0
+
+        current_season = current_season_row[0]
+
+        cursor.execute("""
+            SELECT DISTINCT division
+            FROM matches
+            WHERE division IS NOT NULL AND season = ?
+            ORDER BY division
+        """, (current_season,))
+        divisions = [row[0] for row in cursor.fetchall()]
+
+        cursor.execute("""
+            SELECT DISTINCT season
+            FROM matches
+            WHERE season IS NOT NULL AND season < ?
+            ORDER BY season DESC
+            LIMIT 1
+        """, (current_season,))
+        prev_season_row = cursor.fetchone()
+        prev_season = prev_season_row[0] if prev_season_row else None
+
+    print(f"\n  {league_name}: season={current_season}, {len(divisions)} divisions")
+    warmup_count = 0
+
+    # --- Weekly stats ---
+    print(f"  Warming up /api/weekly-stats ({league_name})...")
+
+    # All divisions (no filter)
+    with app.test_client() as client:
+        url = f'/api/weekly-stats{prefix}'
+        response = client.get(url)
+        if response.status_code == 200:
+            warmup_count += 1
+            print(f"    OK  {url}")
+        else:
+            print(f"    FAIL {url} ({response.status_code})")
+
+    # Per division
+    for division in divisions:
+        with app.test_client() as client:
+            url = f'/api/weekly-stats{prefix}{"&" if prefix else "?"}division={division}'
+            response = client.get(url)
+            if response.status_code == 200:
+                warmup_count += 1
+            else:
+                print(f"    FAIL {url} ({response.status_code})")
+    print(f"    {warmup_count} weekly-stats entries cached")
+
+    # --- Top stats ---
+    print(f"  Warming up /api/top-stats ({league_name})...")
+    top_count = 0
+
+    # All-time
+    with app.test_client() as client:
+        url = f'/api/top-stats{prefix}'
+        response = client.get(url)
+        if response.status_code == 200:
+            top_count += 1
+            print(f"    OK  {url}")
+        else:
+            print(f"    FAIL {url} ({response.status_code})")
+
+    # Current season
+    with app.test_client() as client:
+        url = f'/api/top-stats{prefix}{"&" if prefix else "?"}season={current_season}'
+        response = client.get(url)
+        if response.status_code == 200:
+            top_count += 1
+            print(f"    OK  {url}")
+        else:
+            print(f"    FAIL {url} ({response.status_code})")
+
+    # Previous season
+    if prev_season:
+        with app.test_client() as client:
+            url = f'/api/top-stats{prefix}{"&" if prefix else "?"}season={prev_season}'
+            response = client.get(url)
+            if response.status_code == 200:
+                top_count += 1
+                print(f"    OK  {url}")
+            else:
+                print(f"    FAIL {url} ({response.status_code})")
+
+    print(f"    {top_count} top-stats entries cached")
+    warmup_count += top_count
+    return warmup_count
+
+
 def warmup_cache(app, cache):
     """
     Pre-populate cache with common queries at app startup
@@ -14,115 +126,17 @@ def warmup_cache(app, cache):
     print("=" * 60)
     start_time = time.time()
 
+    total = 0
     with app.app_context():
-        # Get list of all divisions for current season
-        with sqlite3.connect('goldenstat.db') as conn:
-            cursor = conn.cursor()
+        # Stockholmsserien (default league)
+        total += warmup_league(app, "Stockholmsserien", 'goldenstat.db', '')
 
-            # Get current season
-            cursor.execute("""
-                SELECT season
-                FROM matches
-                WHERE season IS NOT NULL
-                ORDER BY match_date DESC
-                LIMIT 1
-            """)
-            current_season_row = cursor.fetchone()
-
-            if not current_season_row:
-                print("No data found - skipping warmup")
-                return
-
-            current_season = current_season_row[0]
-
-            # Get all divisions for current season
-            cursor.execute("""
-                SELECT DISTINCT division
-                FROM matches
-                WHERE division IS NOT NULL AND season = ?
-                ORDER BY division
-            """, (current_season,))
-            divisions = [row[0] for row in cursor.fetchall()]
-
-        print(f"Current season: {current_season}")
-        print(f"Found {len(divisions)} divisions to warm up")
-
-        # Warm up weekly-stats
-        print("\nWarming up /api/weekly-stats...")
-        warmup_count = 0
-
-        # 1. Weekly stats without filter
-        print("  - All divisions...")
-        with app.test_client() as client:
-            response = client.get('/api/weekly-stats')
-            if response.status_code == 200:
-                warmup_count += 1
-                print(f"    OK - Cached")
-            else:
-                print(f"    FAILED ({response.status_code})")
-
-        # 2. Weekly stats for each division
-        for division in divisions:  # Cache all divisions
-            print(f"  - Division: {division}...")
-            with app.test_client() as client:
-                response = client.get(f'/api/weekly-stats?division={division}')
-                if response.status_code == 200:
-                    warmup_count += 1
-                    print(f"    OK - Cached")
-                else:
-                    print(f"    FAILED ({response.status_code})")
-
-        # Warm up top-stats
-        print("\nWarming up /api/top-stats...")
-
-        # 1. All-time top stats
-        print("  - All time...")
-        with app.test_client() as client:
-            response = client.get('/api/top-stats')
-            if response.status_code == 200:
-                warmup_count += 1
-                print(f"    OK - Cached")
-            else:
-                print(f"    FAILED ({response.status_code})")
-
-        # 2. Current season top stats
-        print(f"  - Season: {current_season}...")
-        with app.test_client() as client:
-            response = client.get(f'/api/top-stats?season={current_season}')
-            if response.status_code == 200:
-                warmup_count += 1
-                print(f"    OK - Cached")
-            else:
-                print(f"    FAILED ({response.status_code})")
-
-        # 3. Previous season (if exists)
-        if current_season:
-            # Try to get previous season
-            with sqlite3.connect('goldenstat.db') as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT DISTINCT season
-                    FROM matches
-                    WHERE season IS NOT NULL AND season < ?
-                    ORDER BY season DESC
-                    LIMIT 1
-                """, (current_season,))
-                prev_season_row = cursor.fetchone()
-
-                if prev_season_row:
-                    prev_season = prev_season_row[0]
-                    print(f"  - Season: {prev_season}...")
-                    with app.test_client() as client:
-                        response = client.get(f'/api/top-stats?season={prev_season}')
-                        if response.status_code == 200:
-                            warmup_count += 1
-                            print(f"    OK - Cached")
-                        else:
-                            print(f"    FAILED ({response.status_code})")
+        # Riksserien
+        total += warmup_league(app, "Riksserien", 'riksserien.db', 'riksserien')
 
     elapsed = time.time() - start_time
     print("\n" + "=" * 60)
     print(f"CACHE WARMUP COMPLETED")
-    print(f"  Entries cached: {warmup_count}")
-    print(f"  Time taken: {elapsed:.2f}s")
+    print(f"  Entries cached: {total}")
+    print(f"  Time taken: {elapsed:.1f}s")
     print("=" * 60 + "\n")

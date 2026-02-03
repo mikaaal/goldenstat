@@ -16,8 +16,8 @@ import requests
 from datetime import datetime
 from cup_database import CupDatabase
 
-# Regex for common team name separators: " & ", " / ", " + ", " och "
-TEAM_NAME_SEPARATOR = re.compile(r'\s+&\s+|\s+/\s+|\s+\+\s+|\s+och\s+', re.IGNORECASE)
+# Regex for common team name separators: " & ", "/", " + ", " och "
+TEAM_NAME_SEPARATOR = re.compile(r'\s+&\s+|\s*/\s*|\s+\+\s+|\s+och\s+', re.IGNORECASE)
 
 BASE_URL = "https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament"
 
@@ -150,9 +150,15 @@ class CupImporter:
         """Process round-robin phase results."""
         match_count = 0
         for group_index, group in enumerate(rr_table):
-            if group_index >= len(rr_result):
+            if isinstance(rr_result, list):
+                if group_index >= len(rr_result):
+                    continue
+                group_results = rr_result[group_index]
+            else:
+                group_results = rr_result.get(str(group_index))
+
+            if not group_results:
                 continue
-            group_results = rr_result[group_index]
 
             # Each participant plays every other participant (directional)
             for tpid1 in group:
@@ -196,9 +202,19 @@ class CupImporter:
         """Process knockout phase (t or s2) results."""
         match_count = 0
         for round_index, round_entries in enumerate(table):
-            if round_index >= len(results):
-                continue
-            round_results = results[round_index]
+            if isinstance(results, list):
+                if round_index >= len(results):
+                    continue
+                round_results = results[round_index]
+            else:
+                round_results = results.get(str(round_index))
+                if round_results is None:
+                    continue
+
+            # API may return round_entries as dict with string keys
+            if isinstance(round_entries, dict):
+                max_idx = max(int(k) for k in round_entries.keys()) if round_entries else -1
+                round_entries = [round_entries.get(str(j), '') for j in range(max_idx + 1)]
 
             # Pair consecutive entries, skip byes (empty strings)
             i = 0
