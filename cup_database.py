@@ -13,10 +13,32 @@ class CupDatabase:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='tournaments'")
-            if cursor.fetchone():
-                return
+            if not cursor.fetchone():
+                self._create_schema(conn)
 
-            conn.executescript("""
+            # Always ensure cup_player_mappings exists (added later)
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cup_player_mappings'")
+            if not cursor.fetchone():
+                conn.executescript("""
+                    CREATE TABLE cup_player_mappings (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        alias_player_id INTEGER NOT NULL UNIQUE,
+                        canonical_player_id INTEGER NOT NULL,
+                        alias_name TEXT NOT NULL,
+                        canonical_name TEXT NOT NULL,
+                        mapping_reason TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (alias_player_id) REFERENCES players(id),
+                        FOREIGN KEY (canonical_player_id) REFERENCES players(id),
+                        CHECK(alias_player_id != canonical_player_id)
+                    );
+                    CREATE INDEX idx_cup_player_mappings_alias ON cup_player_mappings(alias_player_id);
+                    CREATE INDEX idx_cup_player_mappings_canonical ON cup_player_mappings(canonical_player_id);
+                """)
+
+    def _create_schema(self, conn):
+        """Create the initial database schema"""
+        conn.executescript("""
                 CREATE TABLE tournaments (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     tdid VARCHAR(50) NOT NULL UNIQUE,
@@ -102,8 +124,8 @@ class CupDatabase:
                 CREATE INDEX idx_legs_cup_match ON legs(cup_match_id);
                 CREATE INDEX idx_throws_leg ON throws(leg_id);
                 CREATE INDEX idx_players_name ON players(name);
-            """)
-            conn.commit()
+        """)
+        conn.commit()
 
     def get_or_create_tournament(self, data: Dict[str, Any]) -> Optional[int]:
         """Get existing tournament by tdid or create new one. Returns id or None if already exists."""
@@ -189,14 +211,24 @@ class CupDatabase:
         return ' '.join(CupDatabase._capitalize_word(w) for w in name.split() if w)
 
     def get_or_create_player(self, name: str) -> int:
-        """Get existing player by name or create new one. Returns player id."""
+        """Get existing player by name or create new one. Returns player id.
+        If the player is a known alias, returns the canonical player instead."""
         normalized = self.normalize_player_name(name)
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT id FROM players WHERE name = ?", (normalized,))
             result = cursor.fetchone()
             if result:
-                return result[0]
+                player_id = result[0]
+                # Check if this player is an alias for another (canonical) player
+                cursor.execute(
+                    "SELECT canonical_player_id FROM cup_player_mappings WHERE alias_player_id = ?",
+                    (player_id,)
+                )
+                mapping = cursor.fetchone()
+                if mapping:
+                    return mapping[0]
+                return player_id
 
             cursor.execute("INSERT INTO players (name) VALUES (?)", (normalized,))
             return cursor.lastrowid
@@ -298,6 +330,27 @@ class CupDatabase:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("UPDATE cup_matches SET has_detail = 1 WHERE id = ?", (match_id,))
             conn.commit()
+
+    def get_canonical_player_id(self, player_id: int) -> int:
+        """If player_id is an alias, return the canonical player id. Otherwise return the same id."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT canonical_player_id FROM cup_player_mappings WHERE alias_player_id = ?",
+                (player_id,)
+            )
+            result = cursor.fetchone()
+            return result[0] if result else player_id
+
+    def is_alias_player(self, player_id: int) -> bool:
+        """Check if a player_id is an alias (mapped to another canonical player)."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT 1 FROM cup_player_mappings WHERE alias_player_id = ?",
+                (player_id,)
+            )
+            return cursor.fetchone() is not None
 
     def get_matches_without_detail(self, tournament_id: int):
         """Get all cup_matches that haven't had detail data fetched yet."""
