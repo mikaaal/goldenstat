@@ -230,6 +230,7 @@ def api_tournament_players():
             JOIN participant_players pp ON pp.player_id = pl.id
             JOIN participants pa ON pa.id = pp.participant_id
             JOIN cup_matches cm ON cm.participant1_id = pa.id OR cm.participant2_id = pa.id
+            WHERE pl.id NOT IN (SELECT alias_player_id FROM cup_player_mappings)
             ORDER BY pl.name
         """)
         players = [row[0] for row in cursor.fetchall()]

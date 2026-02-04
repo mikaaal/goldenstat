@@ -1,87 +1,105 @@
 # Goldenstat Project Context
 
+## IMPORTANT: Windows-specific rules
+- NEVER redirect output to `nul` or `NUL`. On Windows this creates an undeletable file. Use `> /dev/null` in Git Bash or simply omit redirection.
+- NEVER create files named `nul`, `con`, `prn`, `aux`, `com1`-`com9`, or `lpt1`-`lpt9` — these are reserved Windows device names.
+
 ## Project Overview
-Goldenstat är en Flask-baserad webbapplikation för sportstatistik och dataanalys.
+Goldenstat är en Flask-baserad webbapplikation för dartstatistik. Visar statistik från Stockholmsserien, Riksserien och cupturneringar.
 
 ## Tech Stack
-- **Backend**: Python Flask
-- **Frontend**: HTML, CSS, JavaScript
-- **Databas**: SQLite (troligtvis baserat på permissions)
-- **Styling**: Custom CSS med responsiv design
-- **Data Processing**: Python scripts för dataextrahering
+- **Backend**: Python 3.11, Flask, Flask-Caching (FileSystemCache)
+- **Databaser**: SQLite - tre separata:
+  - `goldenstat.db` - Stockholmsserien (ligamatcher)
+  - `riksserien.db` - Riksserien (ligamatcher)
+  - `cups.db` - Cupturneringar (eget schema, n01 API-data)
+- **Frontend**: HTML, CSS (Bootstrap), JavaScript
+- **Scraping**: Playwright (ligamatcher från nakka.com), Requests (cuper via n01 API)
+- **Deploy**: Railway med Gunicorn
+- **CI/CD**: GitHub Actions (daglig ligaimport 02:00 UTC, nattlig cupimport 04:00 UTC)
 
 ## Project Structure
 ```
 goldenstat/
-├── app.py                          # Main Flask application
+├── app.py                          # Flask-app, config, delade helpers (~200 rader)
+├── database.py                     # DartDatabase (goldenstat.db / riksserien.db)
+├── cup_database.py                 # CupDatabase (cups.db)
+├── routes/
+│   ├── league.py                   # Index, divisioner, top-stats, weekly-stats
+│   ├── players.py                  # Spelarsök, spelarstatistik, kastdata
+│   ├── matches.py                  # Submatch, matchdetaljer, seriematcher
+│   ├── teams.py                    # Lag, lineup, dubbel, klubbar
+│   ├── tournaments.py              # Cupspel (cups.db, fristående)
+│   └── tracking.py                 # Analytics-endpoints
 ├── templates/
-│   ├── base.html                   # Base template med navigation
-│   └── index.html                  # Home page
+│   ├── base.html                   # Bas-template med navigation
+│   ├── index.html                  # Huvudsida
+│   ├── tournaments.html            # Cupspel
+│   ├── series_matches.html         # Seriematcher
+│   ├── match_overview.html         # Matchöversikt
+│   └── sub_match_throws.html       # Kastöversikt
 ├── static/
-│   ├── css/
-│   │   └── style.css              # Main stylesheet
-│   ├── js/
-│   │   └── app.js                 # Frontend JavaScript
-│   └── images/
-│       ├── gr.png                 # Static images
-│       └── gr2.gif
-├── quick_superligan_extract.py     # Data extraction script
-├── reverse_engineer_schedule.py   # Schedule processing
-├── import_division.sh             # Division import script
-└── install_and_run.sh            # Setup script
+│   ├── css/style.css               # Huvudstylesheet
+│   └── js/app.js                   # Frontend JavaScript
+├── daily_import.py                 # Daglig ligaimport (GitHub Actions)
+├── nightly_cup_import.py           # Nattlig cupimport (GitHub Actions)
+├── import_cup.py                   # CupImporter-klass
+├── smart_season_importer.py        # Smart ligaimport med spelarmappningar
+├── cache_warmup.py                 # Cache warmup (weekly-stats + top-stats, båda ligorna)
+├── gunicorn.conf.py                # Gunicorn-config för produktion
+└── .github/workflows/
+    ├── daily-import.yml            # 02:00 UTC - ligamatcher
+    ├── nightly-cup-import.yml      # 04:00 UTC - cuper
+    └── pr-checks.yml               # Lint + import-test
 ```
 
-## Development Environment
-- **Python**: python3 (används för Flask och data processing)
-- **Package Manager**: pip3 för Python dependencies
-- **Browser Testing**: Playwright för automatiserad testning
-- **Version Control**: Git med GitHub integration
-- **Local Server**: Kör på localhost:8080
-- **Data Source**: dartstatistik.se (baserat på WebFetch permissions)
+## Architecture
+- `app.py` registrerar 6 Flask Blueprints och innehåller delade helpers
+- Delade helpers: `get_current_db()`, `get_current_db_path()`, `get_effective_sub_match_query()`, `get_effective_player_ids()`, `parse_match_position()`
+- Liga väljs via `?league=riksserien` query parameter
+- Cupstatistik har egna routes under `/tournaments` med separat databas
+- Cache warmup förpopulerar weekly-stats och top-stats för båda ligorna vid start
 
-## Development Preferences
-- **Code Style**: Python PEP 8 standards
-- **Commit Messages**: Engelska, beskrivande meddelanden
-- **Error Handling**: Robust felhantering för dataextrahering
-- **Performance**: Timeout-begränsningar för långvariga operationer (120-300s)
-- **Security**: Begränsade permissions via settings.local.json
+## Development Environment
+- **Python**: 3.11
+- **Lokal server**: `python app.py` → http://localhost:3000
+- **Skippa warmup**: `python app.py --no-warmup`
+- **Version Control**: Git med GitHub
+- **Linting**: flake8
 
 ## Common Workflows
-1. **Development Server**: 
+1. **Starta dev-server**:
    ```bash
-   python3 app.py
-   # eller via install script
-   ./install_and_run.sh
+   python app.py --no-warmup
    ```
 
-2. **Data Processing**:
+2. **Importera en cup manuellt**:
    ```bash
-   timeout 120 python3 quick_superligan_extract.py
-   timeout 300 python3 reverse_engineer_schedule.py
+   python import_cup.py <tdid>
    ```
 
-3. **Database Operations**:
+3. **Testa nattlig cupimport (dry run)**:
    ```bash
-   sqlite3 [database_file]
-   ./import_division.sh
+   python nightly_cup_import.py --dry
+   ```
+
+4. **Daglig ligaimport**:
+   ```bash
+   python daily_import.py
    ```
 
 ## Key Features
-- Sportstatistik dashboard
-- Dataextrahering från externa källor
-- Responsiv webbgränssnitt
-- Automatiserad dataprocessing med timeouts
-- Säker filhantering och permissions
+- Spelarsök och detaljerad spelarstatistik
+- Lagsidor med lineup och dubbelpar
+- Topplistor (all-time och per säsong)
+- Veckans prestationer
+- Seriematcher per vecka/division
+- Matchdetaljer med kastöversikt
+- Cupturneringsstatistik (gruppspel, slutspel, kastdetaljer)
+- Stöd för två ligor (Stockholmsserien, Riksserien)
 
 ## Notes
-- Använder timeout för långvariga operationer (säkerhet)
-- WebFetch endast tillåtet för dartstatistik.se
-- Docker-support tillgängligt
-- Playwright för end-to-end testing
-- GitHub integration för version control
-
-## Troubleshooting
-- Kontrollera port conflicts med `lsof` och `kill` kommandon
-- Process management med `pkill` om nödvändigt
-- Git operations fullt supportade (add, commit, push, reset, restore)
-- Xcode command line tools krävs för vissa dependencies
+- Tre separata SQLite-databaser med olika scheman
+- Cups.db har egna `players`, `legs`, `throws`-tabeller (ingen delad data med ligadatabaserna)
+- `nightly_cup_import.py` har `SKIP_TDIDS` för turneringar som inte ska importeras
+- `import_cup.py` hanterar namnuppdelning av dubbelpar (separator: &, /, +, och)

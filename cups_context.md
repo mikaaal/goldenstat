@@ -313,12 +313,63 @@ Regler:
 - `players.name` matchas exakt (efter normalisering)
 - `has_detail`-flagga → möjliggör retry av missade detaljhämtningar vid omkörning
 
+## Nattlig import
+
+`nightly_cup_import.py` körs automatiskt kl 04:00 UTC via GitHub Actions (`.github/workflows/nightly-cup-import.yml`).
+
+Flöde:
+1. Hämtar turneringslista från varje liga via `get_season_list` API
+2. Jämför med befintliga `tdid` i cups.db
+3. Filtrerar bort turneringar i `SKIP_TDIDS` (test-events, ej riktiga cuper)
+4. Importerar nya turneringar med `CupImporter`
+5. Applicerar eventuella datumkorrigeringar (`DATE_FIXES`)
+
+Ligor som övervakas (konfigurerat i `LEAGUES`):
+- East Cup
+- SoFo House Poängsamlarcup
+- Oilers Poängsamlarcup
+- NWD Poängsamlarcup
+- StDF
+
+Turneringar som exkluderas (`SKIP_TDIDS`):
+- `t_VA1z_4128` - East Pub 23/12
+- `t_51wh_1214` - Styrelsepool
+- `t_P92R_1685` - Bees cup
+- `t_JRXV_6101` - Bee 240614
+- `t_7RD1_6222` - Ei saa peittää
+
+Manuell körning:
+```bash
+python nightly_cup_import.py          # Importera nya cuper
+python nightly_cup_import.py --dry    # Visa vad som skulle importeras
+```
+
+## Webb-API (routes/tournaments.py)
+
+Cupstatistik exponeras via Flask Blueprint `tournaments_bp` med egna routes:
+
+| Route | Beskrivning |
+|-------|-------------|
+| `/tournaments` | Huvudsida - spelarsök |
+| `/tournaments/list` | Turneringslista |
+| `/tournaments/tournament` | Turneringsdetalj |
+| `/tournaments/match` | Matchdetalj |
+| `GET /api/tournaments` | Lista alla turneringar med sammanfattning |
+| `GET /api/tournaments/<id>` | Turneringsdetalj med deltagare och matcher |
+| `GET /api/tournaments/match/<id>` | Matchdetalj med legs och kast |
+| `GET /api/tournaments/players` | Alla spelarnamn (autocomplete, filtrerar bort spelare utan matcher) |
+| `GET /api/tournaments/player/<name>` | Alla matcher för en spelare |
+
 ## Filer
 
 | Fil | Beskrivning |
 |-----|-------------|
 | `cup_database.py` | `CupDatabase`-klass: schema-initiering, get_or_create-metoder, insert-metoder, namnormalisering |
 | `import_cup.py` | `CupImporter`-klass + CLI: `python import_cup.py <tdid>` |
+| `nightly_cup_import.py` | Nattlig batchimport - hämtar nya cuper från alla ligor |
+| `routes/tournaments.py` | Flask Blueprint med webb-API för cupstatistik |
+| `templates/tournaments.html` | Frontend - spelarsök, turneringslista, matchdetaljer |
 | `cups.db` | SQLite-databas (skapas automatiskt vid första körning) |
+| `.github/workflows/nightly-cup-import.yml` | GitHub Actions workflow (kl 04:00 UTC) |
 | `cups_context.md` | Denna fil |
 | `import_logs/cup_{tdid}_{timestamp}.json` | Importlogg med antal deltagare, matcher, legs, throws, errors |
