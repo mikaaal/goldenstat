@@ -482,7 +482,21 @@ def get_weekly_stats():
                 week_filter += f" AND m.division = '{division}'"
 
             # Top 10 highest averages this week
+            # Note: We check both match_type AND player count to handle misclassified matches
             cursor.execute(f"""
+                WITH true_singles AS (
+                    SELECT sm.id
+                    FROM sub_matches sm
+                    JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                    WHERE sm.match_type = 'Singles'
+                    GROUP BY sm.id
+                    HAVING MAX(
+                        (SELECT COUNT(*) FROM sub_match_participants WHERE sub_match_id = sm.id AND team_number = 1)
+                    ) = 1
+                    AND MAX(
+                        (SELECT COUNT(*) FROM sub_match_participants WHERE sub_match_id = sm.id AND team_number = 2)
+                    ) = 1
+                )
                 SELECT
                     p.name as player_name,
                     smp.player_avg as average,
@@ -494,11 +508,11 @@ def get_weekly_stats():
                 FROM sub_match_participants smp
                 JOIN players p ON smp.player_id = p.id
                 JOIN sub_matches sm ON smp.sub_match_id = sm.id
+                JOIN true_singles ts ON sm.id = ts.id
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams t1 ON m.team1_id = t1.id
                 JOIN teams t2 ON m.team2_id = t2.id
-                WHERE sm.match_type = 'Singles'
-                    AND smp.player_avg > 0
+                WHERE smp.player_avg > 0
                 {week_filter}
                 ORDER BY smp.player_avg DESC
                 LIMIT 10
@@ -506,7 +520,21 @@ def get_weekly_stats():
             top_averages = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 highest checkouts this week
+            # Note: We check both match_type AND player count to handle misclassified matches
             cursor.execute(f"""
+                WITH true_singles AS (
+                    SELECT sm.id
+                    FROM sub_matches sm
+                    JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                    WHERE sm.match_type = 'Singles'
+                    GROUP BY sm.id
+                    HAVING MAX(
+                        (SELECT COUNT(*) FROM sub_match_participants WHERE sub_match_id = sm.id AND team_number = 1)
+                    ) = 1
+                    AND MAX(
+                        (SELECT COUNT(*) FROM sub_match_participants WHERE sub_match_id = sm.id AND team_number = 2)
+                    ) = 1
+                )
                 SELECT
                     p.name as player_name,
                     prev.remaining_score as checkout,
@@ -521,6 +549,7 @@ def get_weekly_stats():
                     AND prev.round_number = curr.round_number - 1
                 JOIN legs l ON curr.leg_id = l.id
                 JOIN sub_matches sm ON l.sub_match_id = sm.id
+                JOIN true_singles ts ON sm.id = ts.id
                 JOIN sub_match_participants smp ON sm.id = smp.sub_match_id AND smp.team_number = curr.team_number
                 JOIN players p ON smp.player_id = p.id
                 JOIN matches m ON sm.match_id = m.id
@@ -529,7 +558,6 @@ def get_weekly_stats():
                 WHERE curr.remaining_score = 0
                     AND prev.remaining_score > 0
                     AND curr.team_number = l.winner_team
-                    AND sm.match_type = 'Singles'
                 {week_filter}
                 ORDER BY prev.remaining_score DESC, m.match_date DESC
                 LIMIT 10
@@ -537,8 +565,22 @@ def get_weekly_stats():
             top_checkouts = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 shortest legs this week
+            # Note: We check both match_type AND player count to handle misclassified matches
             cursor.execute(f"""
-                WITH completed_legs AS (
+                WITH true_singles AS (
+                    SELECT sm.id
+                    FROM sub_matches sm
+                    JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                    WHERE sm.match_type = 'Singles'
+                    GROUP BY sm.id
+                    HAVING MAX(
+                        (SELECT COUNT(*) FROM sub_match_participants WHERE sub_match_id = sm.id AND team_number = 1)
+                    ) = 1
+                    AND MAX(
+                        (SELECT COUNT(*) FROM sub_match_participants WHERE sub_match_id = sm.id AND team_number = 2)
+                    ) = 1
+                ),
+                completed_legs AS (
                     SELECT DISTINCT l.id
                     FROM legs l
                     JOIN throws t ON l.id = t.leg_id
@@ -554,6 +596,7 @@ def get_weekly_stats():
                     JOIN completed_legs cl ON l.id = cl.id
                     JOIN throws t ON l.id = t.leg_id AND t.team_number = l.winner_team
                     JOIN sub_matches sm ON l.sub_match_id = sm.id
+                    JOIN true_singles ts ON sm.id = ts.id
                     WHERE NOT (t.score = 0 AND t.remaining_score = 501)
                     GROUP BY l.id, l.winner_team, sm.id
                 )
@@ -573,7 +616,6 @@ def get_weekly_stats():
                 JOIN teams t1 ON (CASE WHEN smp.team_number = 1 THEN m.team1_id ELSE m.team2_id END) = t1.id
                 JOIN teams t2 ON (CASE WHEN smp.team_number = 1 THEN m.team2_id ELSE m.team1_id END) = t2.id
                 WHERE ld.total_darts > 0
-                    AND sm.match_type = 'Singles'
                 {week_filter}
                 ORDER BY ld.total_darts ASC, m.match_date DESC
                 LIMIT 10
@@ -581,8 +623,22 @@ def get_weekly_stats():
             shortest_sets = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 most 100+ throws in a single match this week
+            # Note: We check both match_type AND player count to handle misclassified matches
             cursor.execute(f"""
-                WITH match_100plus AS (
+                WITH true_singles AS (
+                    SELECT sm.id
+                    FROM sub_matches sm
+                    JOIN sub_match_participants smp ON sm.id = smp.sub_match_id
+                    WHERE sm.match_type = 'Singles'
+                    GROUP BY sm.id
+                    HAVING MAX(
+                        (SELECT COUNT(*) FROM sub_match_participants WHERE sub_match_id = sm.id AND team_number = 1)
+                    ) = 1
+                    AND MAX(
+                        (SELECT COUNT(*) FROM sub_match_participants WHERE sub_match_id = sm.id AND team_number = 2)
+                    ) = 1
+                ),
+                match_100plus AS (
                     SELECT
                         sm.id as sub_match_id,
                         t.team_number,
@@ -590,6 +646,7 @@ def get_weekly_stats():
                     FROM throws t
                     JOIN legs l ON t.leg_id = l.id
                     JOIN sub_matches sm ON l.sub_match_id = sm.id
+                    JOIN true_singles ts ON sm.id = ts.id
                     WHERE t.score >= 100
                     GROUP BY sm.id, t.team_number
                 )
@@ -608,7 +665,6 @@ def get_weekly_stats():
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams t1 ON (CASE WHEN smp.team_number = 1 THEN m.team1_id ELSE m.team2_id END) = t1.id
                 JOIN teams t2 ON (CASE WHEN smp.team_number = 1 THEN m.team2_id ELSE m.team1_id END) = t2.id
-                WHERE sm.match_type = 'Singles'
                 {week_filter}
                 ORDER BY m100.count_100plus DESC, m.match_date DESC
                 LIMIT 10

@@ -259,17 +259,24 @@ class NewSeasonImporter:
         try:
             # Extract sub-match info
             title = submatch_data.get('title', '')
-            # AD (Avgörande Dubbel) is always Doubles
-            if 'Doubles' in title or 'Dubbel' in title or ' AD' in title or title.endswith('AD'):
+            title_lower = title.lower()
+            # AD (Avgörande Dubbel) is always Doubles - use case-insensitive check
+            if 'doubles' in title_lower or 'dubbel' in title_lower or ' ad' in title_lower or title_lower.endswith('ad'):
                 match_type = 'Doubles'
             else:
                 match_type = 'Singles'
-            
+
             # Get match name from title
             match_name = title
-            
+
             # Get leg wins for each team
             stats = submatch_data.get('statsData', [])
+
+            # Also check player count - if more than 1 player per team, it's doubles
+            team1_players = len([p for p in stats if p.get('tn') == 1])
+            team2_players = len([p for p in stats if p.get('tn') == 2])
+            if team1_players > 1 or team2_players > 1:
+                match_type = 'Doubles'
             team1_legs = stats[0].get('winLegs', 0) if len(stats) > 0 else 0
             team2_legs = stats[1].get('winLegs', 0) if len(stats) > 1 else 0
             

@@ -492,7 +492,16 @@ class SmartSeasonImporter(NewSeasonImporter):
             game_mode = submatch_data.get('gameMode', 'Singles')
 
             # AD (Avgörande Dubbel) and Dubbel/Doubles should always be Doubles, regardless of gameMode
-            if ' AD' in game_name or game_name.endswith('AD') or 'Dubbel' in game_name or 'Doubles' in game_name:
+            # Use case-insensitive check to catch all variants
+            game_name_lower = game_name.lower()
+            if ' ad' in game_name_lower or game_name_lower.endswith('ad') or 'dubbel' in game_name_lower or 'doubles' in game_name_lower:
+                game_mode = 'Doubles'
+
+            # Also check player count from statsData - if more than 2 players total, it's doubles
+            stats_data = submatch_data.get('statsData', [])
+            team1_players = len([p for p in stats_data if p.get('tn') == 1])
+            team2_players = len([p for p in stats_data if p.get('tn') == 2])
+            if team1_players > 1 or team2_players > 1:
                 game_mode = 'Doubles'
 
             sub_match_info = {
@@ -507,7 +516,6 @@ class SmartSeasonImporter(NewSeasonImporter):
             sub_match_id = self.db.insert_sub_match(sub_match_info)
 
             # Import players med SMART MATCHING
-            stats_data = submatch_data.get('statsData', [])
             self.import_players_smart(sub_match_id, stats_data, team1_id, team2_id, team1_name, team2_name)
 
             # Import legs and throws (unchanged)

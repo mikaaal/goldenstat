@@ -268,7 +268,9 @@ def api_tournament_player_matches(player_name):
                    t.title as tournament_title,
                    t.tournament_date,
                    t.start_score,
-                   t.id as tournament_id
+                   t.id as tournament_id,
+                   p1.start_score as p1_start_score,
+                   p2.start_score as p2_start_score
             FROM cup_matches cm
             JOIN participants p1 ON cm.participant1_id = p1.id
             JOIN participants p2 ON cm.participant2_id = p2.id
