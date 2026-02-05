@@ -1,10 +1,302 @@
 import os
 import sqlite3
 from flask import Blueprint, request, jsonify, render_template
+from collections import defaultdict
 
 tournaments_bp = Blueprint('tournaments', __name__)
 
 TOURNAMENTS_DB_PATH = os.getenv('TOURNAMENTS_DATABASE_PATH', 'cups.db')
+
+
+def calculate_fun_facts(matches, player_name):
+    """Calculate personalized fun facts for a player based on their matches."""
+    if not matches:
+        return []
+
+    import re
+    fun_facts = []
+
+    # Track opponent stats (singles only)
+    opponent_record = defaultdict(lambda: {'wins': 0, 'losses': 0})
+
+    # Track organizer participations (count unique tournaments per organizer)
+    organizer_tournaments = defaultdict(set)
+
+    # Track best match
+    best_match = {'avg': 0, 'opponent': '', 'tournament': '', 'date': ''}
+    first_match = None
+
+    # Track best placement - separate for singles and doubles
+    # Score: win in phase is better than loss, higher phase is better
+    # Final win = 12, Final loss = 11, Semi win = 10, Semi loss = 9, etc.
+    # B-slutspel counts but lower than A
+    best_singles_placement = {'score': 0, 'text': '', 'tournament': '', 'date': '', 'won': False}
+    best_doubles_placement = {'score': 0, 'text': '', 'tournament': '', 'date': '', 'won': False}
+
+    def get_phase_score(phase_label, won, is_b_slutspel):
+        """Calculate a score for ranking placements.
+
+        Ranking logic:
+        - A-Final vinst = 13, A-Final förlust = 12
+        - A-Semifinal vinst = 11, A-Semifinal förlust = 10
+        - B-Final vinst = 11 (same as A-Semi vinst)
+        - A-Kvartsfinal vinst = 9, A-Kvartsfinal förlust = 8
+        - B-Final förlust = 9, B-Semifinal vinst = 9
+        """
+        base_scores = {
+            'Final': 6, 'Semifinal': 5, 'Kvartsfinal': 4,
+            '8-delsfinal': 3, '16-delsfinal': 2, '32-delsfinal': 1, 'Poolspel': 0
+        }
+        # Strip B- prefix for lookup
+        clean_label = phase_label.replace('B-', '') if phase_label else ''
+        base = base_scores.get(clean_label, 0)
+        if base == 0:
+            return 0
+        # Double it and add 1 for win
+        score = base * 2 + (1 if won else 0)
+        # B-slutspel: subtract 2 (B-Final vinst = A-Semifinal vinst level)
+        if is_b_slutspel:
+            score = max(1, score - 2)
+        return score
+
+    # Track streaks
+    current_streak = 0
+    best_streak = {'count': 0, 'tournament': ''}
+    last_tournament = None
+    last_tournament_name = ''
+
+    # Doubles pattern
+    doubles_pattern = re.compile(r'\s+&\s+|\s*/\s*|\s+\+\s+|\s+och\s+', re.IGNORECASE)
+
+    # Extract organizer from tournament title
+    def get_organizer(title):
+        if not title:
+            return 'Okänd'
+        title_lower = title.lower()
+        # Known organizers
+        if "mini's" in title_lower or "minis" in title_lower or "mini´s" in title_lower:
+            return "MiNi's"
+        if "east" in title_lower:
+            return "East"
+        if "stdf" in title_lower:
+            return "StDF"
+        if "sofo" in title_lower:
+            return "SoFo House"
+        if "ssdc" in title_lower:
+            return "SSDC"
+        if "cobra" in title_lower:
+            return "Cobra"
+        if "oilers" in title_lower:
+            return "Oilers"
+        # Default: first word
+        return title.split()[0] if title.split() else 'Okänd'
+
+    for m in sorted(matches, key=lambda x: x.get('tournament_date') or ''):
+        is_p1 = player_name in (m.get('p1_name') or '')
+        p_legs = m['p1_legs_won'] if is_p1 else m['p2_legs_won']
+        o_legs = m['p2_legs_won'] if is_p1 else m['p1_legs_won']
+        avg = m['p1_average'] if is_p1 else m['p2_average']
+        opponent = m['p2_name'] if is_p1 else m['p1_name']
+
+        # Skip matches with missing leg data
+        if p_legs is None or o_legs is None:
+            continue
+
+        won = p_legs > o_legs
+
+        is_singles = not doubles_pattern.search(m.get('p1_name') or '') and not doubles_pattern.search(m.get('p2_name') or '')
+
+        # Track first match
+        if first_match is None:
+            first_match = m
+
+        # Organizer participations (count unique tournaments)
+        organizer = get_organizer(m.get('tournament_title', ''))
+        organizer_tournaments[organizer].add(m.get('tournament_id'))
+
+        # Best match (singles only)
+        if is_singles and avg and avg > best_match['avg']:
+            best_match = {
+                'avg': avg,
+                'opponent': opponent,
+                'tournament': m.get('tournament_title', ''),
+                'date': (m.get('tournament_date') or '')[:10]
+            }
+
+        # Opponent record (singles only)
+        if is_singles and opponent:
+            if won:
+                opponent_record[opponent]['wins'] += 1
+            elif o_legs > p_legs:
+                opponent_record[opponent]['losses'] += 1
+
+        # Best placement tracking
+        phase_label = m.get('phase_label', 'Poolspel')
+        is_b_slutspel = phase_label.startswith('B-')
+        phase_score = get_phase_score(phase_label, won, is_b_slutspel)
+
+        # Prestige bonus for important tournaments
+        tournament_title = (m.get('tournament_title') or '').lower()
+        if 'stdf' in tournament_title or 'dm ' in tournament_title or tournament_title.startswith('dm '):
+            phase_score += 5  # StDF/DM = Sveriges bästa spelare, alltid högst prestige
+        elif 'ssdc' in tournament_title:
+            phase_score += 3  # SSDC är också prestigefullt
+        else:
+            # Bonus för stora turneringar (endast icke-StDF/DM)
+            num_participants = m.get('num_participants') or 0
+            if num_participants >= 40:
+                phase_score += 2  # 40+ deltagare
+            elif num_participants >= 24:
+                phase_score += 1  # 24+ deltagare
+
+        if phase_score > 0:
+            placement_data = {
+                'score': phase_score,
+                'text': f"{phase_label}{' (vinst)' if won else ''}",
+                'tournament': m.get('tournament_title', ''),
+                'date': (m.get('tournament_date') or '')[:10],
+                'won': won
+            }
+            if is_singles:
+                if phase_score >= best_singles_placement['score']:
+                    best_singles_placement = placement_data
+            else:
+                if phase_score >= best_doubles_placement['score']:
+                    best_doubles_placement = placement_data
+
+        # Win streak tracking
+        current_tournament = m.get('tournament_id')
+        if current_tournament != last_tournament:
+            if current_streak > best_streak['count']:
+                best_streak = {'count': current_streak, 'tournament': last_tournament_name}
+            current_streak = 0
+        last_tournament = current_tournament
+        last_tournament_name = m.get('tournament_title', '')
+
+        if won:
+            current_streak += 1
+        else:
+            if current_streak > best_streak['count']:
+                best_streak = {'count': current_streak, 'tournament': last_tournament_name}
+            current_streak = 0
+
+    # Check final streak
+    if current_streak > best_streak['count']:
+        best_streak = {'count': current_streak, 'tournament': last_tournament_name}
+
+    # Generate fun facts
+
+    # 1. First tournament
+    if first_match:
+        date = (first_match.get('tournament_date') or '')[:10]
+        tournament = first_match.get('tournament_title', '')
+        fun_facts.append({
+            'emoji': '📅',
+            'title': 'Första cupen',
+            'text': f"{tournament.split(',')[0]}",
+            'detail': date
+        })
+
+    # 2. Best match
+    if best_match['avg'] > 0:
+        fun_facts.append({
+            'emoji': '🌟',
+            'title': 'Bästa matchen',
+            'text': f"{best_match['avg']:.1f} i snitt mot {best_match['opponent']}",
+            'detail': f"{best_match['tournament'].split(',')[0]} ({best_match['date']})"
+        })
+
+    # 3. Best placement - prefer singles, fall back to doubles
+    best_placement = best_singles_placement if best_singles_placement['score'] > 0 else best_doubles_placement
+    if best_placement['score'] > 0:
+        is_doubles = best_placement == best_doubles_placement and best_singles_placement['score'] == 0
+        title = 'Bästa placering (dubbel)' if is_doubles else 'Bästa placering'
+        fun_facts.append({
+            'emoji': '🏆',
+            'title': title,
+            'text': best_placement['text'],
+            'detail': f"{best_placement['tournament'].split(',')[0]} ({best_placement['date']})"
+        })
+
+    # 4. Nemesis (lost most against, min 2 losses)
+    nemesis = None
+    for opp, record in opponent_record.items():
+        if record['losses'] >= 2:
+            if nemesis is None or record['losses'] > nemesis['losses']:
+                nemesis = {'name': opp, 'wins': record['wins'], 'losses': record['losses']}
+
+    if nemesis and nemesis['losses'] > nemesis['wins']:
+        fun_facts.append({
+            'emoji': '😈',
+            'title': 'Nemesis',
+            'text': f"{nemesis['name']}",
+            'detail': f"{nemesis['wins']}-{nemesis['losses']} i inbördes möten"
+        })
+
+    # 5. Favorite opponent (won most against, min 2 wins)
+    favorite = None
+    for opp, record in opponent_record.items():
+        if record['wins'] >= 2:
+            if favorite is None or record['wins'] > favorite['wins']:
+                if record['wins'] > record['losses']:
+                    favorite = {'name': opp, 'wins': record['wins'], 'losses': record['losses']}
+
+    if favorite:
+        fun_facts.append({
+            'emoji': '💪',
+            'title': 'Favoritmotståndare',
+            'text': f"{favorite['name']}",
+            'detail': f"{favorite['wins']}-{favorite['losses']} i inbördes möten"
+        })
+
+    # 6. Most met opponent
+    most_met = None
+    for opp, record in opponent_record.items():
+        total = record['wins'] + record['losses']
+        if total >= 3:
+            if most_met is None or total > most_met['total']:
+                most_met = {'name': opp, 'wins': record['wins'], 'losses': record['losses'], 'total': total}
+
+    if most_met and (not nemesis or most_met['name'] != nemesis['name']) and (not favorite or most_met['name'] != favorite['name']):
+        fun_facts.append({
+            'emoji': '🤝',
+            'title': 'Mött flest gånger',
+            'text': f"{most_met['name']}",
+            'detail': f"{most_met['total']} matcher ({most_met['wins']}-{most_met['losses']})"
+        })
+
+    # 7. Favorite organizer (most tournament participations)
+    if organizer_tournaments:
+        fav_organizer = max(organizer_tournaments.items(), key=lambda x: len(x[1]))
+        num_tournaments = len(fav_organizer[1])
+        if num_tournaments >= 3:
+            fun_facts.append({
+                'emoji': '🎪',
+                'title': 'Stamkund',
+                'text': f"{fav_organizer[0]}",
+                'detail': f"{num_tournaments} turneringar"
+            })
+
+    # 8. Best win streak
+    if best_streak['count'] >= 4:
+        fun_facts.append({
+            'emoji': '🔥',
+            'title': 'Längsta vinstsvit',
+            'text': f"{best_streak['count']} raka vinster",
+            'detail': best_streak['tournament'].split(',')[0]
+        })
+
+    # 9. Number of unique opponents
+    num_opponents = len(opponent_record)
+    if num_opponents >= 10:
+        fun_facts.append({
+            'emoji': '⚔️',
+            'title': 'Mött',
+            'text': f"{num_opponents} olika motståndare",
+            'detail': 'i singelmatcher'
+        })
+
+    return fun_facts[:6]  # Return max 6 fun facts
 
 
 def get_tournaments_db():
@@ -57,7 +349,13 @@ def api_tournaments():
                 (SELECT COUNT(*) FROM cup_matches cm WHERE cm.tournament_id = t.id) as match_count,
                 (SELECT COUNT(*) FROM legs l
                  JOIN cup_matches cm ON l.cup_match_id = cm.id
-                 WHERE cm.tournament_id = t.id) as leg_count
+                 WHERE cm.tournament_id = t.id) as leg_count,
+                (SELECT COUNT(*) FROM participants px WHERE px.tournament_id = t.id AND px.start_score != t.start_score) > 0 as has_hcp,
+                (SELECT MAX(cnt) FROM (
+                    SELECT COUNT(*) as cnt FROM participant_players pp
+                    JOIN participants p ON pp.participant_id = p.id
+                    WHERE p.tournament_id = t.id GROUP BY pp.participant_id
+                )) > 1 as is_doubles
             FROM tournaments t
             ORDER BY t.tournament_date DESC
         """)
@@ -270,7 +568,14 @@ def api_tournament_player_matches(player_name):
                    t.start_score,
                    t.id as tournament_id,
                    p1.start_score as p1_start_score,
-                   p2.start_score as p2_start_score
+                   p2.start_score as p2_start_score,
+                   (SELECT COUNT(*) FROM participants px WHERE px.tournament_id = t.id) as num_participants,
+                   (SELECT COUNT(*) FROM participants px WHERE px.tournament_id = t.id AND px.start_score != t.start_score) > 0 as tournament_has_hcp,
+                   (SELECT MAX(cnt) FROM (
+                       SELECT COUNT(*) as cnt FROM participant_players pp
+                       JOIN participants p ON pp.participant_id = p.id
+                       WHERE p.tournament_id = t.id GROUP BY pp.participant_id
+                   )) > 1 as tournament_is_doubles
             FROM cup_matches cm
             JOIN participants p1 ON cm.participant1_id = p1.id
             JOIN participants p2 ON cm.participant2_id = p2.id
@@ -321,9 +626,13 @@ def api_tournament_player_matches(player_name):
                 m['phase_label'] = 'Poolspel'
             matches.append(m)
 
+        # Calculate fun facts
+        fun_facts = calculate_fun_facts(matches, player_name)
+
         return jsonify({
             'player_name': player_name,
-            'matches': matches
+            'matches': matches,
+            'fun_facts': fun_facts
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
