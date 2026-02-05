@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(sqlite3:*)",
-      "Bash(python:*)",
+      "Bash(Python:*)",
+      "Bash(Python -c *)",
       "Bash(pip install:*)",
       "Bash(chcp:*)",
       "Bash(set PYTHONIOENCODING=utf-8)",
@@ -40,7 +41,13 @@
       "Bash(iconv:*)",
       "Bash(__NEW_LINE_72310ccd135e50a6__ curl -s \"http://localhost:3000/api/club/Dartanjang/players\" -o club_dartanjang3.json)",
       "WebFetch(domain:localhost)",
-      "WebFetch(domain:tk2-228-23746.vs.sakura.ne.jp)"
+      "WebFetch(domain:tk2-228-23746.vs.sakura.ne.jp)",
+      "Python -c",
+      "Bash(python:*)",
+      "Bash(tasklist:*)",
+      "Bash(wmic process:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd //c \"taskkill /PID 76416 /F\")"
     ],
     "deny": [],
     "ask": []
