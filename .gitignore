@@ -80,3 +80,7 @@ separate_robban_players.py
 separate_pelle_players.py
 fix_all_problematic_players.py
 consolidate_nacka_players.py
+apply_batch.py
+apply_cup_mappings.py
+find_cup_duplicates.py
+scan_remaining.py

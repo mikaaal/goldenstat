@@ -1031,26 +1031,54 @@ async function searchCupPlayer() {
 
         const playerName = data.player_name;
 
-        // Summary stats
-        let wins = 0, losses = 0, totalAvg = 0, avgCount = 0;
+        // Summary stats - separate averages for with/without handicap
+        let avgNoHcp = 0, countNoHcp = 0;
+        let avgHcp = 0, countHcp = 0;
+        let doublesCount = 0;
+        const doublesPattern = /\s+&\s+|\s*\/\s*|\s+\+\s+|\s+och\s+/i;
+
         data.matches.forEach(m => {
             const isP1 = m.p1_name.includes(playerName);
-            const pLegs = isP1 ? m.p1_legs_won : m.p2_legs_won;
-            const oLegs = isP1 ? m.p2_legs_won : m.p1_legs_won;
             const avg = isP1 ? m.p1_average : m.p2_average;
-            if (pLegs > oLegs) wins++;
-            else if (oLegs > pLegs) losses++;
-            // Only count 501 singles for average
-            const doublesPattern = /\s+&\s+|\s*\/\s*|\s+\+\s+|\s+och\s+/i;
-            const isSingles = !doublesPattern.test(m.p1_name) && !doublesPattern.test(m.p2_name);
-            if (avg != null && isSingles && m.start_score === 501) { totalAvg += avg; avgCount++; }
+            const isDoubles = doublesPattern.test(m.p1_name) || doublesPattern.test(m.p2_name);
+
+            if (isDoubles) {
+                doublesCount++;
+            } else if (avg != null && m.start_score >= 501) {
+                // Check if handicap match (either participant has start_score != 501)
+                const hasHcp = (m.p1_start_score != null && m.p1_start_score != 501) ||
+                               (m.p2_start_score != null && m.p2_start_score != 501);
+                if (hasHcp) {
+                    avgHcp += avg;
+                    countHcp++;
+                } else {
+                    avgNoHcp += avg;
+                    countNoHcp++;
+                }
+            }
         });
 
-        const avgStr = avgCount > 0 ? (totalAvg / avgCount).toFixed(2) : '-';
+        // Build display string: "Name - X matcher (Y dubblar) - Snitt: A (N matcher) / B (M matcher med hcp)"
+        const matchesStr = doublesCount > 0
+            ? `${data.matches.length} matcher (${doublesCount} dubblar)`
+            : `${data.matches.length} matcher`;
+
+        const avgNoHcpStr = countNoHcp > 0 ? (avgNoHcp / countNoHcp).toFixed(2) : null;
+        const avgHcpStr = countHcp > 0 ? (avgHcp / countHcp).toFixed(2) : null;
+        let avgDisplay = '';
+        if (avgNoHcpStr && avgHcpStr) {
+            avgDisplay = `Snitt: ${avgNoHcpStr} (${countNoHcp} matcher) / ${avgHcpStr} (${countHcp} matcher med hcp)`;
+        } else if (avgNoHcpStr) {
+            avgDisplay = `Snitt: ${avgNoHcpStr} (${countNoHcp} matcher)`;
+        } else if (avgHcpStr) {
+            avgDisplay = `Snitt: ${avgHcpStr} (${countHcp} matcher med hcp)`;
+        } else {
+            avgDisplay = 'Snitt: -';
+        }
+
         document.getElementById('cupPlayerResultsTitle').textContent =
-            `${playerName} — ${data.matches.length} matcher (${wins}V / ${losses}F) — Snitt: ${avgStr}`;
-        document.getElementById('cupPlayerAvgNote').textContent =
-            avgCount > 0 ? `Snitt baserat på ${avgCount} singelmatcher (501:or utan handicap)` : 'Inga singelmatcher (501) att beräkna snitt på';
+            `${playerName} — ${matchesStr} — ${avgDisplay}`;
+        document.getElementById('cupPlayerAvgNote').textContent = '';
 
         // Group matches by tournament
         const grouped = [];
