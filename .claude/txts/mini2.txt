@@ -1,0 +1,210 @@
+
+    
+    {
+        "tdid": "t_knJC_1366",
+        "createTime": 1714400611,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240429",
+        "t_date": 1714400520,
+        "status": 40,
+        "s": 215085,
+        "d": 11378
+    },
+    {
+        "tdid": "t_Fr1e_8982",
+        "createTime": 1714149339,
+        "title": "MiNi\u00b4s Lottade Dubbel 240426",
+        "t_date": 1714149060,
+        "status": 40,
+        "s": 173035,
+        "d": 10894
+    },
+    {
+        "tdid": "t_xD42_3087",
+        "createTime": 1713963933,
+        "title": "MiNi\u00b4s Onsdagscup 240424",
+        "t_date": 1713963840,
+        "status": 40,
+        "s": 166315,
+        "d": 9252
+    },
+    {
+        "tdid": "t_Of3v_9666",
+        "createTime": 1713793469,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240422",
+        "t_date": 1713793380,
+        "status": 40,
+        "s": 225461,
+        "d": 12867
+    },
+    {
+        "tdid": "t_DxEy_2650",
+        "createTime": 1713536963,
+        "title": "MiNi\u00b4s Fredagscup 240419",
+        "t_date": 1713536880,
+        "status": 40,
+        "s": 278966,
+        "d": 17061
+    },
+    {
+        "tdid": "t_xdvs_3843",
+        "createTime": 1713368195,
+        "title": "MiNi\u00b4s Onsdagscup 240417",
+        "t_date": 1713368100,
+        "status": 40,
+        "s": 65758,
+        "d": 4093
+    },
+    {
+        "tdid": "t_m7GM_1177",
+        "createTime": 1713190491,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240415",
+        "t_date": 1713190440,
+        "status": 40,
+        "s": 181344,
+        "d": 9659
+    },
+    {
+        "tdid": "t_Evcu_4360",
+        "createTime": 1712928954,
+        "title": "MiNi\u00b4s Lottade Dubbel 240412",
+        "t_date": 1712928900,
+        "status": 40,
+        "s": 175458,
+        "d": 11977
+    },
+    {
+        "tdid": "t_qSCQ_0584",
+        "createTime": 1712751210,
+        "title": "MiNi\u00b4s Onsdagscup 240410",
+        "t_date": 1712751120,
+        "status": 40,
+        "s": 159795,
+        "d": 8964
+    },
+    {
+        "tdid": "t_BJqA_5928",
+        "createTime": 1712581235,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240408",
+        "t_date": 1712581140,
+        "status": 40,
+        "s": 207440,
+        "d": 11683
+    },
+    {
+        "tdid": "t_J1eh_6938",
+        "createTime": 1712322186,
+        "title": "MiNi\u00b4s Fredagscup 240405",
+        "t_date": 1712322120,
+        "status": 40,
+        "s": 299989,
+        "d": 17548
+    },
+    {
+        "tdid": "t_WMyB_6832",
+        "createTime": 1711977246,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240401",
+        "t_date": 1711977180,
+        "status": 40,
+        "s": 156101,
+        "d": 8851
+    },
+    {
+        "tdid": "t_idF6_1044",
+        "createTime": 1711550161,
+        "title": "MiNi\u00b4s Onsdagscup 240327",
+        "t_date": 1711550100,
+        "status": 40,
+        "s": 318203,
+        "d": 17577
+    },
+    {
+        "tdid": "t_0vCC_0399",
+        "createTime": 1711376050,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240325",
+        "t_date": 1711375980,
+        "status": 40,
+        "s": 220258,
+        "d": 11679
+    },
+    {
+        "tdid": "t_n1Sf_9954",
+        "createTime": 1711122299,
+        "title": "MiNi\u00b4s Lottade Dubbel 240322",
+        "t_date": 1711122180,
+        "status": 40,
+        "s": 73891,
+        "d": 4950
+    },
+    {
+        "tdid": "t_bvWa_6785",
+        "createTime": 1710772396,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240318",
+        "t_date": 1710772320,
+        "status": 40,
+        "s": 201288,
+        "d": 11552
+    },
+    {
+        "tdid": "t_CiVE_3759",
+        "createTime": 1710514163,
+        "title": "MiNi\u00b4s Fredagscup 240315",
+        "t_date": 1710514080,
+        "status": 40,
+        "s": 339065,
+        "d": 20089
+    },
+    {
+        "tdid": "t_M951_1814",
+        "createTime": 1710160611,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240311",
+        "t_date": 1710160500,
+        "status": 40,
+        "s": 184180,
+        "d": 9768
+    },
+    {
+        "tdid": "t_cuco_4505",
+        "createTime": 1709907914,
+        "title": "MiNi\u00b4s Lottade Dubbel 240308",
+        "t_date": 1709907840,
+        "status": 40,
+        "s": 163245,
+        "d": 10228
+    },
+    {
+        "tdid": "t_7xF6_7793",
+        "createTime": 1709564237,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240304",
+        "t_date": 1709564160,
+        "status": 40,
+        "s": 161028,
+        "d": 8965
+    },
+    {
+        "tdid": "t_y9JG_5900",
+        "createTime": 1709306535,
+        "title": "MiNi\u00b4s Fredagscup 240301",
+        "t_date": 1709306460,
+        "status": 40,
+        "s": 229608,
+        "d": 13481
+    },
+    {
+        "tdid": "t_jidN_0136",
+        "createTime": 1709135250,
+        "title": "MiNi\u00b4s Onsdagscup 240228",
+        "t_date": 1709134980,
+        "status": 40,
+        "s": 211890,
+        "d": 11569
+    },
+    {
+        "tdid": "t_dKMm_9180",
+        "createTime": 1708953149,
+        "title": "MiNi\u00b4s M\u00e5ndagscup 240226",
+        "t_date": 1708953060,
+        "status": 40,
+        "s": 225299,
+        "d": 12524
+    },
+
