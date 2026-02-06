@@ -3,7 +3,7 @@ FROM python:3.11-bullseye
 
 WORKDIR /app
 
-# Installera systempaket och dependencies för Playwright
+# Installera systempaket, git-lfs och dependencies för Playwright
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -25,7 +25,9 @@ RUN apt-get update && apt-get install -y \
     libxdamage1 \
     libxrandr2 \
     xdg-utils \
-    && rm -rf /var/lib/apt/lists/*
+    git-lfs \
+    && rm -rf /var/lib/apt/lists/* \
+    && git lfs install
 
 # Kopiera requirements först för bättre Docker layer caching
 COPY requirements.txt .
@@ -36,8 +38,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Installera Playwright browsers (utan --with-deps för att undvika konflikter)
 RUN playwright install chromium
 
-# Kopiera alla appfiler
+# Kopiera alla appfiler inklusive .git för LFS
 COPY . .
+
+# Hämta LFS-filer (databaser)
+RUN git lfs pull || echo "LFS pull failed, continuing anyway"
 
 # Miljövariabler
 ENV PYTHONPATH=/app
