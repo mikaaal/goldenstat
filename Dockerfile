@@ -1,6 +1,10 @@
 # Använd en mer stabil base image för Playwright
 FROM python:3.11-bullseye
 
+# Build args för git clone med LFS
+ARG RAILWAY_GIT_COMMIT_SHA
+ARG RAILWAY_GIT_BRANCH=main
+
 WORKDIR /app
 
 # Installera systempaket, git-lfs och dependencies för Playwright
@@ -29,8 +33,16 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/* \
     && git lfs install
 
-# Kopiera requirements först för bättre Docker layer caching
-COPY requirements.txt .
+# Cache-bust: detta ändras vid varje commit så Docker hämtar nya filer
+ARG CACHEBUST=${RAILWAY_GIT_COMMIT_SHA:-1}
+
+# Klona repot med LFS för att få databaserna
+RUN git clone --branch ${RAILWAY_GIT_BRANCH:-main} --single-branch --depth 1 \
+    https://github.com/mikaaal/goldenstat.git /tmp/repo \
+    && cd /tmp/repo \
+    && git lfs pull \
+    && cp -r /tmp/repo/* /app/ \
+    && rm -rf /tmp/repo
 
 # Installera Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -38,17 +50,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Installera Playwright browsers (utan --with-deps för att undvika konflikter)
 RUN playwright install chromium
 
-# Kopiera alla appfiler inklusive .git för LFS
-COPY . .
-
-# Hämta LFS-filer (databaser)
-RUN git lfs pull || echo "LFS pull failed, continuing anyway"
-
 # Miljövariabler
 ENV PYTHONPATH=/app
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
-# DATABASE_PATH not set - will use default goldenstat.db in /app
 
 # Exponera port
 EXPOSE $PORT
