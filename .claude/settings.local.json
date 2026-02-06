@@ -47,7 +47,10 @@
       "Bash(tasklist:*)",
       "Bash(wmic process:*)",
       "Bash(taskkill:*)",
-      "Bash(cmd //c \"taskkill /PID 76416 /F\")"
+      "Bash(cmd //c \"taskkill /PID 76416 /F\")",
+      "Bash(ls:*)",
+      "Bash(git lfs:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []
