@@ -16,7 +16,7 @@ Goldenstat är en Flask-baserad webbapplikation för dartstatistik. Visar statis
 - **Frontend**: HTML, CSS (Bootstrap), JavaScript
 - **Scraping**: Playwright (ligamatcher från nakka.com), Requests (cuper via n01 API)
 - **Deploy**: Railway med Gunicorn
-- **CI/CD**: GitHub Actions (daglig ligaimport 02:00 UTC, nattlig cupimport 04:00 UTC)
+- **CI/CD**: GitHub Actions (daglig liga- och cupimport 02:00 UTC)
 
 ## Project Structure
 ```
@@ -48,8 +48,7 @@ goldenstat/
 ├── cache_warmup.py                 # Cache warmup (weekly-stats + top-stats, båda ligorna)
 ├── gunicorn.conf.py                # Gunicorn-config för produktion
 └── .github/workflows/
-    ├── daily-import.yml            # 02:00 UTC - ligamatcher
-    ├── nightly-cup-import.yml      # 04:00 UTC - cuper
+    ├── daily-import.yml            # 02:00 UTC - liga + cuper
     └── pr-checks.yml               # Lint + import-test
 ```
 

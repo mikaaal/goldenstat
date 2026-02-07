@@ -208,8 +208,9 @@ class CupImporter:
                 round_results = results[round_index]
             else:
                 round_results = results.get(str(round_index))
-                if round_results is None:
-                    continue
+
+            if not round_results:
+                continue
 
             # API may return round_entries as dict with string keys
             if isinstance(round_entries, dict):
