@@ -25,11 +25,11 @@
     <div id="view-tournaments" class="cups-view d-none">
         <div class="card fade-in-up">
             <div class="card-header bg-dark text-white">
-                <h5 class="mb-0">Turneringar</h5>
+                <h5 class="mb-0">Turneringar <small id="tournament-count" class="fw-normal"></small></h5>
             </div>
             <div class="card-body p-0">
                 <div class="p-3 pb-0">
-                    <input type="text" id="tournament-filter" class="form-control form-control-sm" placeholder="Filtrera på titel..." oninput="filterTournaments()">
+                    <input type="text" id="tournament-filter" class="form-control form-control-sm" placeholder="Filtrera på titel..." oninput="onTournamentFilterInput()">
                 </div>
                 <div id="tournaments-loading" class="text-center py-4">
                     <div class="spinner-border" role="status"></div>
@@ -49,6 +49,7 @@
                 </div>
                 <!-- Mobile cards -->
                 <div id="tournaments-mobile" class="d-md-none d-none"></div>
+                <div id="show-all-tournaments-btn" class="text-center mt-3 d-none"></div>
             </div>
         </div>
     </div>
@@ -103,8 +104,8 @@
                                 <thead>
                                     <tr>
                                         <th>#</th>
-                                        <th>Namn</th>
-                                        <th class="text-center">Handicap</th>
+                                        <th style="cursor:pointer" onclick="sortParticipants('name')">Namn <span class="sort-arrow" id="p-sort-name"></span></th>
+                                        <th class="text-center" style="cursor:pointer" onclick="sortParticipants('hcp')">Handicap <span class="sort-arrow" id="p-sort-hcp"></span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="participants-table"></tbody>
@@ -533,14 +534,45 @@ function pluralizeDarts(n) { return n === 1 ? 'pil' : 'pilar'; }
 // ============= View 1: Tournament List =============
 let tournamentListData = [];
 let tournamentSort = { key: 'date', dir: -1 }; // default: newest first
+const TOURNAMENT_DISPLAY_LIMIT = 50;
+let showAllTournaments = false;
+let hiddenTournamentCount = 0;
+
+function onTournamentFilterInput() {
+    const query = document.getElementById('tournament-filter').value.toLowerCase().trim();
+    if (!query) showAllTournaments = false;
+    filterTournaments();
+}
 
 function filterTournaments() {
     const query = document.getElementById('tournament-filter').value.toLowerCase().trim();
-    const filtered = query
-        ? tournamentListData.filter(t => (t.title || '').toLowerCase().includes(query))
-        : tournamentListData;
-    const sorted = sortTournaments(filtered, tournamentSort.key, tournamentSort.dir);
-    renderTournamentList(sorted);
+
+    // Sort full dataset first
+    const sorted = sortTournaments(tournamentListData, tournamentSort.key, tournamentSort.dir);
+
+    // Text filter if searching
+    let filtered = query
+        ? sorted.filter(t => (t.title || '').toLowerCase().includes(query))
+        : sorted;
+
+    // Limit display count unless showing all or searching
+    const total = filtered.length;
+    if (!showAllTournaments && !query && filtered.length > TOURNAMENT_DISPLAY_LIMIT) {
+        hiddenTournamentCount = filtered.length - TOURNAMENT_DISPLAY_LIMIT;
+        filtered = filtered.slice(0, TOURNAMENT_DISPLAY_LIMIT);
+    } else {
+        hiddenTournamentCount = 0;
+    }
+
+    renderTournamentList(filtered);
+
+    // Update header count
+    const countEl = document.getElementById('tournament-count');
+    if (countEl) {
+        countEl.textContent = filtered.length < tournamentListData.length
+            ? `(${filtered.length} av ${tournamentListData.length})`
+            : `(${tournamentListData.length} st)`;
+    }
 }
 
 function sortTournaments(data, key, dir) {
@@ -599,6 +631,18 @@ function renderTournamentList(data) {
             arrow.textContent = '';
         }
     });
+
+    // Show/hide "show all" button
+    const btnContainer = document.getElementById('show-all-tournaments-btn');
+    if (btnContainer) {
+        if (!showAllTournaments && hiddenTournamentCount > 0) {
+            btnContainer.innerHTML = `<button class="btn btn-outline-secondary btn-sm" onclick="showAllTournaments=true; filterTournaments();">Visa alla turneringar (${hiddenTournamentCount} till)</button>`;
+            btnContainer.classList.remove('d-none');
+        } else {
+            btnContainer.innerHTML = '';
+            btnContainer.classList.add('d-none');
+        }
+    }
 }
 
 function onSortClick(key) {
@@ -611,13 +655,59 @@ function onSortClick(key) {
     filterTournaments();
 }
 
+// --- Participant sorting ---
+let currentParticipants = [];
+let participantSort = { key: null, dir: 1 };
+
+function renderParticipants(participants) {
+    const ptbody = document.getElementById('participants-table');
+    ptbody.innerHTML = '';
+    participants.forEach((p, i) => {
+        const tr = document.createElement('tr');
+        const handicap = p.start_score !== null && p.start_score !== undefined ? p.start_score : '-';
+        tr.innerHTML = `
+            <td>${i + 1}</td>
+            <td>${esc(p.players || p.name)}</td>
+            <td class="text-center">${handicap}</td>
+        `;
+        ptbody.appendChild(tr);
+    });
+    // Update sort arrows
+    ['name', 'hcp'].forEach(k => {
+        const el = document.getElementById('p-sort-' + k);
+        if (el) el.textContent = participantSort.key === k ? (participantSort.dir === 1 ? '▲' : '▼') : '';
+    });
+}
+
+function sortParticipants(key) {
+    if (participantSort.key === key) {
+        participantSort.dir *= -1;
+    } else {
+        participantSort.key = key;
+        participantSort.dir = key === 'name' ? 1 : -1;
+    }
+    const sorted = [...currentParticipants].sort((a, b) => {
+        let va, vb;
+        if (key === 'name') {
+            va = (a.players || a.name || '').toLowerCase();
+            vb = (b.players || b.name || '').toLowerCase();
+        } else {
+            va = a.start_score !== null && a.start_score !== undefined ? a.start_score : -Infinity;
+            vb = b.start_score !== null && b.start_score !== undefined ? b.start_score : -Infinity;
+        }
+        if (va < vb) return -1 * participantSort.dir;
+        if (va > vb) return 1 * participantSort.dir;
+        return 0;
+    });
+    renderParticipants(sorted);
+}
+
 async function initTournamentList() {
     document.getElementById('view-tournaments').classList.remove('d-none');
     try {
         const resp = await fetch('/api/tournaments');
         tournamentListData = await resp.json();
-        const sorted = sortTournaments(tournamentListData, tournamentSort.key, tournamentSort.dir);
-        renderTournamentList(sorted);
+        filterTournaments();
 
         document.querySelectorAll('.sortable-col').forEach(th => {
             th.addEventListener('click', () => onSortClick(th.dataset.sort));
@@ -658,18 +748,9 @@ async function initTournamentDetail() {
         document.getElementById('detail-matches').textContent = totalMatches;
 
         // Participants table
-        const ptbody = document.getElementById('participants-table');
-        ptbody.innerHTML = '';
-        data.participants.forEach((p, i) => {
-            const tr = document.createElement('tr');
-            const handicap = p.start_score !== null && p.start_score !== undefined ? p.start_score : '-';
-            tr.innerHTML = `
-                <td>${i + 1}</td>
-                <td>${esc(p.players || p.name)}</td>
-                <td class="text-center">${handicap}</td>
-            `;
-            ptbody.appendChild(tr);
-        });
+        currentParticipants = data.participants;
+        participantSort = { key: null, dir: 1 };
+        renderParticipants(currentParticipants);
 
         // Show/hide phase tabs based on available data
         document.querySelector('[data-phase="rr"]').parentElement.style.display =
