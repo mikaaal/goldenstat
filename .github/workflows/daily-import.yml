@@ -8,11 +8,14 @@ on:
   # Tillåt manuell körning
   workflow_dispatch:
 
-  # Kör när daily_import.py ändras (för testning)
+  # Kör när importfiler ändras (för testning)
   push:
     paths:
       - 'daily_import.py'
       - 'smart_season_importer.py'
+      - 'nightly_cup_import.py'
+      - 'import_cup.py'
+      - 'cup_database.py'
       - '.github/workflows/daily-import.yml'
     branches:
       - main
@@ -86,30 +89,46 @@ jobs:
           echo "🤖 Kör daglig import..."
           python daily_import.py
 
-      - name: Check if database was updated
+      - name: Run nightly cup import
+        run: |
+          echo "🏆 Kör cup-import..."
+          python nightly_cup_import.py
+
+      - name: Check if databases were updated
         id: check_changes
         run: |
+          changed=false
           if [ -f "goldenstat.db" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "✅ Databas uppdaterad"
+            echo "✅ goldenstat.db uppdaterad"
             ls -lh goldenstat.db
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
+            changed=true
+          fi
+          if [ -f "cups.db" ]; then
+            echo "✅ cups.db uppdaterad"
+            ls -lh cups.db
+            changed=true
+          fi
+          if [ "$changed" = "false" ]; then
             echo "⚠️ Ingen databas skapad"
           fi
+          echo "changed=$changed" >> $GITHUB_OUTPUT
 
-      - name: Commit and push updated database
+      - name: Commit and push updated databases
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
 
-          # Lägg till databas och senaste loggen
+          # Lägg till databaser
           git add goldenstat.db || true
+          git add cups.db || true
+
+          # Lägg till senaste loggarna
           latest_log=$(ls -t import_logs/daily_import_*.json 2>/dev/null | head -1)
           if [ -f "$latest_log" ]; then
             git add "$latest_log" || true
           fi
+          git add import_logs/cup_*.json 2>/dev/null || true
 
           if git diff --staged --quiet; then
             echo "Inga ändringar att committa"
@@ -118,30 +137,15 @@ jobs:
             git push || echo "⚠️ Kunde inte pusha ändringar"
           fi
 
-      - name: Upload latest import log as artifact
+      - name: Upload import logs as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: import-log-${{ github.run_number }}
-          path: import_logs/daily_import_*.json
+          path: |
+            import_logs/daily_import_*.json
+            import_logs/cup_*.json
           retention-days: 30
-
-      - name: Commit and push import log (optional)
-        if: steps.check_changes.outputs.changed == 'true'
-        run: |
-          git config user.name "GitHub Actions Bot"
-          git config user.email "actions@github.com"
-
-          # Lägg till endast den senaste import-loggen
-          latest_log=$(ls -t import_logs/daily_import_*.json | head -1)
-          git add "$latest_log" || true
-
-          if git diff --staged --quiet; then
-            echo "Ingen ny import-logg att committa"
-          else
-            git commit -m "🤖 Daily import log $(date +%Y-%m-%d)"
-            git push || echo "⚠️ Kunde inte pusha import-logg (inte kritiskt)"
-          fi
 
       - name: Summary
         if: always()
@@ -149,12 +153,20 @@ jobs:
           echo "## 📊 Import Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          if [ -f "import_logs/daily_import_"*.json ]; then
+          if ls import_logs/daily_import_*.json 1>/dev/null 2>&1; then
             latest_log=$(ls -t import_logs/daily_import_*.json | head -1)
-            echo "### Senaste import-loggen:" >> $GITHUB_STEP_SUMMARY
+            echo "### Liga-import:" >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
             python -c "import json; log=json.load(open('$latest_log')); print(json.dumps(log.get('statistics', {}), indent=2))"  >> $GITHUB_STEP_SUMMARY
             echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "cups.db" ]; then
+            echo "### Cup-import:" >> $GITHUB_STEP_SUMMARY
+            count=$(python -c "import sqlite3; c=sqlite3.connect('cups.db'); print(c.execute('SELECT COUNT(*) FROM tournaments').fetchone()[0]); c.close()" 2>/dev/null || echo "?")
+            echo "Turneringar i databasen: $count" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY
