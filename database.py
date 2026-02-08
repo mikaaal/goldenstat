@@ -487,14 +487,19 @@ class DartDatabase:
                     # Doubles or AD - show both opponents
                     match['opponent'] = ' + '.join(opponents) if opponents else 'Unknown'
 
-                    # Get teammate for doubles matches (from the same team, excluding the current player)
+                    # Get teammate for doubles matches (from the same team, excluding the current player and their aliases)
                     cursor.execute("""
                         SELECT p.name as original_name, smp2.player_id
                         FROM sub_match_participants smp2
                         JOIN players p ON smp2.player_id = p.id
-                        WHERE smp2.sub_match_id = ? AND smp2.team_number = ? AND smp2.player_id != ?
+                        WHERE smp2.sub_match_id = ? AND smp2.team_number = ?
+                          AND smp2.player_id != ?
+                          AND smp2.player_id NOT IN (
+                              SELECT smpm.original_player_id FROM sub_match_player_mappings smpm
+                              WHERE smpm.correct_player_name = ?
+                          )
                         ORDER BY p.name
-                    """, (match['sub_match_id'], match['team_number'], player_id))
+                    """, (match['sub_match_id'], match['team_number'], player_id, player_name))
 
                     teammate_data = cursor.fetchall()
                     teammates = []
