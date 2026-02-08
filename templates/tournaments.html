@@ -450,6 +450,9 @@
     .cups-result-score { font-size: 1.8rem; }
     .cups-avg-badge { font-size: 0.75em; }
     .cup-player-stats { flex-direction: column; gap: 0.25rem !important; }
+    .cups-match-table { table-layout: fixed; }
+    .cups-match-table td { font-size: 0.85rem; padding: 0.35rem 0.25rem !important; word-wrap: break-word; }
+    .cups-match-table .match-score { white-space: nowrap; }
 }
 </style>
 {% endblock %}
@@ -829,7 +832,7 @@ function renderMatches() {
 
             html += `<tr${hasDetail ? ` style="cursor:pointer" onclick="window.location.href='${matchUrl}'"` : ''}>
                 <td class="text-end align-middle ${p1Win ? 'fw-bold' : ''}">${p1Display}</td>
-                <td class="text-center fw-bold align-middle">${scoreDisplay}</td>
+                <td class="text-center fw-bold align-middle match-score">${scoreDisplay}</td>
                 <td class="align-middle ${p2Win ? 'fw-bold' : ''}">${p2Display}</td>
             </tr>`;
         });
