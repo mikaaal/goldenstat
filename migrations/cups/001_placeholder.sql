@@ -1,0 +1,3 @@
+-- Placeholder-migrering för cups.db.
+-- cup_player_mappings skapas redan i cup_database.py.
+-- Denna fil säkerställer att migrerings-infrastrukturen finns för framtida ändringar.

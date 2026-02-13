@@ -118,6 +118,9 @@ class SmartSeasonImporter(NewSeasonImporter):
                         sub_match_id
                     )
 
+                    # Kolla om spelaren har ett alias (t.ex. "Kari (Tyresö DC)" -> "Kari Dagudde")
+                    final_player_id = self.resolve_player_alias(final_player_id, sub_match_id)
+
                     # Insert participant med smart-matched player
                     participant_data = {
                         'sub_match_id': sub_match_id,
@@ -133,6 +136,31 @@ class SmartSeasonImporter(NewSeasonImporter):
             error_msg = f"Error importing players for sub_match {sub_match_id}: {str(e)}"
             print(f"ERROR: {error_msg}")
             self.import_log["errors"].append(error_msg)
+
+    def resolve_player_alias(self, player_id: int, sub_match_id: int) -> int:
+        """Kolla om spelaren har ett alias i player_aliases-tabellen.
+        Om ja, skapa mappning och returnera kanonisk spelare. Om nej, returnera oförändrat."""
+        try:
+            with sqlite3.connect(self.db.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                row = conn.execute(
+                    "SELECT canonical_player_id, canonical_player_name FROM player_aliases WHERE alias_player_id = ?",
+                    (player_id,)
+                ).fetchone()
+                if not row:
+                    return player_id
+
+                # Skapa mappning i sub_match_player_mappings
+                conn.execute("""
+                    INSERT OR IGNORE INTO sub_match_player_mappings
+                    (sub_match_id, original_player_id, correct_player_id, correct_player_name, confidence, mapping_reason)
+                    VALUES (?, ?, ?, ?, 100, 'Auto via player_aliases')
+                """, (sub_match_id, player_id, row['canonical_player_id'], row['canonical_player_name']))
+                conn.commit()
+
+                return row['canonical_player_id']
+        except Exception:
+            return player_id
 
     def get_smart_player_id(self, raw_player_name: str, team_name: str, sub_match_id: int) -> int:
         """🧠 GENERELL INTELLIGENT SPELARMATCHNING - fungerar för ALLA spelare"""

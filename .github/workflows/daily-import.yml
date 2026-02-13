@@ -16,6 +16,8 @@ on:
       - 'nightly_cup_import.py'
       - 'import_cup.py'
       - 'cup_database.py'
+      - 'apply_migrations.py'
+      - 'migrations/**'
       - '.github/workflows/daily-import.yml'
     branches:
       - main
@@ -86,6 +88,12 @@ jobs:
           else
             echo "⚠️  Ingen release hittades, skapar nya databaser"
           fi
+
+      - name: Apply database migrations
+        run: |
+          echo "🔧 Applicerar SQL-migreringar..."
+          python apply_migrations.py goldenstat.db migrations/goldenstat
+          python apply_migrations.py cups.db migrations/cups
 
       - name: Run daily import
         run: |
