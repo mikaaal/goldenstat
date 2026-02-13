@@ -38,7 +38,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history för git operations
-          lfs: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -75,13 +74,17 @@ jobs:
         run: |
           playwright install chromium
 
-      - name: Check for existing database
+      - name: Download databases from GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -f "goldenstat.db" ]; then
-            echo "✅ Använder befintlig databas från repo"
-            ls -lh goldenstat.db
+          echo "📥 Hämtar databaser från GitHub Release..."
+          if gh release view db-latest >/dev/null 2>&1; then
+            gh release download db-latest --pattern "*.db" --clobber || true
+            echo "✅ Databaser hämtade:"
+            ls -lh *.db 2>/dev/null || echo "Inga .db-filer hittades"
           else
-            echo "⚠️  Ingen databas hittades, skapar ny"
+            echo "⚠️  Ingen release hittades, skapar nya databaser"
           fi
 
       - name: Run daily import
@@ -113,15 +116,35 @@ jobs:
           fi
           echo "changed=$changed" >> $GITHUB_OUTPUT
 
-      - name: Commit and push updated databases
+      - name: Upload databases to GitHub Release
+        if: steps.check_changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "📦 Laddar upp databaser till GitHub Release..."
+
+          # Skapa release om den inte finns, annars uppdatera
+          if gh release view db-latest >/dev/null 2>&1; then
+            echo "Release db-latest finns redan, uppdaterar..."
+          else
+            echo "Skapar ny release db-latest..."
+            gh release create db-latest --title "Database files" \
+              --notes "Automatiskt uppdaterade databaser från daily import. Senast: $(date +%Y-%m-%d)" \
+              --latest=false
+          fi
+
+          # Ladda upp/ersätt databasfiler
+          gh release upload db-latest \
+            goldenstat.db cups.db riksserien.db \
+            --clobber
+
+          echo "✅ Databaser uppladdade till release db-latest"
+
+      - name: Commit and push import logs
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-
-          # Lägg till databaser
-          git add goldenstat.db || true
-          git add cups.db || true
 
           # Lägg till senaste loggarna
           latest_log=$(ls -t import_logs/daily_import_*.json 2>/dev/null | head -1)
