@@ -15,6 +15,7 @@ from typing import Dict, List, Optional
 
 # Import våra moduler
 from smart_season_importer import SmartSeasonImporter
+from apply_migrations import apply_migrations
 
 class AutomatedDailyImport:
     """Automatiserad daglig import med intelligent spelarmappning"""
@@ -212,6 +213,10 @@ def main():
     print("[ROBOT] GOLDENSTAT AUTOMATISERAD DAGLIG IMPORT")
     print("[TARGET] Processar alla divisioner för aktuell säsong automatiskt")
     print("=" * 60)
+
+    # Applicera SQL-migreringar innan import
+    apply_migrations("goldenstat.db", "migrations/goldenstat")
+    apply_migrations("cups.db", "migrations/cups")
 
     # Kör automatiserad import
     importer = AutomatedDailyImport()
