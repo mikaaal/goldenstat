@@ -50,7 +50,8 @@
       "Bash(cmd //c \"taskkill /PID 76416 /F\")",
       "Bash(ls:*)",
       "Bash(git lfs:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
