@@ -426,7 +426,11 @@ class DartDatabase:
                     m.division,
                     t1.name as team1_name,
                     t2.name as team2_name,
-                    sm.match_type,
+                    CASE
+                        WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' 
+                             OR sm.match_name LIKE '%Dubbel%' OR sm.match_name LIKE '%Doubles%' THEN 'Doubles'
+                        ELSE sm.match_type
+                    END as match_type,
                     sm.match_name,
                     sm.team1_legs,
                     sm.team2_legs,

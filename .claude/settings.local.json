@@ -51,7 +51,9 @@
       "Bash(ls:*)",
       "Bash(git lfs:*)",
       "Bash(git rm:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(pip3 install:*)",
+      "Bash(source:*)"
     ],
     "deny": [],
     "ask": []
