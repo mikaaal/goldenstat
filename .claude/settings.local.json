@@ -51,10 +51,7 @@
       "Bash(ls:*)",
       "Bash(git lfs:*)",
       "Bash(git rm:*)",
-      "Bash(gh release view:*)",
-      "Bash(where:*)",
-      "Bash(git remote get-url:*)",
-      "Bash(git -C /c/DEVTOOLS/development/goldenstat log --oneline -20)"
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
