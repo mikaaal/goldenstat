@@ -156,7 +156,11 @@ def get_player_detailed_stats(player_name):
                     m.match_date,
                     t1.name as team1_name,
                     t2.name as team2_name,
-                    sm.match_type,
+                    CASE
+                        WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' 
+                             OR sm.match_name LIKE '%Dubbel%' OR sm.match_name LIKE '%Doubles%' THEN 'Doubles'
+                        ELSE sm.match_type
+                    END as match_type,
                     sm.match_name,
                     sm.team1_legs,
                     sm.team2_legs,
@@ -300,7 +304,13 @@ def get_player_throws(player_name):
                         FROM sub_match_player_mappings smpm2
                         WHERE smpm2.correct_player_name = ?
                     ))
-                ) AND sm.match_type = 'Singles'"""
+                ) AND (
+                    CASE
+                        WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' 
+                             OR sm.match_name LIKE '%Dubbel%' OR sm.match_name LIKE '%Doubles%' THEN 'Doubles'
+                        ELSE sm.match_type
+                    END
+                ) = 'Singles'"""
             ]
             params = [player_ids[0], player_name, player_ids[0], player_name, player_name]
 
@@ -554,7 +564,13 @@ def get_player_throws(player_name):
                             FROM sub_match_player_mappings smpm2
                             WHERE smpm2.correct_player_name = ?
                         ))
-                    ) AND sm.match_type = 'Singles'"""
+                    ) AND (
+                        CASE
+                            WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' 
+                                 OR sm.match_name LIKE '%Dubbel%' OR sm.match_name LIKE '%Doubles%' THEN 'Doubles'
+                            ELSE sm.match_type
+                        END
+                    ) = 'Singles'"""
                 ]
                 all_time_params = [player_ids[0], player_name, player_ids[0], player_name, player_name]
                 all_time_where_clause = " AND ".join(all_time_where_conditions)
@@ -702,7 +718,13 @@ def get_memorable_matches(player_id):
                 JOIN matches m ON sm.match_id = m.id
                 JOIN teams home_team ON m.team1_id = home_team.id
                 JOIN teams away_team ON m.team2_id = away_team.id
-                WHERE smp.player_id = ? AND sm.match_type = 'Singles'
+                WHERE smp.player_id = ? AND (
+                    CASE
+                        WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' 
+                             OR sm.match_name LIKE '%Dubbel%' OR sm.match_name LIKE '%Doubles%' THEN 'Doubles'
+                        ELSE sm.match_type
+                    END
+                ) = 'Singles'
                 ORDER BY m.match_date DESC
             """, (player_id,))
 
