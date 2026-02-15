@@ -394,6 +394,160 @@ def api_tournament_detail(tid):
         """, (tid,))
         participants = [dict(r) for r in cursor.fetchall()]
 
+        # Calculate win/loss leg averages for each participant using same logic as series matches
+        def calculate_tournament_win_loss_averages(participant_id):
+            # Get all throws for this participant in this tournament
+            cursor.execute("""
+                SELECT t.score, t.remaining_score, t.darts_used, t.side_number, t.round_number,
+                       l.leg_number, l.winner_side, l.cup_match_id
+                FROM throws t
+                JOIN legs l ON t.leg_id = l.id
+                JOIN cup_matches cm ON l.cup_match_id = cm.id
+                WHERE cm.tournament_id = ? 
+                AND (
+                    (t.side_number = 1 AND cm.participant1_id = ?) OR
+                    (t.side_number = 2 AND cm.participant2_id = ?)
+                )
+                ORDER BY l.id, t.round_number
+            """, (tid, participant_id, participant_id))
+            
+            all_throws = cursor.fetchall()
+            if not all_throws:
+                return 0, 0  # won_avg, lost_avg
+            
+            # Group throws by leg and determine win/loss
+            won_legs_throws = []
+            lost_legs_throws = []
+            
+            current_leg_throws = []
+            current_leg_id = None
+            current_side_number = None
+            current_winner_side = None
+            
+            for throw in all_throws:
+                leg_id = (throw[5], throw[7])  # leg_number, cup_match_id as unique identifier
+                
+                if leg_id != current_leg_id:
+                    # Process previous leg if exists
+                    if current_leg_throws:
+                        if current_winner_side == current_side_number:
+                            won_legs_throws.extend(current_leg_throws)
+                        else:
+                            lost_legs_throws.extend(current_leg_throws)
+                    
+                    # Start new leg
+                    current_leg_throws = []
+                    current_leg_id = leg_id
+                    current_side_number = throw[3]  # side_number
+                    current_winner_side = throw[6]  # winner_side
+                
+                # Add throw data matching goldenstat format
+                throw_data = {
+                    'score': throw[0],
+                    'remaining_score': throw[1], 
+                    'darts_used': throw[2] if throw[2] is not None else 3,
+                    'round_number': throw[4]
+                }
+                current_leg_throws.append(throw_data)
+            
+            # Process last leg
+            if current_leg_throws:
+                if current_winner_side == current_side_number:
+                    won_legs_throws.extend(current_leg_throws)
+                else:
+                    lost_legs_throws.extend(current_leg_throws)
+            
+            # Calculate averages using same logic as series matches
+            def calculate_total_score_from_throws(throws):
+                if not throws:
+                    return 0
+                    
+                # Group by leg (using round pattern to detect leg boundaries)
+                legs = []
+                current_leg = []
+                
+                for throw in throws:
+                    current_leg.append(throw)
+                    # New leg starts when round_number resets to lower value
+                    if len(current_leg) > 1 and current_leg[-1]['round_number'] <= current_leg[-2]['round_number']:
+                        legs.append(current_leg[:-1])  # Previous leg complete
+                        current_leg = [current_leg[-1]]  # Start new leg
+                
+                if current_leg:
+                    legs.append(current_leg)
+                
+                total_score = 0
+                for leg_throws in legs:
+                    # Sort by round_number to ensure proper order
+                    leg_throws.sort(key=lambda x: x['round_number'])
+                    
+                    for i, throw in enumerate(leg_throws):
+                        if throw['remaining_score'] == 0 and i > 0:
+                            # Checkout via remaining_score = 0, calculate from previous
+                            prev_remaining = leg_throws[i-1]['remaining_score']
+                            total_score += prev_remaining
+                        else:
+                            # Regular throw
+                            total_score += throw['score']
+                
+                return total_score
+
+            def calculate_total_darts_from_throws(throws):
+                return sum(throw['darts_used'] for throw in throws)
+
+            won_total_score = calculate_total_score_from_throws(won_legs_throws)
+            won_total_darts = calculate_total_darts_from_throws(won_legs_throws)
+            
+            lost_total_score = calculate_total_score_from_throws(lost_legs_throws)
+            lost_total_darts = calculate_total_darts_from_throws(lost_legs_throws)
+            
+            won_avg = (won_total_score * 3 / won_total_darts) if won_total_darts > 0 else 0
+            lost_avg = (lost_total_score * 3 / lost_total_darts) if lost_total_darts > 0 else 0
+            
+            return won_avg, lost_avg
+
+        # Add win/loss averages and match statistics to each participant
+        for participant in participants:
+            won_avg, lost_avg = calculate_tournament_win_loss_averages(participant['id'])
+            participant['won_legs_avg'] = round(won_avg, 2)
+            participant['lost_legs_avg'] = round(lost_avg, 2)
+            
+            # Calculate won/lost matches count (group by opponent to avoid duplicates)
+            cursor.execute("""
+                SELECT 
+                    COUNT(DISTINCT opponent_id) as total_matches,
+                    SUM(CASE WHEN wins > losses THEN 1 ELSE 0 END) as won_matches
+                FROM (
+                    SELECT 
+                        CASE WHEN cm.participant1_id = ? THEN cm.participant2_id ELSE cm.participant1_id END as opponent_id,
+                        SUM(CASE WHEN (cm.participant1_id = ? AND cm.p1_legs_won > cm.p2_legs_won) OR 
+                                      (cm.participant2_id = ? AND cm.p2_legs_won > cm.p1_legs_won) 
+                            THEN 1 ELSE 0 END) as wins,
+                        SUM(CASE WHEN (cm.participant1_id = ? AND cm.p1_legs_won < cm.p2_legs_won) OR 
+                                      (cm.participant2_id = ? AND cm.p2_legs_won < cm.p1_legs_won) 
+                            THEN 1 ELSE 0 END) as losses
+                    FROM cup_matches cm 
+                    WHERE cm.tournament_id = ? 
+                    AND (cm.participant1_id = ? OR cm.participant2_id = ?)
+                    AND cm.p1_legs_won IS NOT NULL AND cm.p2_legs_won IS NOT NULL
+                    GROUP BY opponent_id
+                )
+            """, (participant['id'], participant['id'], participant['id'], participant['id'], participant['id'], tid, participant['id'], participant['id']))
+            
+            match_stats = cursor.fetchone()
+            if match_stats:
+                total_matches = match_stats[0] or 0
+                won_matches = match_stats[1] or 0
+                lost_matches = total_matches - won_matches
+                
+                participant['won_matches'] = won_matches
+                participant['lost_matches'] = lost_matches 
+                participant['total_matches'] = total_matches
+            else:
+                participant['won_matches'] = 0
+                participant['lost_matches'] = 0
+                participant['total_matches'] = 0
+
         # All matches with normalized player names
         cursor.execute("""
             SELECT cm.id, cm.phase, cm.phase_detail,
@@ -506,6 +660,138 @@ def api_tournament_match_detail(mid):
             leg['throws'] = [dict(t) for t in cursor.fetchall()]
             del leg['id']  # Don't expose internal leg id
             legs.append(leg)
+
+        # Calculate win/loss leg averages for both participants
+        def calculate_match_win_loss_averages(participant_id, side_number):
+            # Get all throws for this participant in this specific match
+            cursor.execute("""
+                SELECT t.score, t.remaining_score, t.darts_used, t.round_number,
+                       l.leg_number, l.winner_side
+                FROM throws t
+                JOIN legs l ON t.leg_id = l.id
+                WHERE l.cup_match_id = ? AND t.side_number = ?
+                ORDER BY l.leg_number, t.round_number
+            """, (mid, side_number))
+            
+            all_throws = cursor.fetchall()
+            if not all_throws:
+                return 0, 0, 0, 0  # won_avg, lost_avg, won_legs_count, lost_legs_count
+            
+            # Group throws by leg and determine win/loss
+            won_legs_throws = []
+            lost_legs_throws = []
+            won_legs_count = 0
+            lost_legs_count = 0
+            
+            current_leg_throws = []
+            current_leg_number = None
+            current_winner_side = None
+            
+            for throw in all_throws:
+                leg_number = throw[4]  # leg_number
+                winner_side = throw[5]  # winner_side
+                
+                if leg_number != current_leg_number:
+                    # Process previous leg if exists
+                    if current_leg_throws:
+                        if current_winner_side == side_number:
+                            won_legs_throws.extend(current_leg_throws)
+                            won_legs_count += 1
+                        else:
+                            lost_legs_throws.extend(current_leg_throws)
+                            lost_legs_count += 1
+                    
+                    # Start new leg
+                    current_leg_throws = []
+                    current_leg_number = leg_number
+                    current_winner_side = winner_side
+                
+                # Add throw data
+                throw_data = {
+                    'score': throw[0],
+                    'remaining_score': throw[1],
+                    'darts_used': throw[2] if throw[2] is not None else 3,
+                    'round_number': throw[3]
+                }
+                current_leg_throws.append(throw_data)
+            
+            # Process last leg
+            if current_leg_throws:
+                if current_winner_side == side_number:
+                    won_legs_throws.extend(current_leg_throws)
+                    won_legs_count += 1
+                else:
+                    lost_legs_throws.extend(current_leg_throws)
+                    lost_legs_count += 1
+            
+            # Calculate averages using same logic as series matches
+            def calculate_total_score_from_match_throws(throws):
+                if not throws:
+                    return 0
+                    
+                total_score = 0
+                current_leg_throws = []
+                
+                for throw in throws:
+                    current_leg_throws.append(throw)
+                    # Detect leg boundaries by checking if round_number decreased
+                    if len(current_leg_throws) > 1 and current_leg_throws[-1]['round_number'] < current_leg_throws[-2]['round_number']:
+                        # Process previous leg (all throws except the last one)
+                        leg_throws = current_leg_throws[:-1]
+                        leg_throws.sort(key=lambda x: x['round_number'])
+                        
+                        for i, leg_throw in enumerate(leg_throws):
+                            if leg_throw['remaining_score'] == 0 and i > 0:
+                                # Checkout - calculate from previous remaining_score
+                                prev_remaining = leg_throws[i-1]['remaining_score']
+                                total_score += prev_remaining
+                            else:
+                                # Regular throw
+                                total_score += leg_throw['score']
+                        
+                        # Start new leg with current throw
+                        current_leg_throws = [current_leg_throws[-1]]
+                
+                # Process final leg
+                if current_leg_throws:
+                    current_leg_throws.sort(key=lambda x: x['round_number'])
+                    for i, throw in enumerate(current_leg_throws):
+                        if throw['remaining_score'] == 0 and i > 0:
+                            prev_remaining = current_leg_throws[i-1]['remaining_score']
+                            total_score += prev_remaining
+                        else:
+                            total_score += throw['score']
+                
+                return total_score
+
+            def calculate_total_darts_from_throws(throws):
+                return sum(throw['darts_used'] for throw in throws)
+
+            won_total_score = calculate_total_score_from_match_throws(won_legs_throws)
+            won_total_darts = calculate_total_darts_from_throws(won_legs_throws)
+            
+            lost_total_score = calculate_total_score_from_match_throws(lost_legs_throws)
+            lost_total_darts = calculate_total_darts_from_throws(lost_legs_throws)
+            
+            won_avg = (won_total_score * 3 / won_total_darts) if won_total_darts > 0 else 0
+            lost_avg = (lost_total_score * 3 / lost_total_darts) if lost_total_darts > 0 else 0
+            
+            return won_avg, lost_avg, won_legs_count, lost_legs_count
+
+        # Calculate for both participants
+        p1_won_avg, p1_lost_avg, p1_won_legs, p1_lost_legs = calculate_match_win_loss_averages(match['participant1_id'], 1)
+        p2_won_avg, p2_lost_avg, p2_won_legs, p2_lost_legs = calculate_match_win_loss_averages(match['participant2_id'], 2)
+
+        # Add win/loss data to match info
+        match['p1_won_legs_avg'] = round(p1_won_avg, 2)
+        match['p1_lost_legs_avg'] = round(p1_lost_avg, 2)
+        match['p1_won_legs_count'] = p1_won_legs
+        match['p1_lost_legs_count'] = p1_lost_legs
+        
+        match['p2_won_legs_avg'] = round(p2_won_avg, 2)
+        match['p2_lost_legs_avg'] = round(p2_lost_avg, 2)
+        match['p2_won_legs_count'] = p2_won_legs
+        match['p2_lost_legs_count'] = p2_lost_legs
 
         conn.close()
         return jsonify({

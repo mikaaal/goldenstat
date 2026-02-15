@@ -106,6 +106,8 @@
                                         <th>#</th>
                                         <th style="cursor:pointer" onclick="sortParticipants('name')">Namn <span class="sort-arrow" id="p-sort-name"></span></th>
                                         <th class="text-center" style="cursor:pointer" onclick="sortParticipants('hcp')">Handicap <span class="sort-arrow" id="p-sort-hcp"></span></th>
+                                        <th class="text-center" style="cursor:pointer" onclick="sortParticipants('won_matches')">Vunna <span class="sort-arrow" id="p-sort-won_matches"></span></th>
+                                        <th class="text-center" style="cursor:pointer" onclick="sortParticipants('lost_matches')">Förlorade <span class="sort-arrow" id="p-sort-lost_matches"></span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="participants-table"></tbody>
@@ -668,15 +670,19 @@ function renderParticipants(participants) {
     participants.forEach((p, i) => {
         const tr = document.createElement('tr');
         const handicap = p.start_score !== null && p.start_score !== undefined ? p.start_score : '-';
+        const wonMatches = p.won_matches !== undefined ? p.won_matches : 0;
+        const lostMatches = p.lost_matches !== undefined ? p.lost_matches : 0;
         tr.innerHTML = `
             <td>${i + 1}</td>
             <td>${esc(p.players || p.name)}</td>
             <td class="text-center">${handicap}</td>
+            <td class="text-center">${wonMatches}</td>
+            <td class="text-center">${lostMatches}</td>
         `;
         ptbody.appendChild(tr);
     });
     // Update sort arrows
-    ['name', 'hcp'].forEach(k => {
+    ['name', 'hcp', 'won_matches', 'lost_matches'].forEach(k => {
         const el = document.getElementById('p-sort-' + k);
         if (el) el.textContent = participantSort.key === k ? (participantSort.dir === 1 ? '▲' : '▼') : '';
     });
@@ -694,9 +700,15 @@ function sortParticipants(key) {
         if (key === 'name') {
             va = (a.players || a.name || '').toLowerCase();
             vb = (b.players || b.name || '').toLowerCase();
-        } else {
+        } else if (key === 'hcp') {
             va = a.start_score !== null && a.start_score !== undefined ? a.start_score : -Infinity;
             vb = b.start_score !== null && b.start_score !== undefined ? b.start_score : -Infinity;
+        } else if (key === 'won_matches') {
+            va = a.won_matches !== null && a.won_matches !== undefined ? a.won_matches : -Infinity;
+            vb = b.won_matches !== null && b.won_matches !== undefined ? b.won_matches : -Infinity;
+        } else if (key === 'lost_matches') {
+            va = a.lost_matches !== null && a.lost_matches !== undefined ? a.lost_matches : -Infinity;
+            vb = b.lost_matches !== null && b.lost_matches !== undefined ? b.lost_matches : -Infinity;
         }
         if (va < vb) return -1 * participantSort.dir;
         if (va > vb) return 1 * participantSort.dir;
@@ -920,8 +932,8 @@ async function initMatchDetail() {
                 <div class="cups-stats-card ${p1Card}">
                     <div class="cups-stats-card-header">${p1Icon} ${makePlayerClickable(m.p1_name)}</div>
                     <div class="cups-stat-highlight">
-                        <span class="stat-value">${m.p1_average != null ? m.p1_average.toFixed(2) : 'N/A'}</span>
-                        <span class="stat-label">Snitt</span>
+                        <span class="stat-value">${m.p1_average != null ? m.p1_average.toFixed(2) : 'N/A'} ${m.p1_won_legs_avg > 0 ? m.p1_won_legs_avg.toFixed(2) : '-'} ${m.p1_lost_legs_avg > 0 ? m.p1_lost_legs_avg.toFixed(2) : '-'}</span>
+                        <span class="stat-label">Snitt Vunna Förlorade</span>
                     </div>
                     <div class="cups-stat-row">
                         <div class="cups-stat-item"><span class="stat-value">${p1Stats.throws100}</span><span class="stat-label">100+</span></div>
@@ -945,8 +957,8 @@ async function initMatchDetail() {
                 <div class="cups-stats-card ${p2Card}">
                     <div class="cups-stats-card-header">${p2Icon} ${makePlayerClickable(m.p2_name)}</div>
                     <div class="cups-stat-highlight">
-                        <span class="stat-value">${m.p2_average != null ? m.p2_average.toFixed(2) : 'N/A'}</span>
-                        <span class="stat-label">Snitt</span>
+                        <span class="stat-value">${m.p2_average != null ? m.p2_average.toFixed(2) : 'N/A'} ${m.p2_won_legs_avg > 0 ? m.p2_won_legs_avg.toFixed(2) : '-'} ${m.p2_lost_legs_avg > 0 ? m.p2_lost_legs_avg.toFixed(2) : '-'}</span>
+                        <span class="stat-label">Snitt Vunna Förlorade</span>
                     </div>
                     <div class="cups-stat-row">
                         <div class="cups-stat-item"><span class="stat-value">${p2Stats.throws100}</span><span class="stat-label">100+</span></div>

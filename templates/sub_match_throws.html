@@ -455,7 +455,9 @@ function displayMatchInfo(data) {
         team2_legs: matchInfo.team2_legs,
         team1_won: team1Won,
         team2_won: team2Won,
-        position: position
+        position: position,
+        team1_players_data: data.team1_players,
+        team2_players_data: data.team2_players
     };
 
     // Match overview will be populated by displayThrowData with statistics
@@ -514,9 +516,21 @@ function displayThrowData(data) {
                     </div>
                     <div class="stats-card-body">
                         <div class="player-names text-center">${window.matchTeamData.team1_players}</div>
-                        <div class="stat-item stat-highlight">
-                            <span class="stat-value">${team1Stats.average_score ? parseFloat(team1Stats.average_score).toFixed(2) : 'N/A'}</span>
-                            <span class="stat-label">Snitt</span>
+                        <div class="stat-row">
+                            <div class="stat-item stat-highlight">
+                                <span class="stat-value">${team1Stats.average_score ? parseFloat(team1Stats.average_score).toFixed(2) : 'N/A'}</span>
+                                <span class="stat-label">Snitt</span>
+                            </div>
+                            ${window.matchTeamData.team1_players_data && window.matchTeamData.team1_players_data.length > 0 ? `
+                            <div class="stat-item">
+                                <span class="stat-value">${(window.matchTeamData.team1_players_data[0].won_legs_avg || 0).toFixed(2)}</span>
+                                <span class="stat-label">Vunna</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">${(window.matchTeamData.team1_players_data[0].lost_legs_avg || 0).toFixed(2)}</span>
+                                <span class="stat-label">Förlorade</span>
+                            </div>
+                            ` : ''}
                         </div>
                         <div class="stat-row">
                             <div class="stat-item">
@@ -566,9 +580,21 @@ function displayThrowData(data) {
                     </div>
                     <div class="stats-card-body">
                         <div class="player-names text-center">${window.matchTeamData.team2_players}</div>
-                        <div class="stat-item stat-highlight">
-                            <span class="stat-value">${team2Stats.average_score ? parseFloat(team2Stats.average_score).toFixed(2) : 'N/A'}</span>
-                            <span class="stat-label">Snitt</span>
+                        <div class="stat-row">
+                            <div class="stat-item stat-highlight">
+                                <span class="stat-value">${team2Stats.average_score ? parseFloat(team2Stats.average_score).toFixed(2) : 'N/A'}</span>
+                                <span class="stat-label">Snitt</span>
+                            </div>
+                            ${window.matchTeamData.team2_players_data && window.matchTeamData.team2_players_data.length > 0 ? `
+                            <div class="stat-item">
+                                <span class="stat-value">${(window.matchTeamData.team2_players_data[0].won_legs_avg || 0).toFixed(2)}</span>
+                                <span class="stat-label">Vunna</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-value">${(window.matchTeamData.team2_players_data[0].lost_legs_avg || 0).toFixed(2)}</span>
+                                <span class="stat-label">Förlorade</span>
+                            </div>
+                            ` : ''}
                         </div>
                         <div class="stat-row">
                             <div class="stat-item">
@@ -634,9 +660,15 @@ function displayThrowData(data) {
                 <table class="table table-sm">
                     <thead>
                         <tr>
-                            <th class="text-primary text-center" style="width: 40%">${makePlayerNameClickable(window.matchTeamData.team1_players)}</th>
+                            <th class="text-primary text-center" style="width: 40%">
+                                ${makePlayerNameClickable(window.matchTeamData.team1_players)}
+                                <br><small class="text-muted">(${playerTeamNumber === 1 ? (leg.player_leg_avg ? leg.player_leg_avg.toFixed(2) : '0.00') : (leg.opponent_leg_avg ? leg.opponent_leg_avg.toFixed(2) : '0.00')})</small>
+                            </th>
                             <th class="text-center bg-light" style="width: 20%">Pilar</th>
-                            <th class="text-danger text-center" style="width: 40%">${makePlayerNameClickable(window.matchTeamData.team2_players)}</th>
+                            <th class="text-danger text-center" style="width: 40%">
+                                ${makePlayerNameClickable(window.matchTeamData.team2_players)}
+                                <br><small class="text-muted">(${playerTeamNumber === 2 ? (leg.player_leg_avg ? leg.player_leg_avg.toFixed(2) : '0.00') : (leg.opponent_leg_avg ? leg.opponent_leg_avg.toFixed(2) : '0.00')})</small>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>

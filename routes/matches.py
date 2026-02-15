@@ -103,6 +103,93 @@ def get_sub_match_info(sub_match_id):
 
                 team_players[f'team{team_num}_players'] = deduplicated
 
+            # Use the same logic as the existing throw analysis for win/loss calculation
+            cursor.execute("""
+                SELECT DISTINCT
+                    t.score,
+                    t.remaining_score,
+                    t.darts_used,
+                    t.round_number,
+                    t.team_number,
+                    l.leg_number,
+                    l.winner_team,
+                    l.total_rounds as leg_total_rounds
+                FROM throws t
+                JOIN legs l ON t.leg_id = l.id
+                WHERE l.sub_match_id = ?
+                  AND NOT (t.score = 0 AND t.remaining_score = 501)
+                ORDER BY l.leg_number, t.round_number, t.team_number
+            """, (sub_match_id,))
+
+            all_throws = [dict(row) for row in cursor.fetchall()]
+            
+            # Calculate win/loss averages for each team using same method as existing stats
+            for team_num in [1, 2]:
+                team_throws = [t for t in all_throws if t['team_number'] == team_num]
+                
+                # Separate throws by won/lost legs (include ALL throws, not just score >= 0)
+                won_leg_throws = [t for t in team_throws if t['winner_team'] == team_num]
+                lost_leg_throws = [t for t in team_throws if t['winner_team'] != team_num]
+                
+                # Calculate total scores using same logic as per-leg calculation
+                def calculate_total_score_from_throws(throws):
+                    # Group by leg_number to handle checkout logic properly
+                    legs = {}
+                    for throw in throws:
+                        leg_num = throw['leg_number']
+                        if leg_num not in legs:
+                            legs[leg_num] = []
+                        legs[leg_num].append(throw)
+                    
+                    total_score = 0
+                    for leg_throws in legs.values():
+                        # Sort by round_number to ensure proper order
+                        leg_throws.sort(key=lambda x: x['round_number'])
+                        
+                        for i, throw in enumerate(leg_throws):
+                            if throw['score'] < 0:
+                                # Checkout: use checkout_score if available
+                                total_score += throw.get('checkout_score', 0)
+                            elif throw.get('remaining_score', -1) == 0 and i > 0:
+                                # Checkout via remaining_score = 0, calculate from previous
+                                prev_remaining = leg_throws[i-1].get('remaining_score', 0)
+                                total_score += prev_remaining
+                            else:
+                                # Regular throw
+                                total_score += throw['score']
+                    
+                    return total_score
+                
+                won_total_score = calculate_total_score_from_throws(won_leg_throws)
+                lost_total_score = calculate_total_score_from_throws(lost_leg_throws)
+                
+                # Calculate total darts for won legs (same logic as existing code)
+                won_total_darts = 0
+                for throw in [t for t in team_throws if t['winner_team'] == team_num]:
+                    if throw['score'] < 0:
+                        won_total_darts += abs(throw['score'])
+                    else:
+                        won_total_darts += throw.get('darts_used', 3)
+                
+                # Calculate total darts for lost legs
+                lost_total_darts = 0
+                for throw in [t for t in team_throws if t['winner_team'] != team_num]:
+                    if throw['score'] < 0:
+                        lost_total_darts += abs(throw['score'])
+                    else:
+                        lost_total_darts += throw.get('darts_used', 3)
+                
+                # Calculate averages
+                won_avg = (won_total_score * 3 / won_total_darts) if won_total_darts > 0 else 0
+                lost_avg = (lost_total_score * 3 / lost_total_darts) if lost_total_darts > 0 else 0
+                
+                # Apply to all players on this team
+                for player in team_players[f'team{team_num}_players']:
+                    player['won_legs_avg'] = round(won_avg, 2)
+                    player['lost_legs_avg'] = round(lost_avg, 2)
+                    player['won_legs_throws'] = len(won_leg_throws)
+                    player['lost_legs_throws'] = len(lost_leg_throws)
+
             return jsonify({
                 'sub_match_info': dict(sub_match),
                 **team_players
@@ -470,6 +557,39 @@ def get_sub_match_player_throws(sub_match_id, player_name):
             corrected_sub_match_info = dict(sub_match_info)
             corrected_sub_match_info['team1_name'] = player_team_name
             corrected_sub_match_info['team2_name'] = opponent_team_name
+
+            # Calculate pilsnitt per leg for both player and opponent
+            def calculate_leg_average(leg_throws):
+                if not leg_throws:
+                    return 0
+                
+                # Use same logic as main average calculation to be consistent
+                total_score = 0
+                total_darts = 0
+                
+                for i, throw in enumerate(leg_throws):
+                    if throw['score'] < 0:
+                        # Checkout: score is checkout points, darts is abs(score)
+                        total_score += throw.get('checkout_score', 0)  # Add checkout points
+                        total_darts += abs(throw['score'])  # Checkout darts
+                    elif throw['remaining_score'] == 0 and i > 0:
+                        # This is a checkout throw (remaining_score = 0)
+                        # Calculate checkout points from previous remaining_score
+                        prev_remaining = leg_throws[i-1]['remaining_score']
+                        checkout_points = prev_remaining
+                        total_score += checkout_points
+                        total_darts += throw.get('darts_used', 3)
+                    else:
+                        # Regular throw
+                        total_score += throw['score']
+                        total_darts += throw.get('darts_used', 3)
+                
+                return round((total_score * 3 / total_darts), 2) if total_darts > 0 else 0
+
+            # Add averages to each leg - these should always be the actual pilsnitt for that player in that leg
+            for leg in legs_with_throws.values():
+                leg['player_leg_avg'] = calculate_leg_average(leg['player_throws'])
+                leg['opponent_leg_avg'] = calculate_leg_average(leg['opponent_throws'])
 
             return jsonify({
                 'sub_match_info': corrected_sub_match_info,
