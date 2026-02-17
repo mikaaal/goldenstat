@@ -53,29 +53,64 @@ def warmup_league(app, league_name, db_path, league_param):
     print(f"\n  {league_name}: season={current_season}, {len(divisions)} divisions")
     warmup_count = 0
 
-    # --- Weekly stats ---
-    print(f"  Warming up /api/weekly-stats ({league_name})...")
-
-    # All divisions (no filter)
+    # --- Available weeks (warm this first, then use it to warm weekly stats) ---
+    print(f"  Warming up /api/available-weeks ({league_name})...")
+    available_weeks = []
     with app.test_client() as client:
-        url = f'/api/weekly-stats{prefix}'
+        url = f'/api/available-weeks{prefix}'
         response = client.get(url)
         if response.status_code == 200:
             warmup_count += 1
-            print(f"    OK  {url}")
+            available_weeks = response.get_json().get('weeks', [])
+            print(f"    OK  {url} ({len(available_weeks)} weeks)")
         else:
             print(f"    FAIL {url} ({response.status_code})")
 
-    # Per division
-    for division in divisions:
+    # --- Weekly stats (warm the 6 most recent weeks) ---
+    weeks_to_warm = available_weeks[:6]
+    print(f"  Warming up /api/weekly-stats ({league_name}): {len(weeks_to_warm)} of {len(available_weeks)} weeks...")
+    weekly_count = 0
+    is_riksserien = league_param == 'riksserien'
+
+    for i, week in enumerate(weeks_to_warm, 1):
+        week_label = week.get('label', week.get('week_start', '?'))
+        print(f"    [{i}/{len(weeks_to_warm)}] {week_label}...", end=' ', flush=True)
+
+        # Build week-specific params
+        if is_riksserien:
+            week_params = f"date_start={week['week_start']}&date_end={week['week_end']}"
+        else:
+            week_params = f"week_offset={week['week_offset']}"
+
+        week_ok = 0
+
+        # All divisions (no filter)
         with app.test_client() as client:
-            url = f'/api/weekly-stats{prefix}{"&" if prefix else "?"}division={division}'
+            if prefix:
+                url = f'/api/weekly-stats{prefix}&{week_params}'
+            else:
+                url = f'/api/weekly-stats?{week_params}'
             response = client.get(url)
             if response.status_code == 200:
-                warmup_count += 1
-            else:
-                print(f"    FAIL {url} ({response.status_code})")
-    print(f"    {warmup_count} weekly-stats entries cached")
+                weekly_count += 1
+                week_ok += 1
+
+        # Per division
+        for division in divisions:
+            with app.test_client() as client:
+                if prefix:
+                    url = f'/api/weekly-stats{prefix}&{week_params}&division={division}'
+                else:
+                    url = f'/api/weekly-stats?{week_params}&division={division}'
+                response = client.get(url)
+                if response.status_code == 200:
+                    weekly_count += 1
+                    week_ok += 1
+
+        print(f"{week_ok} OK")
+
+    warmup_count += weekly_count
+    print(f"    {weekly_count} weekly-stats entries cached")
 
     # --- Top stats ---
     print(f"  Warming up /api/top-stats ({league_name})...")
