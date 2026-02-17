@@ -388,10 +388,22 @@
 }
 .fun-fact-clickable {
     cursor: pointer;
+    position: relative;
+}
+.fun-fact-clickable::after {
+    content: '🔍';
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 0.7rem;
+    opacity: 0.5;
 }
 .fun-fact-clickable:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.fun-fact-clickable:hover::after {
+    opacity: 0.8;
 }
 .fun-fact-emoji {
     font-size: 1.5rem;
@@ -1426,7 +1438,9 @@ function filterCupTournaments(tournamentIds, label) {
         resetBar.className = 'alert alert-info d-flex justify-content-between align-items-center mb-3';
         container.parentNode.insertBefore(resetBar, container);
     }
-    resetBar.innerHTML = `<span>Filtrerat: ${esc(label)} (${shown} turneringar)</span><button class="btn btn-sm btn-outline-secondary" onclick="clearCupTournamentFilter()">Visa alla</button>`;
+    resetBar.innerHTML = `<span>🔍 <strong>${esc(label)}</strong> (${shown} ${shown === 1 ? 'turnering' : 'turneringar'})</span><button class="btn btn-sm btn-outline-secondary" onclick="clearCupTournamentFilter()">✕ Visa alla</button>`;
+    // Scroll to the filter bar so the user sees the filtered results
+    resetBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function clearCupTournamentFilter() {
