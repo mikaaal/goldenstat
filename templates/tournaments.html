@@ -203,16 +203,7 @@
                 </div>
                 <!-- Fun Facts collapsible -->
                 <div id="cupFunFactsContainer" style="display: none;">
-                    <button class="btn btn-link w-100 text-start text-decoration-none fun-facts-toggle"
-                            type="button" data-bs-toggle="collapse" data-bs-target="#cupFunFactsContent"
-                            aria-expanded="true" aria-controls="cupFunFactsContent">
-                        <span class="fun-facts-icon">✨</span>
-                        <span class="fun-facts-label">Fun facts</span>
-                        <span class="fun-facts-arrow">▼</span>
-                    </button>
-                    <div class="collapse show" id="cupFunFactsContent">
-                        <div class="fun-facts-grid" id="cupFunFactsGrid"></div>
-                    </div>
+                    <div class="fun-facts-grid" id="cupFunFactsGrid"></div>
                 </div>
             </div>
             <div id="cupPlayerMatchesContainer"></div>
@@ -260,6 +251,9 @@
     margin-bottom: 0.5rem;
 }
 .cups-stat-row:last-child { margin-bottom: 0; }
+.cups-avg-row { margin-bottom: 0.75rem; }
+.cups-avg-row .avg-main { font-size: 1.5rem; font-weight: 800; }
+.cups-avg-row .avg-detail { font-size: 0.95rem; color: #495057; }
 .cups-stat-item {
     flex: 1;
     text-align: center;
@@ -375,30 +369,6 @@
 }
 
 /* Fun Facts styling */
-.fun-facts-toggle {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    color: #f8f9fa;
-    padding: 0.75rem 1rem;
-    border: none;
-    border-radius: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: background 0.2s;
-}
-.fun-facts-toggle:hover {
-    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
-    color: #fff;
-}
-.fun-facts-icon { font-size: 1.1rem; }
-.fun-facts-label { flex-grow: 1; font-weight: 500; }
-.fun-facts-arrow {
-    font-size: 0.7rem;
-    transition: transform 0.3s;
-}
-.fun-facts-toggle:not(.collapsed) .fun-facts-arrow {
-    transform: rotate(180deg);
-}
 .fun-facts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -414,6 +384,14 @@
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.fun-fact-clickable {
+    cursor: pointer;
+}
+.fun-fact-clickable:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 .fun-fact-emoji {
     font-size: 1.5rem;
@@ -445,6 +423,18 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.fun-fact-hidden { display: none; }
+.fun-fact-show-more {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 0.5rem;
+    color: #0d6efd;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.fun-fact-show-more:hover { text-decoration: underline; }
 
 @media (max-width: 767px) {
     .cups-stats-card { padding: 0.75rem; }
@@ -931,9 +921,10 @@ async function initMatchDetail() {
             <div class="col-md-5">
                 <div class="cups-stats-card ${p1Card}">
                     <div class="cups-stats-card-header">${p1Icon} ${makePlayerClickable(m.p1_name)}</div>
-                    <div class="cups-stat-highlight">
-                        <span class="stat-value">${m.p1_average != null ? m.p1_average.toFixed(2) : 'N/A'} ${m.p1_won_legs_avg > 0 ? m.p1_won_legs_avg.toFixed(2) : '-'} ${m.p1_lost_legs_avg > 0 ? m.p1_lost_legs_avg.toFixed(2) : '-'}</span>
-                        <span class="stat-label">Snitt Vunna Förlorade</span>
+                    <div class="cups-stat-row cups-avg-row">
+                        <div class="cups-stat-item"><span class="stat-value avg-main">${m.p1_average != null ? m.p1_average.toFixed(2) : 'N/A'}</span><span class="stat-label">Snitt</span></div>
+                        <div class="cups-stat-item"><span class="stat-value avg-detail">${m.p1_won_legs_avg > 0 ? m.p1_won_legs_avg.toFixed(2) : '-'}</span><span class="stat-label">Vunna legs</span></div>
+                        <div class="cups-stat-item"><span class="stat-value avg-detail">${m.p1_lost_legs_avg > 0 ? m.p1_lost_legs_avg.toFixed(2) : '-'}</span><span class="stat-label">Förlorade legs</span></div>
                     </div>
                     <div class="cups-stat-row">
                         <div class="cups-stat-item"><span class="stat-value">${p1Stats.throws100}</span><span class="stat-label">100+</span></div>
@@ -956,9 +947,10 @@ async function initMatchDetail() {
             <div class="col-md-5">
                 <div class="cups-stats-card ${p2Card}">
                     <div class="cups-stats-card-header">${p2Icon} ${makePlayerClickable(m.p2_name)}</div>
-                    <div class="cups-stat-highlight">
-                        <span class="stat-value">${m.p2_average != null ? m.p2_average.toFixed(2) : 'N/A'} ${m.p2_won_legs_avg > 0 ? m.p2_won_legs_avg.toFixed(2) : '-'} ${m.p2_lost_legs_avg > 0 ? m.p2_lost_legs_avg.toFixed(2) : '-'}</span>
-                        <span class="stat-label">Snitt Vunna Förlorade</span>
+                    <div class="cups-stat-row cups-avg-row">
+                        <div class="cups-stat-item"><span class="stat-value avg-main">${m.p2_average != null ? m.p2_average.toFixed(2) : 'N/A'}</span><span class="stat-label">Snitt</span></div>
+                        <div class="cups-stat-item"><span class="stat-value avg-detail">${m.p2_won_legs_avg > 0 ? m.p2_won_legs_avg.toFixed(2) : '-'}</span><span class="stat-label">Vunna legs</span></div>
+                        <div class="cups-stat-item"><span class="stat-value avg-detail">${m.p2_lost_legs_avg > 0 ? m.p2_lost_legs_avg.toFixed(2) : '-'}</span><span class="stat-label">Förlorade legs</span></div>
                     </div>
                     <div class="cups-stat-row">
                         <div class="cups-stat-item"><span class="stat-value">${p2Stats.throws100}</span><span class="stat-label">100+</span></div>
@@ -1200,6 +1192,7 @@ async function searchCupPlayer() {
 
     document.getElementById('cupSearchSuggestions').style.display = 'none';
     document.getElementById('clearCupPlayerBtn').style.display = '';
+    clearCupTournamentFilter();
 
     // Track search
     fetch('/api/track-search', {
@@ -1277,16 +1270,37 @@ async function searchCupPlayer() {
         const funFactsContainer = document.getElementById('cupFunFactsContainer');
         const funFactsGrid = document.getElementById('cupFunFactsGrid');
         if (data.fun_facts && data.fun_facts.length > 0) {
-            funFactsGrid.innerHTML = data.fun_facts.map(f => `
-                <div class="fun-fact-card">
+            const INITIAL_COUNT = 9;
+            const allFacts = data.fun_facts;
+            const renderCard = (f, hidden) => {
+                const clickable = f.link || f.filter_tournaments;
+                let clickAction = '';
+                if (f.filter_tournaments) {
+                    const label = `${f.title}: ${f.text}`.replace(/'/g, "\\'");
+                    clickAction = `onclick="filterCupTournaments(${JSON.stringify(f.filter_tournaments).replace(/"/g, '&quot;')}, '${label}')" title="Filtrera turneringar"`;
+                } else if (f.link) {
+                    clickAction = `onclick="window.location.href='${f.link}'" title="Klicka för mer info"`;
+                }
+                return `<div class="fun-fact-card${clickable ? ' fun-fact-clickable' : ''}${hidden ? ' fun-fact-hidden' : ''}" ${clickAction}>
                     <div class="fun-fact-emoji">${f.emoji}</div>
                     <div class="fun-fact-content">
                         <div class="fun-fact-title">${esc(f.title)}</div>
                         <div class="fun-fact-text" title="${esc(f.text)}">${esc(f.text)}</div>
                         <div class="fun-fact-detail" title="${esc(f.detail)}">${esc(f.detail)}</div>
                     </div>
-                </div>
-            `).join('');
+                </div>`;
+            };
+            let html = allFacts.map((f, i) => renderCard(f, i >= INITIAL_COUNT)).join('');
+            if (allFacts.length > INITIAL_COUNT) {
+                const extra = allFacts.length - INITIAL_COUNT;
+                html += `<div class="fun-fact-show-more" id="funFactShowMore" onclick="document.querySelectorAll('.fun-fact-hidden').forEach(el => el.classList.remove('fun-fact-hidden')); this.style.display='none'; document.getElementById('funFactShowLess').style.display='';">
+                    ✨ Visa ${extra} till ▼
+                </div>`;
+                html += `<div class="fun-fact-show-more" id="funFactShowLess" style="display:none;" onclick="document.querySelectorAll('.fun-fact-card').forEach((el, i) => { if (i >= ${INITIAL_COUNT}) el.classList.add('fun-fact-hidden'); }); this.style.display='none'; document.getElementById('funFactShowMore').style.display='';">
+                    ▲ Visa färre
+                </div>`;
+            }
+            funFactsGrid.innerHTML = html;
             funFactsContainer.style.display = '';
         } else {
             funFactsContainer.style.display = 'none';
@@ -1317,7 +1331,7 @@ async function searchCupPlayer() {
             const date = g.date ? new Date(g.date).toLocaleDateString('sv-SE') : '';
             const hcpBadge = g.has_hcp ? '<span class="badge bg-info ms-2" title="Handicap-turnering">HCP</span>' : '';
             const doublesBadge = g.is_doubles ? '<span class="badge bg-warning text-dark ms-2" title="Dubbelturnering">2v2</span>' : '';
-            html += `<div class="card mb-3 fade-in-up">
+            html += `<div class="card mb-3 fade-in-up cup-tournament-card" data-tid="${g.tournament_id}">
                 <div class="card-header bg-dark bg-opacity-75 text-white d-flex justify-content-between align-items-center"
                      style="cursor:pointer" onclick="window.location.href='/tournaments/tournament?id=${g.tournament_id}'">
                     <h6 class="mb-0">${esc(g.title)}${hcpBadge}${doublesBadge}</h6>
@@ -1387,6 +1401,38 @@ async function searchCupPlayer() {
         document.getElementById('cupPlayerMatchesContainer').innerHTML = '';
         document.getElementById('cupPlayerResults').style.display = '';
     }
+}
+
+// ============= Tournament filter for fun facts =============
+function filterCupTournaments(tournamentIds, label) {
+    const cards = document.querySelectorAll('.cup-tournament-card');
+    const idSet = new Set(tournamentIds);
+    let shown = 0;
+    cards.forEach(card => {
+        const tid = parseInt(card.dataset.tid);
+        if (idSet.has(tid)) {
+            card.style.display = '';
+            shown++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    // Show reset button
+    const container = document.getElementById('cupPlayerMatchesContainer');
+    let resetBar = document.getElementById('cupFilterResetBar');
+    if (!resetBar) {
+        resetBar = document.createElement('div');
+        resetBar.id = 'cupFilterResetBar';
+        resetBar.className = 'alert alert-info d-flex justify-content-between align-items-center mb-3';
+        container.parentNode.insertBefore(resetBar, container);
+    }
+    resetBar.innerHTML = `<span>Filtrerat: ${esc(label)} (${shown} turneringar)</span><button class="btn btn-sm btn-outline-secondary" onclick="clearCupTournamentFilter()">Visa alla</button>`;
+}
+
+function clearCupTournamentFilter() {
+    document.querySelectorAll('.cup-tournament-card').forEach(c => c.style.display = '');
+    const resetBar = document.getElementById('cupFilterResetBar');
+    if (resetBar) resetBar.remove();
 }
 
 // ============= Helpers =============

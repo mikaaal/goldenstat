@@ -53,7 +53,12 @@
       "Bash(git rm:*)",
       "Bash(python3:*)",
       "Bash(pip3 install:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(pip --version:*)",
+      "Bash(gh release list:*)",
+      "Bash(where:*)",
+      "Bash(gh.exe --version:*)",
+      "Bash(winget:*)"
     ],
     "deny": [],
     "ask": []

@@ -17,7 +17,22 @@ def calculate_fun_facts(matches, player_name):
     fun_facts = []
 
     # Track opponent stats (singles only)
-    opponent_record = defaultdict(lambda: {'wins': 0, 'losses': 0})
+    opponent_record = defaultdict(lambda: {'wins': 0, 'losses': 0, 'tournament_ids': set()})
+    opponent_last_met = {}  # track last match date per opponent
+    opponent_averages = defaultdict(list)  # avg per match against each opponent
+    all_averages = []  # all player averages for calculating overall mean
+    opponent_playoff_record = defaultdict(lambda: {'wins': 0, 'losses': 0, 'tournament_ids': set()})  # knockout/playoff record per opponent
+    opponent_tight_matches = defaultdict(int)  # matches decided by 1 leg per opponent
+    whitewash_count = 0  # matches won without losing a leg
+    whitewash_tournament_ids = set()
+    finals_tournament_ids = set()
+    singles_wins = 0
+    singles_losses = 0
+    finals_played = 0
+    finals_won = 0
+    doubles_partners = defaultdict(lambda: {'count': 0, 'tournament_ids': set()})  # partner stats
+    tournament_ids = set()
+    last_match = None
 
     # Track organizer participations (count unique tournaments per organizer)
     organizer_tournaments = defaultdict(set)
@@ -61,7 +76,7 @@ def calculate_fun_facts(matches, player_name):
 
     # Track streaks
     current_streak = 0
-    best_streak = {'count': 0, 'tournament': ''}
+    best_streak = {'count': 0, 'tournament': '', 'tournament_id': None}
     last_tournament = None
     last_tournament_name = ''
 
@@ -106,29 +121,85 @@ def calculate_fun_facts(matches, player_name):
 
         is_singles = not doubles_pattern.search(m.get('p1_name') or '') and not doubles_pattern.search(m.get('p2_name') or '')
 
-        # Track first match
+        # Check if this is a standard 501 match (301 has double-in which skews averages)
+        player_start = m.get('p1_start_score' if is_p1 else 'p2_start_score') or m.get('start_score') or 501
+        is_standard = player_start >= 501
+
+        # Track first/last match
         if first_match is None:
             first_match = m
+        last_match = m
+
+        # Track unique tournaments
+        tournament_ids.add(m.get('tournament_id'))
 
         # Organizer participations (count unique tournaments)
         organizer = get_organizer(m.get('tournament_title', ''))
         organizer_tournaments[organizer].add(m.get('tournament_id'))
 
-        # Best match (singles only)
-        if is_singles and avg and avg > best_match['avg']:
+        # Track doubles partners
+        if not is_singles:
+            p1_name = m.get('p1_name') or ''
+            p2_name = m.get('p2_name') or ''
+            # Find player's team name (the one containing player_name)
+            my_team = p1_name if player_name in p1_name else p2_name
+            # Split team to find partner(s)
+            parts = doubles_pattern.split(my_team)
+            for part in parts:
+                part = part.strip()
+                if part and part != player_name:
+                    doubles_partners[part]['count'] += 1
+                    doubles_partners[part]['tournament_ids'].add(m.get('tournament_id'))
+
+        # Best match (singles only, standard 501 only)
+        if is_singles and is_standard and avg and avg > best_match['avg']:
             best_match = {
                 'avg': avg,
                 'opponent': opponent,
                 'tournament': m.get('tournament_title', ''),
-                'date': (m.get('tournament_date') or '')[:10]
+                'date': (m.get('tournament_date') or '')[:10],
+                'tournament_id': m.get('tournament_id')
             }
+
+        # Whitewash tracking (singles only)
+        if is_singles and won and o_legs == 0:
+            whitewash_count += 1
+            whitewash_tournament_ids.add(m.get('tournament_id'))
+
+        # Finals tracking (singles only)
+        if is_singles:
+            phase = m.get('phase_label', '')
+            if phase and phase.replace('B-', '') == 'Final':
+                finals_played += 1
+                finals_tournament_ids.add(m.get('tournament_id'))
+                if won:
+                    finals_won += 1
 
         # Opponent record (singles only)
         if is_singles and opponent:
+            opponent_record[opponent]['tournament_ids'].add(m.get('tournament_id'))
+            opponent_last_met[opponent] = m.get('tournament_date') or ''
             if won:
                 opponent_record[opponent]['wins'] += 1
+                singles_wins += 1
             elif o_legs > p_legs:
                 opponent_record[opponent]['losses'] += 1
+                singles_losses += 1
+            # Track averages per opponent (standard 501 only)
+            if is_standard and avg and avg > 0:
+                opponent_averages[opponent].append(avg)
+                all_averages.append(avg)
+            # Track tight matches (decided by 1 leg)
+            if abs(p_legs - o_legs) == 1:
+                opponent_tight_matches[opponent] += 1
+            # Track playoff/knockout record (non-pool matches)
+            phase_label_check = m.get('phase_label', 'Poolspel')
+            if phase_label_check and phase_label_check != 'Poolspel':
+                opponent_playoff_record[opponent]['tournament_ids'].add(m.get('tournament_id'))
+                if won:
+                    opponent_playoff_record[opponent]['wins'] += 1
+                elif o_legs > p_legs:
+                    opponent_playoff_record[opponent]['losses'] += 1
 
         # Best placement tracking
         phase_label = m.get('phase_label', 'Poolspel')
@@ -154,6 +225,7 @@ def calculate_fun_facts(matches, player_name):
                 'score': phase_score,
                 'text': f"{phase_label}{' (vinst)' if won else ''}",
                 'tournament': m.get('tournament_title', ''),
+                'tournament_id': m.get('tournament_id'),
                 'date': (m.get('tournament_date') or '')[:10],
                 'won': won
             }
@@ -168,7 +240,7 @@ def calculate_fun_facts(matches, player_name):
         current_tournament = m.get('tournament_id')
         if current_tournament != last_tournament:
             if current_streak > best_streak['count']:
-                best_streak = {'count': current_streak, 'tournament': last_tournament_name}
+                best_streak = {'count': current_streak, 'tournament': last_tournament_name, 'tournament_id': last_tournament}
             current_streak = 0
         last_tournament = current_tournament
         last_tournament_name = m.get('tournament_title', '')
@@ -177,33 +249,23 @@ def calculate_fun_facts(matches, player_name):
             current_streak += 1
         else:
             if current_streak > best_streak['count']:
-                best_streak = {'count': current_streak, 'tournament': last_tournament_name}
+                best_streak = {'count': current_streak, 'tournament': last_tournament_name, 'tournament_id': current_tournament}
             current_streak = 0
 
     # Check final streak
     if current_streak > best_streak['count']:
-        best_streak = {'count': current_streak, 'tournament': last_tournament_name}
+        best_streak = {'count': current_streak, 'tournament': last_tournament_name, 'tournament_id': last_tournament}
 
     # Generate fun facts
 
-    # 1. First tournament
-    if first_match:
-        date = (first_match.get('tournament_date') or '')[:10]
-        tournament = first_match.get('tournament_title', '')
-        fun_facts.append({
-            'emoji': '📅',
-            'title': 'Första cupen',
-            'text': f"{tournament.split(',')[0]}",
-            'detail': date
-        })
-
-    # 2. Best match
+    # 1. Best match
     if best_match['avg'] > 0:
         fun_facts.append({
             'emoji': '🌟',
             'title': 'Bästa matchen',
             'text': f"{best_match['avg']:.1f} i snitt mot {best_match['opponent']}",
-            'detail': f"{best_match['tournament'].split(',')[0]} ({best_match['date']})"
+            'detail': f"{best_match['tournament'].split(',')[0]} ({best_match['date']})",
+            'filter_tournaments': [best_match['tournament_id']] if best_match.get('tournament_id') else None
         })
 
     # 3. Best placement - prefer singles, fall back to doubles
@@ -215,57 +277,164 @@ def calculate_fun_facts(matches, player_name):
             'emoji': '🏆',
             'title': title,
             'text': best_placement['text'],
-            'detail': f"{best_placement['tournament'].split(',')[0]} ({best_placement['date']})"
+            'detail': f"{best_placement['tournament'].split(',')[0]} ({best_placement['date']})",
+            'filter_tournaments': [best_placement['tournament_id']] if best_placement.get('tournament_id') else None
         })
 
-    # 4. Nemesis (lost most against, min 2 losses)
+    # 4. Nemesis (lost most against, min 2 losses, prefer recently met)
     nemesis = None
     for opp, record in opponent_record.items():
         if record['losses'] >= 2:
-            if nemesis is None or record['losses'] > nemesis['losses']:
-                nemesis = {'name': opp, 'wins': record['wins'], 'losses': record['losses']}
+            if nemesis is None or record['losses'] > nemesis['losses'] or (record['losses'] == nemesis['losses'] and opponent_last_met.get(opp, '') > nemesis.get('last_met', '')):
+                nemesis = {'name': opp, 'wins': record['wins'], 'losses': record['losses'], 'tournament_ids': list(record['tournament_ids']), 'last_met': opponent_last_met.get(opp, '')}
 
     if nemesis and nemesis['losses'] > nemesis['wins']:
         fun_facts.append({
             'emoji': '😈',
             'title': 'Nemesis',
             'text': f"{nemesis['name']}",
-            'detail': f"{nemesis['wins']}-{nemesis['losses']} i inbördes möten"
+            'detail': f"{nemesis['wins']}-{nemesis['losses']} i inbördes möten",
+            'filter_tournaments': nemesis['tournament_ids']
         })
 
-    # 5. Favorite opponent (won most against, min 2 wins)
+    # 5. Favorite opponent (won most against, min 2 wins, prefer recently met)
     favorite = None
     for opp, record in opponent_record.items():
         if record['wins'] >= 2:
-            if favorite is None or record['wins'] > favorite['wins']:
-                if record['wins'] > record['losses']:
-                    favorite = {'name': opp, 'wins': record['wins'], 'losses': record['losses']}
+            if record['wins'] > record['losses']:
+                if favorite is None or record['wins'] > favorite['wins'] or (record['wins'] == favorite['wins'] and opponent_last_met.get(opp, '') > favorite.get('last_met', '')):
+                    favorite = {'name': opp, 'wins': record['wins'], 'losses': record['losses'], 'tournament_ids': list(record['tournament_ids']), 'last_met': opponent_last_met.get(opp, '')}
 
     if favorite:
         fun_facts.append({
             'emoji': '💪',
             'title': 'Favoritmotståndare',
             'text': f"{favorite['name']}",
-            'detail': f"{favorite['wins']}-{favorite['losses']} i inbördes möten"
+            'detail': f"{favorite['wins']}-{favorite['losses']} i inbördes möten",
+            'filter_tournaments': favorite['tournament_ids']
         })
 
-    # 6. Most met opponent
+    # 6. Most met opponent (prefer recently met)
     most_met = None
     for opp, record in opponent_record.items():
         total = record['wins'] + record['losses']
         if total >= 3:
-            if most_met is None or total > most_met['total']:
-                most_met = {'name': opp, 'wins': record['wins'], 'losses': record['losses'], 'total': total}
+            if most_met is None or total > most_met['total'] or (total == most_met['total'] and opponent_last_met.get(opp, '') > most_met.get('last_met', '')):
+                most_met = {'name': opp, 'wins': record['wins'], 'losses': record['losses'], 'total': total, 'tournament_ids': list(record['tournament_ids']), 'last_met': opponent_last_met.get(opp, '')}
 
     if most_met and (not nemesis or most_met['name'] != nemesis['name']) and (not favorite or most_met['name'] != favorite['name']):
         fun_facts.append({
             'emoji': '🤝',
             'title': 'Mött flest gånger',
             'text': f"{most_met['name']}",
-            'detail': f"{most_met['total']} matcher ({most_met['wins']}-{most_met['losses']})"
+            'detail': f"{most_met['total']} matcher ({most_met['wins']}-{most_met['losses']})",
+            'filter_tournaments': most_met['tournament_ids']
         })
 
-    # 7. Favorite organizer (most tournament participations)
+    # 7. Most even opponent (min 4 matches, closest to 50/50, prefer recently met)
+    even_opponent = None
+    even_best_diff = float('inf')
+    for opp, record in opponent_record.items():
+        total = record['wins'] + record['losses']
+        if total >= 4:
+            diff = abs(record['wins'] - record['losses'])
+            if diff < even_best_diff or (diff == even_best_diff and (total > (even_opponent or {}).get('total', 0) or (total == (even_opponent or {}).get('total', 0) and opponent_last_met.get(opp, '') > (even_opponent or {}).get('last_met', '')))):
+                even_best_diff = diff
+                even_opponent = {'name': opp, 'wins': record['wins'], 'losses': record['losses'], 'total': total, 'tournament_ids': list(record['tournament_ids']), 'last_met': opponent_last_met.get(opp, '')}
+
+    if even_opponent and even_best_diff <= 1:
+        fun_facts.append({
+            'emoji': '🎯',
+            'title': 'Jämnast motståndare',
+            'text': f"{even_opponent['name']}",
+            'detail': f"{even_opponent['wins']}-{even_opponent['losses']} i {even_opponent['total']} matcher",
+            'filter_tournaments': even_opponent['tournament_ids']
+        })
+
+    # 8. "Levels up" against - opponent where player performs most above their overall average (min 4 matches, prefer recently met)
+    overall_avg = sum(all_averages) / len(all_averages) if all_averages else 0
+    levels_up_opponent = None
+    if overall_avg > 0:
+        for opp, avgs in opponent_averages.items():
+            if len(avgs) >= 4:
+                mean_avg = sum(avgs) / len(avgs)
+                diff = mean_avg - overall_avg
+                if diff > 0 and (levels_up_opponent is None or diff > levels_up_opponent['diff'] or (diff == levels_up_opponent['diff'] and opponent_last_met.get(opp, '') > levels_up_opponent.get('last_met', ''))):
+                    levels_up_opponent = {'name': opp, 'avg': mean_avg, 'diff': diff, 'matches': len(avgs), 'last_met': opponent_last_met.get(opp, '')}
+
+    if levels_up_opponent:
+        fun_facts.append({
+            'emoji': '📈',
+            'title': 'Vässar till sig mot',
+            'text': f"{levels_up_opponent['name']}",
+            'detail': f"{levels_up_opponent['avg']:.1f} snitt (+{levels_up_opponent['diff']:.1f} över normalt)",
+            'filter_tournaments': list(opponent_record[levels_up_opponent['name']]['tournament_ids'])
+        })
+
+    # 9. Undefeated against (min 3 wins, 0 losses, prefer recently met)
+    undefeated = None
+    for opp, record in opponent_record.items():
+        if record['wins'] >= 3 and record['losses'] == 0:
+            if undefeated is None or record['wins'] > undefeated['wins'] or (record['wins'] == undefeated['wins'] and opponent_last_met.get(opp, '') > undefeated.get('last_met', '')):
+                undefeated = {'name': opp, 'wins': record['wins'], 'tournament_ids': list(record['tournament_ids']), 'last_met': opponent_last_met.get(opp, '')}
+
+    if undefeated:
+        fun_facts.append({
+            'emoji': '👻',
+            'title': 'Obesegrad mot',
+            'text': f"{undefeated['name']}",
+            'detail': f"{undefeated['wins']}-0 i inbördes möten",
+            'filter_tournaments': undefeated['tournament_ids']
+        })
+
+    # 10. Playoff opponent (most meetings in knockout phases, min 2, prefer recently met)
+    if opponent_playoff_record:
+        playoff_opp = max(opponent_playoff_record.items(), key=lambda x: (x[1]['wins'] + x[1]['losses'], opponent_last_met.get(x[0], '')))
+        total_playoff = playoff_opp[1]['wins'] + playoff_opp[1]['losses']
+        if total_playoff >= 2:
+            opp_name = playoff_opp[0]
+            fun_facts.append({
+                'emoji': '🏟️',
+                'title': 'Slutspelsmotståndare',
+                'text': f"{opp_name}",
+                'detail': f"{total_playoff} slutspelsmöten ({playoff_opp[1]['wins']}-{playoff_opp[1]['losses']})",
+                'filter_tournaments': list(playoff_opp[1]['tournament_ids'])
+            })
+
+    # 11. "Drops level" against - opponent where player performs most below their overall average (min 4 matches, prefer recently met)
+    drops_level_opponent = None
+    if overall_avg > 0:
+        for opp, avgs in opponent_averages.items():
+            if len(avgs) >= 4:
+                mean_avg = sum(avgs) / len(avgs)
+                diff = overall_avg - mean_avg
+                if diff > 0 and (drops_level_opponent is None or diff > drops_level_opponent['diff'] or (diff == drops_level_opponent['diff'] and opponent_last_met.get(opp, '') > drops_level_opponent.get('last_met', ''))):
+                    drops_level_opponent = {'name': opp, 'avg': mean_avg, 'diff': diff, 'matches': len(avgs), 'last_met': opponent_last_met.get(opp, '')}
+
+    if drops_level_opponent:
+        fun_facts.append({
+            'emoji': '📉',
+            'title': 'Tappar nivå mot',
+            'text': f"{drops_level_opponent['name']}",
+            'detail': f"{drops_level_opponent['avg']:.1f} snitt (-{drops_level_opponent['diff']:.1f} under normalt)",
+            'filter_tournaments': list(opponent_record[drops_level_opponent['name']]['tournament_ids'])
+        })
+
+    # 12. Tight matches - opponent with most matches decided by 1 leg (min 3, prefer recently met)
+    if opponent_tight_matches:
+        tight_opp = max(opponent_tight_matches.items(), key=lambda x: (x[1], opponent_last_met.get(x[0], '')))
+        if tight_opp[1] >= 3:
+            opp_name = tight_opp[0]
+            record = opponent_record[opp_name]
+            fun_facts.append({
+                'emoji': '😰',
+                'title': 'Nagelbitare',
+                'text': f"{opp_name}",
+                'detail': f"{tight_opp[1]} matcher avgjorda med 1 leg ({record['wins']}-{record['losses']})",
+                'filter_tournaments': list(record['tournament_ids'])
+            })
+
+    # 13. Favorite organizer (most tournament participations)
     if organizer_tournaments:
         fav_organizer = max(organizer_tournaments.items(), key=lambda x: len(x[1]))
         num_tournaments = len(fav_organizer[1])
@@ -274,19 +443,21 @@ def calculate_fun_facts(matches, player_name):
                 'emoji': '🎪',
                 'title': 'Stamkund',
                 'text': f"{fav_organizer[0]}",
-                'detail': f"{num_tournaments} turneringar"
+                'detail': f"{num_tournaments} turneringar",
+                'filter_tournaments': list(fav_organizer[1])
             })
 
-    # 8. Best win streak
+    # 13. Best win streak
     if best_streak['count'] >= 4:
         fun_facts.append({
             'emoji': '🔥',
             'title': 'Längsta vinstsvit',
             'text': f"{best_streak['count']} raka vinster",
-            'detail': best_streak['tournament'].split(',')[0]
+            'detail': best_streak['tournament'].split(',')[0],
+            'filter_tournaments': [best_streak['tournament_id']] if best_streak.get('tournament_id') else None
         })
 
-    # 9. Number of unique opponents
+    # 14. Number of unique opponents
     num_opponents = len(opponent_record)
     if num_opponents >= 10:
         fun_facts.append({
@@ -296,7 +467,76 @@ def calculate_fun_facts(matches, player_name):
             'detail': 'i singelmatcher'
         })
 
-    return fun_facts[:6]  # Return max 6 fun facts
+    # 15. Whitewash wins (won without losing a leg)
+    if whitewash_count >= 2:
+        fun_facts.append({
+            'emoji': '🧹',
+            'title': 'Nollat motståndare',
+            'text': f"{whitewash_count} matcher",
+            'detail': 'vinster utan att förlora ett leg',
+            'filter_tournaments': list(whitewash_tournament_ids)
+        })
+
+    # 16. Finals specialist
+    if finals_played >= 2:
+        fun_facts.append({
+            'emoji': '🏅',
+            'title': 'Finalspecialist',
+            'text': f"{finals_won} vinster av {finals_played} finaler",
+            'detail': f"{finals_won}/{finals_played} vunna",
+            'filter_tournaments': list(finals_tournament_ids)
+        })
+
+    # 17. Win percentage (min 10 matches)
+    total_singles = singles_wins + singles_losses
+    if total_singles >= 10:
+        win_pct = (singles_wins / total_singles) * 100
+        fun_facts.append({
+            'emoji': '📊',
+            'title': 'Vinstprocent',
+            'text': f"{win_pct:.0f}%",
+            'detail': f"{singles_wins} vinster, {singles_losses} förluster i singel"
+        })
+
+    # 18. Doubles partner (min 2 matches together)
+    if doubles_partners:
+        best_partner = max(doubles_partners.items(), key=lambda x: x[1]['count'])
+        if best_partner[1]['count'] >= 2:
+            count = best_partner[1]['count']
+            t_ids = list(best_partner[1]['tournament_ids'])
+            fun_facts.append({
+                'emoji': '👯',
+                'title': 'Dubbelpartner',
+                'text': f"{best_partner[0]}",
+                'detail': f"{count} matcher tillsammans",
+                'filter_tournaments': t_ids
+            })
+
+    # 19. Cup veteran (years active)
+    if first_match and last_match:
+        first_date = (first_match.get('tournament_date') or '')[:4]
+        last_date = (last_match.get('tournament_date') or '')[:4]
+        if first_date and last_date and first_date != last_date:
+            years = int(last_date) - int(first_date)
+            if years >= 2:
+                fun_facts.append({
+                    'emoji': '📆',
+                    'title': 'Cupveteran',
+                    'text': f"{years} år aktiv",
+                    'detail': f"{first_date}–{last_date}"
+                })
+
+    # 20. Tournaments played
+    num_tournaments = len(tournament_ids)
+    if num_tournaments >= 5:
+        fun_facts.append({
+            'emoji': '🎲',
+            'title': 'Turneringar',
+            'text': f"{num_tournaments} spelade",
+            'detail': 'unika turneringar'
+        })
+
+    return fun_facts
 
 
 def get_tournaments_db():
