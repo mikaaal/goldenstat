@@ -597,17 +597,23 @@ class SmartSeasonImporter(NewSeasonImporter):
                 if response.status_code == 200:
                     match_data = response.json()
 
-                    if match_data and len(match_data) > 0:
-                        # Använd samma logik som NewSeasonImporter
-                        match_info = self.extract_match_info(match_data, season, division_override=division_name)
+                    if not match_data or len(match_data) == 0:
+                        # Matchen har inte spelats ännu - resten är också ospelade
+                        remaining = len(new_urls) - i - 1
+                        if remaining > 0:
+                            print(f"    Ospelad match, hoppar över resterande {remaining} URLs")
+                        break
 
-                        if match_info:
-                            success, is_new = self.import_match_with_smart_players(match_info)
-                            if success and is_new:
-                                matches_imported += 1
+                    # Använd samma logik som NewSeasonImporter
+                    match_info = self.extract_match_info(match_data, season, division_override=division_name)
 
-                        if matches_imported % 3 == 0 and matches_imported > 0:
-                            print(f"    {matches_imported} nya matcher importerade...")
+                    if match_info:
+                        success, is_new = self.import_match_with_smart_players(match_info)
+                        if success and is_new:
+                            matches_imported += 1
+
+                    if matches_imported % 3 == 0 and matches_imported > 0:
+                        print(f"    {matches_imported} nya matcher importerade...")
 
                 # Rate limiting
                 time.sleep(0.5)
