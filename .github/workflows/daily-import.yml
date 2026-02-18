@@ -123,6 +123,15 @@ jobs:
 
           echo "✅ Databaser uppladdade till release db-latest"
 
+      - name: Trigger Railway redeploy
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          echo "🚀 Triggar Railway redeploy..."
+          npx --yes @railway/cli redeploy --yes --service ${{ secrets.RAILWAY_SERVICE_ID }}
+          echo "✅ Railway redeploy triggad"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
       - name: Commit and push import logs
         if: steps.check_changes.outputs.changed == 'true'
         run: |
