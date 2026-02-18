@@ -38,9 +38,93 @@ SKIP_TDIDS = {
     "t_7RD1_6222",  # Ei saa peittää
 }
 
+# Extra tournaments not in any league (imported by tdid directly)
+EXTRA_TDIDS = [
+    "t_DO5x_0531",  # MiNi Onsdagscup 220302
+    "t_gJko_5702",  # MiNi Onsdagscup 220216
+    "t_Lmp5_9035",  # mini onsdagscup 220209
+    "t_vFTx_2046",  # MiNi Onsdagscup 220202
+    "t_OMzu_4283",  # Mini Onsdagscup 220126
+    "t_kj9u_9936",  # MiNi Onsdagscup 220119
+    "t_lp4p_7242",  # MiNi Onsdagscup 220112
+    "t_vLmC_8818",  # MiNi Onsdagscup 220105
+    "t_8t5t_4508",  # MiNi´s Fredagscup 230428
+    "t_sGqy_9619",  # MiNi´s Fredagscup 230217
+    "t_Syc1_1710",  # MiNi´s Fredagscup 230203
+    "t_yqXb_6557",  # MiNi´s Fredagscup 230120
+    "t_0fEy_8711",  # MiNi Fredagscup 220128
+    "t_RwhK_4102",  # Mini Fredag Lottad seedad dubbel
+    "t_dPLD_9559",  # MiNi lottad dubbelcup fredag 220211
+    "t_8U51_8279",  # MiNi´s Fredagscup 220204
+    "t_hQJw_9929",  # MiNi Fredagscup 220121
+    "t_E2S1_4740",  # East Pub 2024 (0720)
+    "t_S3m4_1478",  # East Pub 20240719
+    "t_CMGI_6525",  # East Pub 20240713
+    "t_eTyp_5197",  # East Pub 20240706
+    "t_azqt_5597",  # East Eftercup 2024-07-13
+    "t_8kSM_3963",  # East Pub 20240712
+    "t_0lHE_1749",  # East Pub 20240705
+    "t_JTIU_2607",  # East Pub 20240724
+    "t_7o12_2258",  # East Pub 2024 (0628)
+    "t_5W1x_8390",  # East Pub 20240627
+    "t_7Zfy_4012",  # East sommarcup 2024-06-26
+    "t_kdyu_5265",  # East Pub 20240622 MidsommardagsCup
+    "t_aOMt_9094",  # East Pub Torsdag 20240620
+    "t_gUEP_9922",  # East Pub 20240614 (kväll)
+    "t_1si0_4651",  # East Pub 20240614
+    "t_qEvk_9959",  # East Pub 20240608
+    "t_3fV1_1653",  # East Pub 20240607
+    "t_9NLL_0188",  # Easts Fredagscup 20240531
+    "t_YWno_8559",  # East Pub 20241005
+    "t_9Q1x_9783",  # East Pub 20241004
+    "t_0BdF_2745",  # East Pub 20240921
+    "t_S2pP_5345",  # East Pub 20240920
+    "t_hdX0_1873",  # East Pub 20240914
+    "t_pVd9_0229",  # East Pub 20240913
+    "t_mtp9_7545",  # East Pub 20240907
+    "t_DHV4_6809",  # East Pub 20240906
+    "t_fWEZ_1316",  # East Pub 20240831
+    "t_peXB_8017",  # East Pub 20240830
+    "t_WYFC_6243",  # East Måndagscup 2408
+    "t_QwQy_0333",  # East Pub 20240824
+    "t_5zUZ_9362",  # East Pub 20240823
+    "t_WLxb_5287",  # East Pub 20240823
+    "t_AEJJ_7198",  # East Pub 20240823
+    "t_Y9U2_7361",  # East Pub 20240817
+    "t_V4Te_1546",  # East Pub 20240816
+    "t_pAB6_2911",  # East Pub 20240809
+    "t_ZW3w_5111",  # East Måndagscup 2024-08-12
+    "t_rwJK_7579",  # East Pub 20240810
+    "t_YF40_8420",  # East Pub 20240808
+    "t_XK8w_8239",  # East Pub 20240806
+    "t_TqgQ_8891",  # East Pub 20240803
+    "t_RV88_8912",  # East Pub 20240802
+    "t_LRmo_8224",  # East Pub 20240727 Lottad Dubbel
+    "t_dUoz_5603",  # East Pub 20240727
+    "t_WWbC_3601",  # East Pub 20240726
+    "t_l04m_0893",  # East Final 20241214
+    "t_qZ5a_5092",  # East Pub 20241213
+    "t_ESdU_4072",  # East Pub 20241212
+    "t_I8F4_9035",  # East Pub 20241130
+    "t_h5Ig_6782",  # East Pub 20241129
+    "t_3bzI_9315",  # East Pub 20241123
+    "t_hqGu_6573",  # East Pub 20241116
+    "t_Qehl_6205",  # East Pub 20241115
+    "t_XBU4_7345",  # East Pub 20241108 Fredagscup
+    "t_103s_7947",  # East Pub 20241025
+    "t_Kimm_9794",  # East Torsdagscup 24-10-24
+    "t_Dzu5_2680",  # East Pub 20241019
+    "t_oOm8_1015",  # East Pub 20241018
+    "t_tOZC_6279",  # East Pub 20241012
+    "t_kMn9_5979",  # East Pub 20241011
+]
+
 # Date corrections for tournaments with wrong dates in the API
 DATE_FIXES = {
     "t_ES9R_8042": "2025-08-23",  # NWD omg3 - API has 1970-01-01
+    "t_sGqy_9619": "2023-02-17",  # MiNi´s Fredagscup 230217 - API has t_date=0
+    "t_7o12_2258": "2024-06-28",  # East Pub 2024 - API has t_date=0
+    "t_ZW3w_5111": "2024-08-12",  # East Måndagscup 2024-08-12 - API has t_date=0
 }
 
 
@@ -114,6 +198,15 @@ def main():
                     })
         except Exception as e:
             print(f"  ERROR fetching {name}: {e}")
+
+    # Add extra standalone tournaments not in any league
+    for tdid in EXTRA_TDIDS:
+        if tdid not in existing and tdid not in SKIP_TDIDS:
+            new_tournaments.append({
+                "tdid": tdid,
+                "title": tdid,
+                "league": "Extra",
+            })
 
     if not new_tournaments:
         print("\nNo new tournaments to import.")
