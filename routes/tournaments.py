@@ -420,7 +420,7 @@ def calculate_fun_facts(matches, player_name):
             'filter_tournaments': list(opponent_record[drops_level_opponent['name']]['tournament_ids'])
         })
 
-    # 12. Tight matches - opponent with most matches decided by 1 leg (min 3, prefer recently met)
+    # 12. Tight matches! - opponent with most matches decided by 1 leg (min 3, prefer recently met)
     if opponent_tight_matches:
         tight_opp = max(opponent_tight_matches.items(), key=lambda x: (x[1], opponent_last_met.get(x[0], '')))
         if tight_opp[1] >= 3:
