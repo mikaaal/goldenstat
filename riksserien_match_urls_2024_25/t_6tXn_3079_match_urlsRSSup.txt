@@ -1,6 +1,6 @@
 # Match URLs for division t_6tXn_3079
 # Generated: 2026-01-31 16:01:19
-# Total URLs: 90
+# Total URLs: 90-
 #
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_6tXn_3079_lg_0_85fs_Lp17_hJb9
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_6tXn_3079_lg_0_85fs_hJb9_Lp17
