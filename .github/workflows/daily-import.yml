@@ -127,11 +127,24 @@ jobs:
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           echo "🚀 Triggar Railway redeploy..."
-          npx --yes @railway/cli redeploy --yes
+          # Hämta environment ID först
+          ENV_ID=$(curl -s -X POST "https://backboard.railway.com/graphql/v2" \
+            -H "Authorization: Bearer $RAILWAY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": \"{ project(id: \\\"$RAILWAY_PROJECT_ID\\\") { environments { edges { node { id name } } } } }\"}" \
+            | python3 -c "import sys,json; edges=json.load(sys.stdin)['data']['project']['environments']['edges']; print(next(e['node']['id'] for e in edges if e['node']['name']=='production'))")
+          echo "Environment ID: $ENV_ID"
+          # Trigga redeploy
+          RESULT=$(curl -s -X POST "https://backboard.railway.com/graphql/v2" \
+            -H "Authorization: Bearer $RAILWAY_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": \"mutation { serviceInstanceRedeploy(serviceId: \\\"$RAILWAY_SERVICE_ID\\\", environmentId: \\\"$ENV_ID\\\") }\"}")
+          echo "Result: $RESULT"
           echo "✅ Railway redeploy triggad"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
           RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
+          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
 
       - name: Commit and push import logs
         if: steps.check_changes.outputs.changed == 'true'
