@@ -1074,20 +1074,43 @@ def api_tournament_player_matches(player_name):
         conn = get_tournaments_db()
         cursor = conn.cursor()
 
-        # Find all matches where this player participated (either side)
+        # Find player IDs: the canonical player + any aliases mapped to them
         cursor.execute("""
+            SELECT id FROM players WHERE name = ?
+            UNION
+            SELECT alias_player_id FROM cup_player_mappings cpm
+            JOIN players pl ON pl.id = cpm.canonical_player_id
+            WHERE pl.name = ?
+        """, (player_name, player_name))
+        player_ids = [row[0] for row in cursor.fetchall()]
+
+        if not player_ids:
+            conn.close()
+            return jsonify({'player_name': player_name, 'matches': [], 'fun_facts': []})
+
+        placeholders = ','.join('?' * len(player_ids))
+
+        # Find all matches where this player participated (either side)
+        # Uses player IDs to include matches from alias players
+        cursor.execute(f"""
             SELECT cm.id, cm.phase, cm.phase_detail,
                    cm.p1_legs_won, cm.p2_legs_won,
                    cm.p1_average, cm.p2_average,
                    cm.has_detail,
                    cm.participant1_id, cm.participant2_id,
                    COALESCE(
-                       (SELECT GROUP_CONCAT(pl.name, ' & ') FROM participant_players pp
+                       (SELECT GROUP_CONCAT(
+                           COALESCE(cpm.canonical_name, pl.name), ' & ')
+                        FROM participant_players pp
                         JOIN players pl ON pp.player_id = pl.id
+                        LEFT JOIN cup_player_mappings cpm ON cpm.alias_player_id = pl.id
                         WHERE pp.participant_id = p1.id), p1.name) as p1_name,
                    COALESCE(
-                       (SELECT GROUP_CONCAT(pl.name, ' & ') FROM participant_players pp
+                       (SELECT GROUP_CONCAT(
+                           COALESCE(cpm.canonical_name, pl.name), ' & ')
+                        FROM participant_players pp
                         JOIN players pl ON pp.player_id = pl.id
+                        LEFT JOIN cup_player_mappings cpm ON cpm.alias_player_id = pl.id
                         WHERE pp.participant_id = p2.id), p2.name) as p2_name,
                    t.title as tournament_title,
                    t.tournament_date,
@@ -1108,13 +1131,13 @@ def api_tournament_player_matches(player_name):
             JOIN tournaments t ON cm.tournament_id = t.id
             WHERE cm.participant1_id IN (
                 SELECT pp.participant_id FROM participant_players pp
-                JOIN players pl ON pp.player_id = pl.id WHERE pl.name = ?
+                WHERE pp.player_id IN ({placeholders})
             ) OR cm.participant2_id IN (
                 SELECT pp.participant_id FROM participant_players pp
-                JOIN players pl ON pp.player_id = pl.id WHERE pl.name = ?
+                WHERE pp.player_id IN ({placeholders})
             )
             ORDER BY t.tournament_date DESC, cm.phase, cm.phase_detail, cm.id
-        """, (player_name, player_name))
+        """, player_ids + player_ids)
         all_matches = [dict(r) for r in cursor.fetchall()]
 
         # Get max round per phase per tournament for knockout round naming
