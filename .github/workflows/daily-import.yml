@@ -22,11 +22,6 @@ on:
     branches:
       - main
 
-env:
-  RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
-  RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-  RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
-
 # Grant write permissions to push changes back to repo
 permissions:
   contents: write
@@ -123,23 +118,7 @@ jobs:
 
           echo "✅ Databaser uppladdade till release db-latest"
 
-      - name: Trigger Railway redeploy
-        if: steps.check_changes.outputs.changed == 'true'
-        run: |
-          echo "🚀 Triggar Railway redeploy..."
-          # Debug: testa API-anslutning
-          RESPONSE=$(curl -s -X POST "https://backboard.railway.com/graphql/v2" \
-            -H "Authorization: Bearer $RAILWAY_TOKEN" \
-            -H "Content-Type: application/json" \
-            -d "{\"query\": \"{ project(id: \\\"$RAILWAY_PROJECT_ID\\\") { environments { edges { node { id name } } } } }\"}")
-          echo "API Response: $RESPONSE"
-          # Hämta environment ID
-          ENV_ID=$(echo "$RESPONSE" | python3 -c "import sys,json; data=json.load(sys.stdin); print(data)" 2>&1 || true)
-          echo "Parsed: $ENV_ID"
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
-          RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+      # Railway auto-deploys via GitHub integration when import logs are pushed below
 
       - name: Commit and push import logs
         if: steps.check_changes.outputs.changed == 'true'
