@@ -487,7 +487,7 @@ def calculate_fun_facts(matches, player_name):
             'filter_tournaments': list(finals_tournament_ids)
         })
 
-    # 17. Win percentage (min 10 matches)
+    # 17. Win percentage s (min 10 matches)
     total_singles = singles_wins + singles_losses
     if total_singles >= 10:
         win_pct = (singles_wins / total_singles) * 100
