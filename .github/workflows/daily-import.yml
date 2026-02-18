@@ -127,10 +127,11 @@ jobs:
         if: steps.check_changes.outputs.changed == 'true'
         run: |
           echo "🚀 Triggar Railway redeploy..."
-          npx --yes @railway/cli redeploy --yes --service ${{ secrets.RAILWAY_SERVICE_ID }}
+          npx --yes @railway/cli redeploy --yes
           echo "✅ Railway redeploy triggad"
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
 
       - name: Commit and push import logs
         if: steps.check_changes.outputs.changed == 'true'

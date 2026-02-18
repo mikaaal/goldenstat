@@ -569,10 +569,27 @@ class SmartSeasonImporter(NewSeasonImporter):
         with open(url_file_path, 'r', encoding='utf-8') as f:
             urls = [line.strip() for line in f if line.strip() and not line.startswith('#')]
 
-        print(f"  Testar {len(urls)} URLs for spelade matcher...")
+        # Hämta redan importerade match_urls för att skippa dem
+        existing_urls = set()
+        with sqlite3.connect(self.db.db_path) as conn:
+            cursor = conn.execute("SELECT match_url FROM matches WHERE match_url IS NOT NULL")
+            existing_urls = {row[0] for row in cursor.fetchall()}
 
-        # Process each URL
-        for i, url in enumerate(urls):
+        new_urls = [u for u in urls if u not in existing_urls]
+        print(f"  {len(urls)} URLs totalt, {len(new_urls)} nya att hämta ({len(urls) - len(new_urls)} redan importerade)")
+
+        if not new_urls:
+            print(f"  Import slutford: 0 matcher (allt redan importerat)")
+            return {
+                "matches_imported": 0,
+                "players_processed": 0,
+                "player_statistics": self.import_log["statistics"],
+                "warnings": self.import_log["warnings"],
+                "errors": self.import_log["errors"]
+            }
+
+        # Process only new URLs
+        for i, url in enumerate(new_urls):
             try:
                 # Fetch match data
                 response = self.session.get(url, timeout=10)
@@ -596,7 +613,7 @@ class SmartSeasonImporter(NewSeasonImporter):
                 time.sleep(0.5)
 
             except Exception as e:
-                # Stil failure - fortsätt med nästa URL
+                # Still failure - fortsätt med nästa URL
                 continue
 
         print(f"  Import slutford: {matches_imported} matcher, {self.import_log['statistics']['total_players_processed']} spelare")
