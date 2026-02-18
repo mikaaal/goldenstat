@@ -1,0 +1,13 @@
+{
+  "tournament": "t_Dzu5_2680",
+  "participants": 35,
+  "players": 35,
+  "matches": 135,
+  "matches_with_detail": 135,
+  "legs": 555,
+  "throws": 10377,
+  "errors": [
+    "Error importing leg 4 for match 67917: 'str' object has no attribute 'get'",
+    "Error importing leg 4 for match 67920: 'str' object has no attribute 'get'"
+  ]
+}
