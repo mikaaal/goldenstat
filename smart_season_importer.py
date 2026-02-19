@@ -598,11 +598,8 @@ class SmartSeasonImporter(NewSeasonImporter):
                     match_data = response.json()
 
                     if not match_data or len(match_data) == 0:
-                        # Matchen har inte spelats ännu - resten är också ospelade
-                        remaining = len(new_urls) - i - 1
-                        if remaining > 0:
-                            print(f"    Ospelad match, hoppar över resterande {remaining} URLs")
-                        break
+                        # Matchen har inte spelats ännu - hoppa över och fortsätt med nästa
+                        continue
 
                     # Använd samma logik som NewSeasonImporter
                     match_info = self.extract_match_info(match_data, season, division_override=division_name)
