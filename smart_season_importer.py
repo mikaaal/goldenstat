@@ -119,7 +119,7 @@ class SmartSeasonImporter(NewSeasonImporter):
                     )
 
                     # Kolla om spelaren har ett alias (t.ex. "Kari (Tyresö DC)" -> "Kari Dagudde")
-                    final_player_id = self.resolve_player_alias(final_player_id, sub_match_id)
+                    final_player_id = self.resolve_player_alias(final_player_id, sub_match_id, team_name)
 
                     # Insert participant med smart-matched player
                     participant_data = {
@@ -137,9 +137,10 @@ class SmartSeasonImporter(NewSeasonImporter):
             print(f"ERROR: {error_msg}")
             self.import_log["errors"].append(error_msg)
 
-    def resolve_player_alias(self, player_id: int, sub_match_id: int) -> int:
+    def resolve_player_alias(self, player_id: int, sub_match_id: int, team_name: str = None) -> int:
         """Kolla om spelaren har ett alias i player_aliases-tabellen.
-        Om ja, skapa mappning och returnera kanonisk spelare. Om nej, returnera oförändrat."""
+        Om ja, skapa mappning och returnera kanonisk spelare. Om nej, returnera oförändrat.
+        Kollar även historiska sub_match_player_mappings med lagkontext."""
         try:
             with sqlite3.connect(self.db.db_path) as conn:
                 conn.row_factory = sqlite3.Row
@@ -148,6 +149,49 @@ class SmartSeasonImporter(NewSeasonImporter):
                     (player_id,)
                 ).fetchone()
                 if not row:
+                    # Kolla sub_match_player_mappings för konsekventa historiska mappningar
+                    # Filtrera på lagkontext — en spelare kan inte spela för två klubbar samtidigt
+                    if not team_name:
+                        return player_id
+
+                    club_name = self.extract_club_name(team_name)
+                    history = conn.execute("""
+                        SELECT smpm.correct_player_id, smpm.correct_player_name, COUNT(*) as cnt
+                        FROM sub_match_player_mappings smpm
+                        JOIN sub_matches sm ON smpm.sub_match_id = sm.id
+                        JOIN matches m ON sm.match_id = m.id
+                        JOIN teams t1 ON m.team1_id = t1.id
+                        JOIN teams t2 ON m.team2_id = t2.id
+                        WHERE smpm.original_player_id = ? AND smpm.confidence >= 90
+                          AND (t1.name LIKE ? OR t2.name LIKE ?)
+                        GROUP BY smpm.correct_player_id
+                        ORDER BY cnt DESC
+                    """, (player_id, f'%{club_name}%', f'%{club_name}%')).fetchall()
+
+                    if len(history) == 1 and history[0]['cnt'] >= 2:
+                        # Säkerhetskontroll: spelaren får inte ha omappade matcher
+                        # Om de har det är det troligen en riktig spelare, inte ett stavfelsalias
+                        unmapped = conn.execute("""
+                            SELECT COUNT(*) as cnt FROM sub_match_participants
+                            WHERE player_id = ? AND sub_match_id NOT IN (
+                                SELECT sub_match_id FROM sub_match_player_mappings
+                                WHERE original_player_id = ?
+                            )
+                        """, (player_id, player_id)).fetchone()['cnt']
+
+                        if unmapped > 0:
+                            return player_id
+
+                        canonical_id = history[0]['correct_player_id']
+                        canonical_name = history[0]['correct_player_name']
+                        conn.execute("""
+                            INSERT OR IGNORE INTO sub_match_player_mappings
+                            (sub_match_id, original_player_id, correct_player_id, correct_player_name, confidence, mapping_reason)
+                            VALUES (?, ?, ?, ?, 95, 'Auto via historical sub_match_player_mappings')
+                        """, (sub_match_id, player_id, canonical_id, canonical_name))
+                        conn.commit()
+                        return canonical_id
+
                     return player_id
 
                 # Skapa mappning i sub_match_player_mappings
