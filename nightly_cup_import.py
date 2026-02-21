@@ -27,6 +27,7 @@ LEAGUES = [
     {"lgid": "lg_InWB_0595", "name": "Oilers Poängsamlarcup"},
     {"lgid": "lg_V27R_4845", "name": "NWD Poängsamlarcup"},
     {"lgid": "lg_wF2x_7591", "name": "StDF"},
+    {"lgid": "lg_fz61_5884", "name": "StDF GPn"},
 ]
 
 # Tournaments to skip (not real cups, test events, etc.)
