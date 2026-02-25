@@ -1734,16 +1734,27 @@ function showTeamData(playersData, lineupData) {
                     </h6>
                 </div>
 
+                <div class="trend-legend">
+                    <span class="trend-legend-label">Form (baserat på senaste 5 matcher och pilsnitt):</span>
+                    <span class="trend-legend-item">🔥 Het</span>
+                    <span class="trend-legend-item">📈 Uppåt</span>
+                    <span class="trend-legend-item">➡️ Stabil</span>
+                    <span class="trend-legend-item">📉 Nedåt</span>
+                    <span class="trend-legend-item">❄️ Kall</span>
+                </div>
+
                 <div class="player-cards-sort-bar" id="teamPlayersSortBar">
                     <span class="sort-label">Sortera:</span>
                     <button class="sort-btn active" onclick="sortTeamPlayerCards('name')">Namn <span class="sort-arrow">↕</span></button>
                     <button class="sort-btn" onclick="sortTeamPlayerCards('average')">Snitt <span class="sort-arrow">↕</span></button>
                     <button class="sort-btn" onclick="sortTeamPlayerCards('singles_win_pct')">S-vinst <span class="sort-arrow">↕</span></button>
                     <button class="sort-btn" onclick="sortTeamPlayerCards('doubles_win_pct')">D-vinst <span class="sort-arrow">↕</span></button>
+                    <button class="sort-btn" onclick="sortTeamPlayerCards('trend')">S-trend <span class="sort-arrow">↕</span></button>
+                    <button class="sort-btn" onclick="sortTeamPlayerCards('doubles_trend')">D-trend <span class="sort-arrow">↕</span></button>
                 </div>
                 <div class="player-cards-container" id="teamPlayersCards">
                     ${playersData.players.map(player => `
-                        <div class="player-card" data-name="${player.name}" data-average="${player.average || 0}" data-singles-win-pct="${player.singles_win_pct}" data-doubles-win-pct="${player.doubles_win_pct}">
+                        <div class="player-card" data-name="${player.name}" data-average="${player.average || 0}" data-singles-win-pct="${player.singles_win_pct}" data-doubles-win-pct="${player.doubles_win_pct}" data-trend="${player.trend_score != null ? player.trend_score : -1}" data-doubles-trend="${player.doubles_trend_score != null ? player.doubles_trend_score : -1}">
                             <div class="player-card-header">
                                 <span class="player-card-name">${goldenStat.makePlayerNameClickable(player.name)}</span>
                                 <span class="player-card-avg ${player.average >= 20 ? 'avg-high' : player.average >= 15 ? 'avg-mid' : 'avg-low'}">${player.average ? player.average.toFixed(1) : '-'}</span>
@@ -1753,11 +1764,13 @@ function showTeamData(playersData, lineupData) {
                                     <span class="stat-label">Singlar:</span>
                                     <span class="stat-value">${player.singles_played}</span>
                                     <span class="stat-pct ${player.singles_win_pct >= 50 ? 'pct-good' : 'pct-bad'}">${player.singles_played > 0 ? '(' + player.singles_win_pct + '%)' : ''}</span>
+                                    ${player.trend_level ? `<span class="trend-icon trend-${player.trend_level}" title="Singelform (senaste 5)">${player.trend_level === 'hot' ? '🔥' : player.trend_level === 'up' ? '📈' : player.trend_level === 'neutral' ? '➡️' : player.trend_level === 'down' ? '📉' : '❄️'}</span>` : ''}
                                 </div>
                                 <div class="player-card-stat">
                                     <span class="stat-label">Dubblar:</span>
                                     <span class="stat-value">${player.doubles_played}</span>
                                     <span class="stat-pct ${player.doubles_win_pct >= 50 ? 'pct-good' : 'pct-bad'}">${player.doubles_played > 0 ? '(' + player.doubles_win_pct + '%)' : ''}</span>
+                                    ${player.doubles_trend_level ? `<span class="trend-icon trend-${player.doubles_trend_level}" title="Dubbelform (senaste 5)">${player.doubles_trend_level === 'hot' ? '🔥' : player.doubles_trend_level === 'up' ? '📈' : player.doubles_trend_level === 'neutral' ? '➡️' : player.doubles_trend_level === 'down' ? '📉' : '❄️'}</span>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -1789,7 +1802,7 @@ function showTeamData(playersData, lineupData) {
 
             <!-- Lineup tab -->
             <div class="tab-pane fade" id="lineup" role="tabpanel">
-                ${generateLineupHTML(lineupData)}
+                ${generateLineupHTML(lineupData, playersData)}
             </div>
         </div>
     `;
@@ -1801,7 +1814,15 @@ function showTeamData(playersData, lineupData) {
     });
 }
 
-function generateLineupHTML(data) {
+function generateLineupHTML(data, playersData) {
+    // Build lookup map for player stats
+    const playerStats = {};
+    if (playersData && playersData.players) {
+        playersData.players.forEach(p => {
+            playerStats[p.name] = p;
+        });
+    }
+
     return `
         <div class="text-center mb-4">
             <h6 class="text-muted">Baserat på ${data.total_matches} matcher${data.season ? ` i ${data.season}` : ''}${data.division ? ` (${data.division})` : ''}${!data.season && !data.division ? ' från alla säsonger' : ''}</h6>
@@ -1819,10 +1840,12 @@ function generateLineupHTML(data) {
                                 <div class="card-body">
                                     <h6 class="card-title text-primary">${position}</h6>
                                     <div class="mb-2">
-                                        ${posData.players.map(p =>
-                                            `<div><strong>${goldenStat.makePlayerNameClickable(p.name)}</strong></div>
-                                             <small class="text-muted">${p.percentage}% (${p.matches} matcher)</small>`
-                                        ).join('<hr class="my-2">')}
+                                        ${posData.players.map(p => {
+                                            const ps = playerStats[p.name];
+                                            return `<div><strong>${goldenStat.makePlayerNameClickable(p.name)}</strong></div>
+                                             ${ps ? `<small class="text-muted">${ps.average != null ? ps.average : '–'} · <span class="${ps.doubles_win_pct >= 50 ? 'text-success' : 'text-danger'}">${ps.doubles_win_pct}%</span></small><br>` : ''}
+                                             <small class="text-muted">${p.percentage}% (${p.matches} matcher)</small>`;
+                                        }).join('<hr class="my-2">')}
                                     </div>
                                 </div>
                             </div>
@@ -1847,7 +1870,18 @@ function generateLineupHTML(data) {
             <div class="row g-3">
                 ${['S1', 'S2', 'S3', 'S4', 'S5', 'S6'].map(position => {
                     const posData = data.positions[position];
-                    return posData ? `
+                    if (!posData) return `
+                        <div class="col-6 col-sm-4 col-md-4 col-lg-2">
+                            <div class="card text-center h-100">
+                                <div class="card-body py-2">
+                                    <h6 class="card-title text-muted">${position}</h6>
+                                    <small class="text-muted">Ingen data</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    const ps = playerStats[posData.top_player.name];
+                    return `
                         <div class="col-6 col-sm-4 col-md-4 col-lg-2">
                             <div class="card text-center h-100">
                                 <div class="card-body py-2">
@@ -1855,17 +1889,9 @@ function generateLineupHTML(data) {
                                     <div>
                                         <strong>${goldenStat.makePlayerNameClickable(posData.top_player.name)}</strong>
                                     </div>
+                                    ${ps ? `<div><small class="text-muted">${ps.average != null ? ps.average : '–'} · <span class="${ps.singles_win_pct >= 50 ? 'text-success' : 'text-danger'}">${ps.singles_win_pct}%</span></small></div>` : ''}
                                     <small class="text-muted">${posData.top_player.percentage}%</small>
                                     <div><small class="text-muted">${posData.top_player.matches} matcher</small></div>
-                                </div>
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="col-6 col-sm-4 col-md-4 col-lg-2">
-                            <div class="card text-center h-100">
-                                <div class="card-body py-2">
-                                    <h6 class="card-title text-muted">${position}</h6>
-                                    <small class="text-muted">Ingen data</small>
                                 </div>
                             </div>
                         </div>
@@ -1884,10 +1910,12 @@ function generateLineupHTML(data) {
                             <div class="card-body">
                                 <h6 class="card-title text-warning">AD</h6>
                                 <div class="mb-2">
-                                    ${data.positions['AD'].players.map(p =>
-                                        `<div><strong>${goldenStat.makePlayerNameClickable(p.name)}</strong></div>
-                                         <small class="text-muted">${p.percentage}% (${p.matches} matcher)</small>`
-                                    ).join('<hr class="my-2">')}
+                                    ${data.positions['AD'].players.map(p => {
+                                        const ps = playerStats[p.name];
+                                        return `<div><strong>${goldenStat.makePlayerNameClickable(p.name)}</strong></div>
+                                         ${ps ? `<small class="text-muted">${ps.average != null ? ps.average : '–'} · <span class="${ps.doubles_win_pct >= 50 ? 'text-success' : 'text-danger'}">${ps.doubles_win_pct}%</span></small><br>` : ''}
+                                         <small class="text-muted">${p.percentage}% (${p.matches} matcher)</small>`;
+                                    }).join('<hr class="my-2">')}
                                 </div>
                             </div>
                         </div>
@@ -2028,13 +2056,14 @@ function generateDoublesPairsHTML(data) {
                                         ${Object.entries(partner.positions).sort((a, b) => {
                                             const order = {'D1': 1, 'D2': 2, 'D3': 3, 'D': 4, 'AD': 5};
                                             return (order[a[0]] || 99) - (order[b[0]] || 99);
-                                        }).map(([pos, count]) =>
-                                            `<span class="position-badge">${pos}: ${count}</span>`
+                                        }).map(([pos, pdata]) =>
+                                            `<span class="position-badge"><span class="position-badge-label">${pos}</span> <span class="${pdata.wins > pdata.total - pdata.wins ? 'text-success' : pdata.wins < pdata.total - pdata.wins ? 'text-danger' : ''}">${pdata.wins}V</span>–${pdata.total - pdata.wins}F</span>`
                                         ).join(' ')}
                                     </span>
                                 </div>
                                 <div class="partner-stats">
                                     <span class="partner-matches">${partner.total} matcher</span>
+                                    ${partner.average != null ? `<span class="partner-average">Snitt: ${partner.average}</span>` : ''}
                                     <span class="partner-winrate ${partner.win_pct >= 50 ? 'text-success' : 'text-danger'}">
                                         ${partner.wins} ${partner.wins === 1 ? 'vinst' : 'vinster'}, ${partner.total - partner.wins} ${(partner.total - partner.wins) === 1 ? 'förlust' : 'förluster'} (${partner.win_pct}%)
                                     </span>
@@ -2075,16 +2104,27 @@ function generateClubPlayersHTML(data) {
             })()}</small>
         </div>
 
+        <div class="trend-legend">
+            <span class="trend-legend-label">Form (senaste 5):</span>
+            <span class="trend-legend-item">🔥 Het</span>
+            <span class="trend-legend-item">📈 Uppåt</span>
+            <span class="trend-legend-item">➡️ Stabil</span>
+            <span class="trend-legend-item">📉 Nedåt</span>
+            <span class="trend-legend-item">❄️ Kall</span>
+        </div>
+
         <div class="player-cards-sort-bar" id="clubPlayersSortBar">
             <span class="sort-label">Sortera:</span>
             <button class="sort-btn active" onclick="sortClubPlayerCards('name')">Namn <span class="sort-arrow">↕</span></button>
             <button class="sort-btn" onclick="sortClubPlayerCards('average')">Snitt <span class="sort-arrow">↕</span></button>
             <button class="sort-btn" onclick="sortClubPlayerCards('singles_win_pct')">S-vinst <span class="sort-arrow">↕</span></button>
             <button class="sort-btn" onclick="sortClubPlayerCards('doubles_win_pct')">D-vinst <span class="sort-arrow">↕</span></button>
+            <button class="sort-btn" onclick="sortClubPlayerCards('trend')">S-trend <span class="sort-arrow">↕</span></button>
+            <button class="sort-btn" onclick="sortClubPlayerCards('doubles_trend')">D-trend <span class="sort-arrow">↕</span></button>
         </div>
         <div class="player-cards-container" id="clubPlayersCards">
             ${data.players.map(player => `
-                <div class="player-card" data-name="${player.name}" data-average="${player.average || 0}" data-singles-win-pct="${player.singles_win_pct}" data-doubles-win-pct="${player.doubles_win_pct}">
+                <div class="player-card" data-name="${player.name}" data-average="${player.average || 0}" data-singles-win-pct="${player.singles_win_pct}" data-doubles-win-pct="${player.doubles_win_pct}" data-trend="${player.trend_score != null ? player.trend_score : -1}" data-doubles-trend="${player.doubles_trend_score != null ? player.doubles_trend_score : -1}">
                     <div class="player-card-header">
                         <span class="player-card-name">${goldenStat.makePlayerNameClickable(player.name)}</span>
                         <span class="player-card-avg ${player.average >= 20 ? 'avg-high' : player.average >= 15 ? 'avg-mid' : 'avg-low'}">${player.average ? player.average.toFixed(1) : '-'}</span>
@@ -2094,11 +2134,13 @@ function generateClubPlayersHTML(data) {
                             <span class="stat-label">Singlar:</span>
                             <span class="stat-value">${player.singles_played}</span>
                             <span class="stat-pct ${player.singles_win_pct >= 50 ? 'pct-good' : 'pct-bad'}">${player.singles_played > 0 ? '(' + player.singles_win_pct + '%)' : ''}</span>
+                            ${player.trend_level ? `<span class="trend-icon trend-${player.trend_level}" title="Singelform (senaste 5)">${player.trend_level === 'hot' ? '🔥' : player.trend_level === 'up' ? '📈' : player.trend_level === 'neutral' ? '➡️' : player.trend_level === 'down' ? '📉' : '❄️'}</span>` : ''}
                         </div>
                         <div class="player-card-stat">
                             <span class="stat-label">Dubblar:</span>
                             <span class="stat-value">${player.doubles_played}</span>
                             <span class="stat-pct ${player.doubles_win_pct >= 50 ? 'pct-good' : 'pct-bad'}">${player.doubles_played > 0 ? '(' + player.doubles_win_pct + '%)' : ''}</span>
+                            ${player.doubles_trend_level ? `<span class="trend-icon trend-${player.doubles_trend_level}" title="Dubbelform (senaste 5)">${player.doubles_trend_level === 'hot' ? '🔥' : player.doubles_trend_level === 'up' ? '📈' : player.doubles_trend_level === 'neutral' ? '➡️' : player.doubles_trend_level === 'down' ? '📉' : '❄️'}</span>` : ''}
                         </div>
                     </div>
                     ${player.divisions_played ? `<div class="player-card-teams"><small class="text-muted">${player.divisions_played}</small></div>` : ''}
@@ -2302,7 +2344,7 @@ function sortTeamPlayerCards(field) {
     // Find active button and toggle direction
     let activeBtn = null;
     buttons.forEach(btn => {
-        if (btn.textContent.trim().startsWith(field === 'name' ? 'Namn' : field === 'average' ? 'Snitt' : field === 'singles_win_pct' ? 'S-vinst' : 'D-vinst')) {
+        if (btn.textContent.trim().startsWith(field === 'name' ? 'Namn' : field === 'average' ? 'Snitt' : field === 'singles_win_pct' ? 'S-vinst' : field === 'doubles_win_pct' ? 'D-vinst' : field === 'trend' ? 'S-trend' : 'D-trend')) {
             activeBtn = btn;
         }
     });
@@ -2324,7 +2366,7 @@ function sortTeamPlayerCards(field) {
             const bVal = b.getAttribute('data-name');
             return isAscending ? aVal.localeCompare(bVal, 'sv') : bVal.localeCompare(aVal, 'sv');
         } else {
-            const attr = field === 'average' ? 'data-average' : field === 'singles_win_pct' ? 'data-singles-win-pct' : 'data-doubles-win-pct';
+            const attr = field === 'average' ? 'data-average' : field === 'singles_win_pct' ? 'data-singles-win-pct' : field === 'doubles_win_pct' ? 'data-doubles-win-pct' : field === 'trend' ? 'data-trend' : 'data-doubles-trend';
             const aVal = parseFloat(a.getAttribute(attr)) || 0;
             const bVal = parseFloat(b.getAttribute(attr)) || 0;
             return isAscending ? aVal - bVal : bVal - aVal;

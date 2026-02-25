@@ -11,6 +11,118 @@ def _get_current_db_path():
     return get_current_db_path()
 
 
+def _calculate_trends(cursor, where_clause, params, team_filter, team_filter_op, match_type):
+    """Calculate trend for players based on last 5 matches of given type.
+
+    Args:
+        team_filter: team name(s) to filter on
+        team_filter_op: '= ?' for single team, 'IN (?,?,...)' for multiple teams
+        match_type: 'Singles' or 'Doubles'
+    """
+    cursor.execute(f"""
+        WITH ranked_matches AS (
+            SELECT
+                COALESCE(smpm.correct_player_name, p.name) as player_name,
+                smp.player_avg,
+                m.match_date,
+                smp.team_number,
+                sm.id as sub_match_id,
+                ROW_NUMBER() OVER (
+                    PARTITION BY COALESCE(smpm.correct_player_name, p.name)
+                    ORDER BY m.match_date DESC, sm.id DESC
+                ) as rn
+            FROM sub_match_participants smp
+            JOIN players p ON smp.player_id = p.id
+            JOIN sub_matches sm ON smp.sub_match_id = sm.id
+            JOIN matches m ON sm.match_id = m.id
+            JOIN teams t1 ON m.team1_id = t1.id
+            JOIN teams t2 ON m.team2_id = t2.id
+            LEFT JOIN sub_match_player_mappings smpm
+                ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = p.id
+            WHERE {where_clause}
+              AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) {team_filter_op}
+              AND CASE
+                  WHEN sm.match_name LIKE '%% AD' OR sm.match_name LIKE '%% AD %%' THEN 'Doubles'
+                  WHEN sm.match_name LIKE '%%Dubbel%%' OR sm.match_name LIKE '%%Doubles%%' THEN 'Doubles'
+                  WHEN sm.match_name LIKE '%%Singel%%' OR sm.match_name LIKE '%%Singles%%' THEN 'Singles'
+                  ELSE sm.match_type
+              END = ?
+              AND smp.player_avg > 0
+        ),
+        match_results AS (
+            SELECT
+                rm.player_name,
+                rm.player_avg,
+                rm.rn,
+                rm.team_number,
+                rm.sub_match_id,
+                SUM(CASE WHEN l.winner_team = rm.team_number THEN 1 ELSE 0 END) as legs_won,
+                SUM(CASE WHEN l.winner_team != rm.team_number AND l.winner_team IS NOT NULL THEN 1 ELSE 0 END) as legs_lost
+            FROM ranked_matches rm
+            LEFT JOIN legs l ON l.sub_match_id = rm.sub_match_id
+            WHERE rm.rn <= 5
+            GROUP BY rm.player_name, rm.player_avg, rm.rn, rm.team_number, rm.sub_match_id
+        )
+        SELECT
+            player_name,
+            player_avg,
+            rn,
+            CASE WHEN legs_won > legs_lost THEN 1 ELSE 0 END as won
+        FROM match_results
+        ORDER BY player_name, rn
+    """, params + team_filter + [match_type])
+
+    trend_data = {}
+    for row in cursor.fetchall():
+        pname = row['player_name']
+        if pname not in trend_data:
+            trend_data[pname] = {'wins': 0, 'total': 0, 'avg_sum': 0.0}
+        trend_data[pname]['total'] += 1
+        trend_data[pname]['wins'] += row['won']
+        trend_data[pname]['avg_sum'] += row['player_avg']
+    return trend_data
+
+
+def _apply_trend(players, trend_data, overall_avg_key, score_key, level_key):
+    """Apply trend scores to player dicts."""
+    for p in players:
+        td = trend_data.get(p['name'])
+        if not td or td['total'] < 3:
+            p[score_key] = None
+            p[level_key] = None
+            continue
+
+        win_score = (td['wins'] / td['total']) * 100
+        recent_avg = td['avg_sum'] / td['total']
+        overall_avg = p.get(overall_avg_key) or recent_avg
+        avg_diff = recent_avg - overall_avg
+
+        if avg_diff >= 3:
+            avg_score = 100
+        elif avg_diff >= 1:
+            avg_score = 75
+        elif avg_diff >= -1:
+            avg_score = 50
+        elif avg_diff >= -3:
+            avg_score = 25
+        else:
+            avg_score = 0
+
+        trend_score = round((win_score * 0.5) + (avg_score * 0.5), 1)
+        p[score_key] = trend_score
+
+        if trend_score >= 75:
+            p[level_key] = 'hot'
+        elif trend_score >= 55:
+            p[level_key] = 'up'
+        elif trend_score >= 40:
+            p[level_key] = 'neutral'
+        elif trend_score >= 20:
+            p[level_key] = 'down'
+        else:
+            p[level_key] = 'cold'
+
+
 @teams_bp.route('/api/team/<path:team_name>/lineup')
 def get_team_lineup(team_name):
     """Get team lineup prediction based on historical position data"""
@@ -468,6 +580,13 @@ def get_team_players(team_name):
                     'seasons': row['seasons']
                 })
 
+            # Calculate singles and doubles trends
+            singles_trend = _calculate_trends(cursor, where_clause, params, [team_name], '= ?', 'Singles')
+            _apply_trend(players, singles_trend, 'average', 'trend_score', 'trend_level')
+
+            doubles_trend = _calculate_trends(cursor, where_clause, params, [team_name], '= ?', 'Doubles')
+            _apply_trend(players, doubles_trend, 'average', 'doubles_trend_score', 'doubles_trend_level')
+
             # Get total team matches
             cursor.execute(f"""
                 SELECT COUNT(DISTINCT m.id) as total_team_matches
@@ -584,6 +703,8 @@ def get_team_doubles_pairs(team_name):
                     smp.team_number,
                     smp.player_id,
                     COALESCE(smpm.correct_player_name, p.name) as player_name,
+                    smp.player_avg,
+                    smp.team_number,
                     CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as player_team,
                     (SELECT SUM(CASE WHEN legs.winner_team = smp.team_number THEN 1 ELSE 0 END) >
                             SUM(CASE WHEN legs.winner_team != smp.team_number AND legs.winner_team IS NOT NULL THEN 1 ELSE 0 END)
@@ -611,7 +732,10 @@ def get_team_doubles_pairs(team_name):
                     'player_name': row['player_name'],
                     'match_name': row['match_name'],
                     'won': row['won'],
-                    'match_date': row['match_date']
+                    'match_date': row['match_date'],
+                    'player_avg': row['player_avg'],
+                    'team_number': row['team_number'],
+                    'sub_match_id': row['sub_match_id']
                 })
 
             # Extract position from match_name
@@ -627,8 +751,8 @@ def get_team_doubles_pairs(team_name):
                 return 'D'
 
             # Build pair statistics
-            pair_stats = defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(int)})
-            player_pairs = defaultdict(lambda: defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(int)}))
+            pair_stats = defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(lambda: {'total': 0, 'wins': 0}), 'sub_match_ids': []})
+            player_pairs = defaultdict(lambda: defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(lambda: {'total': 0, 'wins': 0}), 'sub_match_ids': []}))
 
             for sub_match_id, players in sub_matches.items():
                 if len(players) >= 2:
@@ -641,20 +765,79 @@ def get_team_doubles_pairs(team_name):
 
                         pair_key = f"{p1} + {p2}"
                         pair_stats[pair_key]['total'] += 1
-                        pair_stats[pair_key]['positions'][position] += 1
+                        pair_stats[pair_key]['positions'][position]['total'] += 1
+                        pair_stats[pair_key]['sub_match_ids'].append({
+                            'sub_match_id': sub_match_id,
+                            'team_number': valid_players[0]['team_number']
+                        })
                         if won:
                             pair_stats[pair_key]['wins'] += 1
+                            pair_stats[pair_key]['positions'][position]['wins'] += 1
+
+                        sm_info = {
+                            'sub_match_id': sub_match_id,
+                            'team_number': valid_players[0]['team_number']
+                        }
 
                         # Track per player
-                        player_pairs[valid_players[0]['player_name']][valid_players[1]['player_name']]['total'] += 1
-                        player_pairs[valid_players[0]['player_name']][valid_players[1]['player_name']]['positions'][position] += 1
-                        if won:
-                            player_pairs[valid_players[0]['player_name']][valid_players[1]['player_name']]['wins'] += 1
+                        for pa, pb in [(valid_players[0]['player_name'], valid_players[1]['player_name']),
+                                       (valid_players[1]['player_name'], valid_players[0]['player_name'])]:
+                            player_pairs[pa][pb]['total'] += 1
+                            player_pairs[pa][pb]['positions'][position]['total'] += 1
+                            player_pairs[pa][pb]['sub_match_ids'].append(sm_info)
+                            if won:
+                                player_pairs[pa][pb]['wins'] += 1
+                                player_pairs[pa][pb]['positions'][position]['wins'] += 1
 
-                        player_pairs[valid_players[1]['player_name']][valid_players[0]['player_name']]['total'] += 1
-                        player_pairs[valid_players[1]['player_name']][valid_players[0]['player_name']]['positions'][position] += 1
-                        if won:
-                            player_pairs[valid_players[1]['player_name']][valid_players[0]['player_name']]['wins'] += 1
+            # Helper: calculate weighted average for a set of sub-matches
+            def calc_pair_avg(sub_match_infos):
+                """Calculate weighted 3-dart average across sub-matches using throws data."""
+                total_score = 0.0
+                total_darts = 0
+                for info in sub_match_infos:
+                    sm_id = info['sub_match_id']
+                    tn = info['team_number']
+                    # Get player_avg for all participants in this sub-match on this team
+                    cursor.execute("""
+                        SELECT smp.player_avg
+                        FROM sub_match_participants smp
+                        WHERE smp.sub_match_id = ? AND smp.team_number = ? AND smp.player_avg > 0
+                    """, (sm_id, tn))
+                    avg_rows = cursor.fetchall()
+                    for avg_row in avg_rows:
+                        player_avg = avg_row['player_avg']
+                        # Count darts
+                        cursor.execute('''
+                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score
+                            FROM legs l
+                            JOIN throws t ON t.leg_id = l.id
+                            WHERE l.sub_match_id = ? AND t.team_number = ?
+                            ORDER BY l.leg_number, t.id
+                        ''', (sm_id, tn))
+                        all_throws = cursor.fetchall()
+                        match_darts = 0
+                        for throw in all_throws:
+                            score = throw['score']
+                            darts_used = throw['darts_used']
+                            remaining = throw['remaining_score']
+                            if score == 0 and remaining == 501:
+                                continue
+                            if remaining == 0:
+                                if score <= 3:
+                                    match_darts += score if score else 3
+                                else:
+                                    match_darts += darts_used if darts_used else 3
+                            else:
+                                match_darts += darts_used if darts_used else 3
+                        # In doubles, both players share throws, so use aggregate
+                        # player_avg * darts / 3 gives total points scored
+                        match_score = (player_avg * match_darts) / 3.0
+                        total_score += match_score
+                        total_darts += match_darts
+                        break  # One avg per sub-match (team-level), avoid double-counting
+                if total_darts > 0:
+                    return round((total_score / total_darts) * 3.0, 2)
+                return None
 
             # Format output - per player view
             players_data = []
@@ -663,16 +846,18 @@ def get_team_doubles_pairs(team_name):
                 total_positions = defaultdict(int)
                 for partner, stats in sorted(partners.items(), key=lambda x: -x[1]['total']):
                     win_pct = round(stats['wins'] / stats['total'] * 100) if stats['total'] > 0 else 0
+                    pair_avg = calc_pair_avg(stats['sub_match_ids'])
                     partner_list.append({
                         'partner': partner,
                         'total': stats['total'],
                         'wins': stats['wins'],
                         'win_pct': win_pct,
-                        'positions': dict(stats['positions'])
+                        'positions': {pos: dict(pdata) for pos, pdata in stats['positions'].items()},
+                        'average': pair_avg
                     })
                     # Aggregate positions for the player
-                    for pos, count in stats['positions'].items():
-                        total_positions[pos] += count
+                    for pos, pdata in stats['positions'].items():
+                        total_positions[pos] += pdata['total']
 
                 # Each partner entry already represents unique matches, so no need to divide
                 # But filter out zero values
@@ -697,7 +882,7 @@ def get_team_doubles_pairs(team_name):
                     'total': stats['total'],
                     'wins': stats['wins'],
                     'win_pct': win_pct,
-                    'positions': dict(stats['positions'])
+                    'positions': {pos: dict(pdata) for pos, pdata in stats['positions'].items()}
                 })
 
             return jsonify({
@@ -931,6 +1116,14 @@ def get_club_players(club_name):
                     'seasons': row['seasons'],
                     'divisions_played': divisions_played
                 })
+
+            # Calculate singles and doubles trends
+            club_filter_op = f'IN ({team_name_placeholders})'
+            singles_trend = _calculate_trends(cursor, where_clause, params, team_names, club_filter_op, 'Singles')
+            _apply_trend(players, singles_trend, 'average', 'trend_score', 'trend_level')
+
+            doubles_trend = _calculate_trends(cursor, where_clause, params, team_names, club_filter_op, 'Doubles')
+            _apply_trend(players, doubles_trend, 'average', 'doubles_trend_score', 'doubles_trend_level')
 
             # Get total matches across all club teams
             cursor.execute(f"""

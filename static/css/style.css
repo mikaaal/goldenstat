@@ -1113,6 +1113,52 @@ body {
     color: #721c24;
 }
 
+.trend-icon {
+    font-size: 0.85em;
+    margin-left: 4px;
+    cursor: default;
+}
+.trend-hot { color: #dc3545; }
+.trend-up { color: #28a745; }
+.trend-neutral { color: #6c757d; }
+.trend-down { color: #fd7e14; }
+.trend-cold { color: #17a2b8; }
+
+.trend-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    background: #f0f4f8;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: #475569;
+    flex-wrap: wrap;
+}
+
+.trend-legend-label {
+    font-weight: 600;
+    color: #334155;
+}
+
+.trend-legend-item {
+    white-space: nowrap;
+}
+
+@media (max-width: 576px) {
+    .trend-legend {
+        gap: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+        padding: 0.4rem 0.6rem;
+    }
+
+    .trend-legend-label {
+        width: 100%;
+        margin-bottom: 0.1rem;
+    }
+}
+
 .player-card-stats {
     display: flex;
     gap: 1.5rem;
@@ -1298,9 +1344,9 @@ body {
 
 .position-badge {
     font-size: 0.75rem;
-    font-weight: 600;
+    font-weight: 500;
     background: #e2e8f0;
-    color: #334155;
+    color: #475569;
     padding: 0.15rem 0.4rem;
     border-radius: 4px;
 }
@@ -1315,6 +1361,16 @@ body {
 
 .partner-matches {
     color: #64748b;
+}
+
+.position-badge-label {
+    font-weight: 700;
+    color: #334155;
+}
+
+.partner-average {
+    color: #475569;
+    font-weight: 600;
 }
 
 .partner-winrate {
