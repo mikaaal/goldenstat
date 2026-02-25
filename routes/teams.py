@@ -199,8 +199,16 @@ def get_team_lineup(team_name):
             team_id = team_result['id']
 
             # Build WHERE clause for filtering
-            where_conditions = ["(m.team1_id = ? OR m.team2_id = ?)"]
-            params = [team_id, team_id]
+            venue = request.args.get('venue')  # 'home' or 'away'
+            if venue == 'home':
+                where_conditions = ["m.team1_id = ?"]
+                params = [team_id]
+            elif venue == 'away':
+                where_conditions = ["m.team2_id = ?"]
+                params = [team_id]
+            else:
+                where_conditions = ["(m.team1_id = ? OR m.team2_id = ?)"]
+                params = [team_id, team_id]
 
             if season:
                 where_conditions.append("m.season = ?")
@@ -216,7 +224,7 @@ def get_team_lineup(team_name):
             cursor.execute(f"""
                 WITH position_data AS (
                     SELECT
-                        p.name as player_name,
+                        COALESCE(smpm.correct_player_name, p.name) as player_name,
                         sm.match_name,
                         sm.match_type,
                         smp.team_number,
@@ -228,9 +236,11 @@ def get_team_lineup(team_name):
                     JOIN matches m ON sm.match_id = m.id
                     JOIN teams t1 ON m.team1_id = t1.id
                     JOIN teams t2 ON m.team2_id = t2.id
+                    LEFT JOIN sub_match_player_mappings smpm
+                        ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = p.id
                     WHERE {where_clause}
                       AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
-                    GROUP BY p.name, sm.match_name, sm.match_type
+                    GROUP BY COALESCE(smpm.correct_player_name, p.name), sm.match_name, sm.match_type
                 ),
                 position_stats AS (
                     SELECT

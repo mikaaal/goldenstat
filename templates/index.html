@@ -200,6 +200,62 @@
     </div>
 </div>
 
+        <!-- Jämför lag sektion -->
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-10 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">⚔️ Jämför lag</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="compare-selects">
+                            <div class="compare-select-group">
+                                <label for="compareTeamA" class="form-label">Hemmalag</label>
+                                <select id="compareTeamA" class="form-select">
+                                    <option value="">Välj lag...</option>
+                                </select>
+                            </div>
+                            <div class="compare-vs">
+                                <span>vs</span>
+                                <button type="button" class="compare-swap-btn" onclick="swapCompareTeams()" title="Växla hemma/borta">⇄</button>
+                            </div>
+                            <div class="compare-select-group">
+                                <label for="compareTeamB" class="form-label">Bortalag</label>
+                                <select id="compareTeamB" class="form-select">
+                                    <option value="">Välj lag...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-check form-switch text-center mt-3">
+                            <input class="form-check-input" type="checkbox" id="compareVenueToggle" checked onchange="if(document.getElementById('compareTeamA').value && document.getElementById('compareTeamB').value) compareTeams()">
+                            <label class="form-check-label" for="compareVenueToggle">Basera på hemma/borta</label>
+                        </div>
+                        <div class="text-center mt-2">
+                            <button class="btn btn-primary" onclick="compareTeams()" id="compareBtn" disabled>
+                                ⚔️ Jämför uppställning
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Jämförelseresultat -->
+        <div id="compareResultSection" class="row justify-content-center mt-3" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0" id="compareResultTitle">Jämförelse</h5>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('compareResultSection').style.display='none'">
+                            <i class="bi bi-x-lg"></i> Stäng
+                        </button>
+                    </div>
+                    <div class="card-body" id="compareResultBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Lagresultatsektion i lagfliken -->
         <div id="teamResultsSectionTab" class="row justify-content-center mt-4" style="display: none;">
             <div class="col-12">
@@ -695,10 +751,267 @@ async function loadTeamList() {
         });
         allTeams = await response.json();
         console.log(`Loaded ${allTeams.length} teams from API`);
-
+        populateCompareDropdowns();
     } catch (error) {
         console.error('Kunde inte ladda lag:', error);
     }
+}
+
+function populateCompareDropdowns() {
+    // Find the latest season suffix from allTeams
+    const seasonPattern = /\((\d{4}-\d{4})\)$/;
+    let latestSeason = '';
+    allTeams.forEach(t => {
+        const m = t.match(seasonPattern);
+        if (m && m[1] > latestSeason) latestSeason = m[1];
+    });
+    if (!latestSeason) return;
+
+    const currentSeasonTeams = allTeams.filter(t => t.endsWith(`(${latestSeason})`)).sort();
+
+    // Group by division: "Team (Div) (Season)" -> division = "Div", "Team (Season)" -> division = "Övriga"
+    const divPattern = /^(.+?)\s+\(([^)]+)\)\s+\(\d{4}-\d{4}\)$/;
+    const grouped = {};
+    currentSeasonTeams.forEach(t => {
+        const m = t.match(divPattern);
+        const division = m ? m[2] : 'Övriga';
+        if (!grouped[division]) grouped[division] = [];
+        grouped[division].push(t);
+    });
+
+    // Sort divisions: known priority first, then alphabetical
+    const priority = ['Superligan', 'SL6', 'SL4', '1FD', '2FD', '3FD', '4FD'];
+    const divNames = Object.keys(grouped);
+    divNames.sort((a, b) => {
+        const ai = priority.indexOf(a);
+        const bi = priority.indexOf(b);
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        return a.localeCompare(b, 'sv');
+    });
+
+    ['compareTeamA', 'compareTeamB'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '<option value="">Välj lag...</option>';
+        divNames.forEach(div => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = div;
+            grouped[div].forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = t;
+                // Show just the team name without division and season
+                const m = t.match(divPattern);
+                opt.textContent = m ? m[1] : t.replace(` (${latestSeason})`, '');
+                optgroup.appendChild(opt);
+            });
+            sel.appendChild(optgroup);
+        });
+    });
+
+    // Enable/disable compare button when selections change
+    const updateBtn = () => {
+        document.getElementById('compareBtn').disabled =
+            !document.getElementById('compareTeamA').value || !document.getElementById('compareTeamB').value;
+    };
+    document.getElementById('compareTeamA').addEventListener('change', updateBtn);
+    document.getElementById('compareTeamB').addEventListener('change', updateBtn);
+}
+
+function swapCompareTeams() {
+    const selA = document.getElementById('compareTeamA');
+    const selB = document.getElementById('compareTeamB');
+    const tmp = selA.value;
+    selA.value = selB.value;
+    selB.value = tmp;
+    // Re-run comparison if a result is already showing
+    if (document.getElementById('compareResultSection').style.display !== 'none' && selA.value && selB.value) {
+        compareTeams();
+    }
+}
+
+async function compareTeams() {
+    const teamA = document.getElementById('compareTeamA').value;
+    const teamB = document.getElementById('compareTeamB').value;
+    if (!teamA || !teamB) return;
+
+    const resultSection = document.getElementById('compareResultSection');
+    const resultBody = document.getElementById('compareResultBody');
+    resultSection.style.display = 'block';
+    resultBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="text-muted mt-2">Laddar jämförelse...</p></div>';
+    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    try {
+        const useVenue = document.getElementById('compareVenueToggle').checked;
+
+        // Always fetch players without venue filter
+        const [playersA, playersB] = await Promise.all([
+            fetch(`/api/team/${encodeURIComponent(teamA)}/players`).then(r => r.json()),
+            fetch(`/api/team/${encodeURIComponent(teamB)}/players`).then(r => r.json()),
+        ]);
+
+        let lineupA, lineupB, venueNoteA = '', venueNoteB = '';
+
+        if (useVenue) {
+            const [lineupAHome, lineupBAway] = await Promise.all([
+                fetch(`/api/team/${encodeURIComponent(teamA)}/lineup?venue=home`).then(r => r.json()),
+                fetch(`/api/team/${encodeURIComponent(teamB)}/lineup?venue=away`).then(r => r.json()),
+            ]);
+
+            const MIN_VENUE_MATCHES = 3;
+            lineupA = lineupAHome;
+            lineupB = lineupBAway;
+
+            if (lineupAHome.total_matches < MIN_VENUE_MATCHES) {
+                const fallbackA = await fetch(`/api/team/${encodeURIComponent(teamA)}/lineup`).then(r => r.json());
+                lineupA = fallbackA;
+                venueNoteA = `(${lineupAHome.total_matches} hemmamatcher – visar alla ${fallbackA.total_matches} matcher)`;
+            } else {
+                venueNoteA = `(${lineupAHome.total_matches} hemmamatcher)`;
+            }
+
+            if (lineupBAway.total_matches < MIN_VENUE_MATCHES) {
+                const fallbackB = await fetch(`/api/team/${encodeURIComponent(teamB)}/lineup`).then(r => r.json());
+                lineupB = fallbackB;
+                venueNoteB = `(${lineupBAway.total_matches} bortamatcher – visar alla ${fallbackB.total_matches} matcher)`;
+            } else {
+                venueNoteB = `(${lineupBAway.total_matches} bortamatcher)`;
+            }
+        } else {
+            const [lineupAAll, lineupBAll] = await Promise.all([
+                fetch(`/api/team/${encodeURIComponent(teamA)}/lineup`).then(r => r.json()),
+                fetch(`/api/team/${encodeURIComponent(teamB)}/lineup`).then(r => r.json()),
+            ]);
+
+            lineupA = lineupAAll;
+            lineupB = lineupBAll;
+            venueNoteA = `(alla ${lineupAAll.total_matches} matcher)`;
+            venueNoteB = `(alla ${lineupBAll.total_matches} matcher)`;
+        }
+
+        const nameA = teamA.replace(/\s*\(\d{4}-\d{4}\)$/, '');
+        const nameB = teamB.replace(/\s*\(\d{4}-\d{4}\)$/, '');
+        document.getElementById('compareResultTitle').textContent = `${nameA} vs ${nameB}`;
+        resultBody.innerHTML = generateCompareHTML(lineupA, playersA, lineupB, playersB, nameA, nameB, venueNoteA, venueNoteB);
+    } catch (error) {
+        resultBody.innerHTML = `<p class="text-danger">Kunde inte ladda jämförelse: ${error.message}</p>`;
+    }
+}
+
+function generateCompareHTML(lineupA, playersA, lineupB, playersB, nameA, nameB, venueNoteA, venueNoteB) {
+    const statsA = {};
+    const statsB = {};
+    if (playersA && playersA.players) playersA.players.forEach(p => { statsA[p.name] = p; });
+    if (playersB && playersB.players) playersB.players.forEach(p => { statsB[p.name] = p; });
+
+    const blockOrder = ['D1', 'S1', 'S2', 'D2', 'S3', 'S4', 'D3', 'S5', 'S6', 'AD'];
+    const isDoubles = pos => pos.startsWith('D') || pos === 'AD';
+
+    // Deduplicate players: assign each player to at most one position (AD exempt)
+    function assignLineup(lineup) {
+        const assigned = {};  // pos -> assigned player(s)
+        const usedPlayers = new Set();
+
+        // Collect all singles positions with their candidates sorted by matches
+        const singlesPositions = blockOrder
+            .filter(pos => pos.startsWith('S') && lineup.positions[pos])
+            .map(pos => ({
+                pos,
+                candidates: lineup.positions[pos].all_players || [lineup.positions[pos].top_player].filter(Boolean)
+            }));
+
+        // Sort positions by how few candidates they have (most constrained first)
+        singlesPositions.sort((a, b) => a.candidates.length - b.candidates.length);
+
+        // Greedy assignment for singles
+        for (const { pos, candidates } of singlesPositions) {
+            const pick = candidates.find(c => !usedPlayers.has(c.name));
+            if (pick) {
+                assigned[pos] = { type: 'singles', player: pick };
+                usedPlayers.add(pick.name);
+            }
+        }
+
+        // Doubles: deduplicate between doubles positions (separate from singles)
+        const usedDoublesPlayers = new Set();
+        for (const pos of blockOrder.filter(p => p.startsWith('D'))) {
+            const posData = lineup.positions[pos];
+            if (!posData || !posData.players) continue;
+            const picks = posData.players.filter(p => !usedDoublesPlayers.has(p.name)).slice(0, 2);
+            assigned[pos] = { type: 'doubles', players: picks };
+            picks.forEach(p => usedDoublesPlayers.add(p.name));
+        }
+
+        // AD: no uniqueness constraint
+        const adData = lineup.positions['AD'];
+        if (adData && adData.players) {
+            assigned['AD'] = { type: 'doubles', players: adData.players.slice(0, 2) };
+        }
+
+        return assigned;
+    }
+
+    const assignedA = assignLineup(lineupA);
+    const assignedB = assignLineup(lineupB);
+
+    function renderSide(assigned, stats, pos) {
+        const data = assigned[pos];
+        if (!data) return '<span class="text-muted">–</span>';
+
+        if (data.type === 'doubles') {
+            return (data.players || []).map(p => {
+                const ps = stats[p.name];
+                const wpct = ps ? ps.doubles_win_pct : null;
+                return `<div class="compare-player">
+                    <span class="compare-player-name">${goldenStat.makePlayerNameClickable(p.name)}</span>
+                    ${ps ? `<span class="compare-player-stats">${ps.average != null ? ps.average : '–'} · <span class="${wpct >= 50 ? 'text-success' : 'text-danger'}">${wpct}%</span></span>` : ''}
+                </div>`;
+            }).join('') || '<span class="text-muted">–</span>';
+        } else {
+            const p = data.player;
+            if (!p) return '<span class="text-muted">–</span>';
+            const ps = stats[p.name];
+            const wpct = ps ? ps.singles_win_pct : null;
+            return `<div class="compare-player">
+                <span class="compare-player-name">${goldenStat.makePlayerNameClickable(p.name)}</span>
+                ${ps ? `<span class="compare-player-stats">${ps.average != null ? ps.average : '–'} · <span class="${wpct >= 50 ? 'text-success' : 'text-danger'}">${wpct}%</span></span>` : ''}
+            </div>`;
+        }
+    }
+
+    const blocks = blockOrder.map(pos => {
+        const hasA = assignedA[pos];
+        const hasB = assignedB[pos];
+        if (!hasA && !hasB) return '';
+
+        const label = isDoubles(pos) ? '👥' : '🎯';
+        return `
+            <div class="compare-block ${isDoubles(pos) ? 'compare-block-doubles' : 'compare-block-singles'}">
+                <div class="compare-side compare-side-a">
+                    <div class="compare-team-label d-md-none">${nameA}</div>
+                    ${renderSide(assignedA, statsA, pos)}
+                </div>
+                <div class="compare-position">
+                    <span class="compare-position-icon">${label}</span>
+                    <span class="compare-position-name">${pos}</span>
+                </div>
+                <div class="compare-side compare-side-b">
+                    <div class="compare-team-label d-md-none">${nameB}</div>
+                    ${renderSide(assignedB, statsB, pos)}
+                </div>
+            </div>
+        `;
+    }).filter(Boolean).join('');
+
+    return `
+        <div class="compare-legend">% = andel vunna matcher</div>
+        <div class="compare-header d-none d-md-flex">
+            <div class="compare-header-team">${nameA} <span class="compare-venue-note">${venueNoteA || ''}</span></div>
+            <div class="compare-header-pos">Block</div>
+            <div class="compare-header-team">${nameB} <span class="compare-venue-note">${venueNoteB || ''}</span></div>
+        </div>
+        ${blocks}
+    `;
 }
 
 // Clear player search
