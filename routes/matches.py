@@ -928,6 +928,24 @@ def get_series_matches():
                 where_clauses.append("m.division = ?")
                 params.append(division)
 
+            team = request.args.get('team')
+            if team:
+                where_clauses.append("(t1.name = ? OR t2.name = ?)")
+                params.extend([team, team])
+
+            club = request.args.get('club')
+            if club:
+                # Match both with regular space and non-breaking space
+                club_nbsp = club.replace(' ', '\u00a0')
+                where_clauses.append(
+                    "(t1.name = ? OR t1.name LIKE ? OR t2.name = ? OR t2.name LIKE ?"
+                    " OR t1.name = ? OR t1.name LIKE ? OR t2.name = ? OR t2.name LIKE ?)"
+                )
+                params.extend([
+                    club, club + ' (%', club, club + ' (%',
+                    club_nbsp, club_nbsp + ' (%', club_nbsp, club_nbsp + ' (%',
+                ])
+
             where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
             # Get all matches with sub-match win counts

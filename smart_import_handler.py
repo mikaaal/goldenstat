@@ -80,8 +80,14 @@ class SmartPlayerMatcher:
             'AIK Dart': 'AIK Dart',
             'AIK Dartförening': 'AIK Dart',
             'HMT Dart': 'HMT Dart',
-            'Engelen': 'HMT Dart',
-            'Spikkastarna B': 'SpikKastarna',
+            'ACD DC': 'AC DC',
+            'SpikKastarna': 'Spikkastarna',
+            'Spikkastarna A': 'Spikkastarna',
+            'Spikkastarna B': 'Spikkastarna',
+            'Stockholm Busseye': 'Stockholm Bullseye',
+            'Stockholms Bullseye': 'Stockholm Bullseye',
+            'Järfalla': 'Järfälla',
+            'Västertopr': 'Västertorp',
         }
 
         # Check for AIK variants first (case-insensitive)
@@ -527,7 +533,7 @@ def demo_smart_matching():
         # Case-variation scenarios
         ("mats andersson", "SSDC SL6"),
         ("marcus gavander", "Dartanjang"),
-        ("TOMMY LINDSTRÖM", "SpikKastarna"),
+        ("TOMMY LINDSTRÖM", "Spikkastarna"),
 
         # Bindestreck/mellanslag
         ("Lars Erik Renström", "TYO DC SL4"),
