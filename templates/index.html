@@ -167,6 +167,19 @@
     <!-- Teams Tab -->
     <div class="tab-pane fade{% if tab == 'teams' %} show active{% endif %}" id="teams-tab-content" role="tabpanel">
 
+        <!-- Sub-tabs för Lag -->
+        <ul class="nav nav-tabs mb-3 mt-2 justify-content-center" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#team-search-tab" type="button" role="tab">🔍 Sök lag</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#team-compare-tab" type="button" role="tab">⚔️ Jämför lag</button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+        <div class="tab-pane fade show active" id="team-search-tab" role="tabpanel">
+
 <!-- Söksektion för lag -->
 <div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
@@ -200,6 +213,9 @@
     </div>
 </div>
 
+        </div><!-- end team-search-tab -->
+
+        <div class="tab-pane fade" id="team-compare-tab" role="tabpanel">
         <!-- Jämför lag sektion -->
         <div class="row justify-content-center mt-4">
             <div class="col-md-10 col-lg-8">
@@ -255,6 +271,9 @@
                 </div>
             </div>
         </div>
+
+        </div><!-- end team-compare-tab -->
+        </div><!-- end tab-content -->
 
         <!-- Lagresultatsektion i lagfliken -->
         <div id="teamResultsSectionTab" class="row justify-content-center mt-4" style="display: none;">
@@ -1953,10 +1972,11 @@ async function searchTeam() {
     const teamName = document.getElementById('teamSearch').value.trim();
     if (!teamName) return;
 
-    // Reset club players tab state for new search
+    // Reset tab state for new search
     clubPlayersLoaded = false;
     clubPlayersAllTime = false;
     doublesPairsLoaded = false;
+    teamMatchesLoaded = false;
 
     // Update URL with team parameter (only if not navigating via history)
     if (!isNavigatingHistory) {
@@ -2016,6 +2036,11 @@ function showTeamData(playersData, lineupData) {
             <li class="nav-item" role="presentation">
                 <button class="nav-link active" id="players-list-tab" data-bs-toggle="tab" data-bs-target="#players-list" type="button">
                     📋 Spelare i ${division}
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="team-matches-tab" data-bs-toggle="tab" data-bs-target="#team-matches" type="button" onclick="loadTeamMatches(); trackSubTab('seriematcher')">
+                    📅 Seriematcher
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -2089,6 +2114,17 @@ function showTeamData(playersData, lineupData) {
                         </div>
                     `).join('')}
                 </div>
+            </div>
+
+            <!-- Team matches tab -->
+            <div class="tab-pane fade" id="team-matches" role="tabpanel">
+                <div class="text-center py-4" id="teamMatchesLoading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Laddar...</span>
+                    </div>
+                    <p class="text-muted mt-2">Laddar seriematcher...</p>
+                </div>
+                <div id="teamMatchesContent" style="display: none;"></div>
             </div>
 
             <!-- Club players tab -->
@@ -2246,6 +2282,84 @@ function showTeamPlayers(data) {
 
 let clubPlayersLoaded = false;
 let clubPlayersAllTime = false;
+
+let teamMatchesLoaded = false;
+
+async function loadTeamMatches() {
+    if (teamMatchesLoaded) return;
+
+    const teamName = window.currentTeamName;
+    if (!teamName) return;
+
+    try {
+        const params = new URLSearchParams({ team: teamName });
+        if (window.currentTeamSeason) {
+            params.append('season', window.currentTeamSeason);
+        }
+
+        const response = await fetch(`/api/series_matches?${params}`);
+        const data = await response.json();
+
+        if (response.ok) {
+            document.getElementById('teamMatchesLoading').style.display = 'none';
+            document.getElementById('teamMatchesContent').style.display = 'block';
+
+            const allMatches = data.weeks.flatMap(w => w.matches);
+            if (allMatches.length === 0) {
+                document.getElementById('teamMatchesContent').innerHTML = '<p class="text-muted text-center">Inga matcher hittades.</p>';
+                teamMatchesLoaded = true;
+                return;
+            }
+
+            let html = `<div class="table-responsive"><table class="table table-hover align-middle">
+                <thead><tr>
+                    <th>Datum</th>
+                    <th>Hemmalag</th>
+                    <th class="text-center">Resultat</th>
+                    <th>Bortalag</th>
+                </tr></thead><tbody>`;
+
+            for (const match of allMatches) {
+                const dateStr = match.match_date ? match.match_date.split(' ')[0].split('T')[0] : '';
+                const d = dateStr ? new Date(dateStr) : null;
+                const formatted = d ? `${d.getDate()}/${d.getMonth()+1}` : '';
+                const isTeam1 = match.team1_name === teamName;
+                const won = isTeam1 ? match.team1_sub_wins > match.team2_sub_wins : match.team2_sub_wins > match.team1_sub_wins;
+                const lost = isTeam1 ? match.team1_sub_wins < match.team2_sub_wins : match.team2_sub_wins < match.team1_sub_wins;
+                const rowClass = won ? 'table-success' : (lost ? 'table-danger' : '');
+
+                html += `<tr class="${rowClass}" style="cursor:pointer" onclick="window.location.href='/match_overview?match_id=${match.id}'">
+                    <td>${formatted}</td>
+                    <td>${match.team1_name}${isTeam1 ? '' : ''}</td>
+                    <td class="text-center fw-bold">${match.team1_sub_wins} - ${match.team2_sub_wins}</td>
+                    <td>${match.team2_name}</td>
+                </tr>`;
+            }
+
+            html += '</tbody></table></div>';
+
+            const wins = allMatches.filter(m => {
+                const isT1 = m.team1_name === teamName;
+                return isT1 ? m.team1_sub_wins > m.team2_sub_wins : m.team2_sub_wins > m.team1_sub_wins;
+            }).length;
+            const losses = allMatches.filter(m => {
+                const isT1 = m.team1_name === teamName;
+                return isT1 ? m.team1_sub_wins < m.team2_sub_wins : m.team2_sub_wins < m.team1_sub_wins;
+            }).length;
+            const draws = allMatches.length - wins - losses;
+
+            const summary = `<div class="text-center mb-3"><h6 class="text-muted">${allMatches.length} matcher: ✅ ${wins} Vinster - ➖ ${draws} Oavgjorda - ❌ ${losses} Förluster</h6></div>`;
+
+            document.getElementById('teamMatchesContent').innerHTML = summary + html;
+            teamMatchesLoaded = true;
+        } else {
+            document.getElementById('teamMatchesLoading').innerHTML = '<p class="text-danger">Kunde inte ladda matcher</p>';
+        }
+    } catch (error) {
+        console.error('Kunde inte ladda seriematcher:', error);
+        document.getElementById('teamMatchesLoading').innerHTML = '<p class="text-danger">Ett fel uppstod vid laddning</p>';
+    }
+}
 
 async function loadClubPlayers(forceReload = false) {
     // Only load once per team search (unless forcing reload for toggle)
@@ -3069,10 +3183,8 @@ async function loadAvailableWeeks() {
         availableWeeks.forEach((week, index) => {
             const option = document.createElement('option');
             option.value = IS_RIKSSERIEN ? index : week.week_offset;
-            if (index === 0) {
-                option.textContent = IS_RIKSSERIEN
-                    ? `${week.label} (${week.match_count} matcher)`
-                    : `Denna vecka (${week.match_count} matcher)`;
+            if (week.week_offset === 0) {
+                option.textContent = `Denna vecka (${week.match_count} matcher)`;
             } else {
                 option.textContent = `${week.label} (${week.match_count} matcher)`;
             }

@@ -51,6 +51,9 @@
                         <select id="division-filter" class="form-select form-select-sm" style="width: auto;">
                             <option value="">Alla divisioner</option>
                         </select>
+                        <select id="club-filter" class="form-select form-select-sm" style="width: auto;">
+                            <option value="">Alla klubbar</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -185,6 +188,7 @@
 <script>
 let currentSeason = '';
 let currentDivision = '';
+let currentClub = '';
 let allWeeks = [];
 let displayedWeeks = 0;
 const WEEKS_PER_PAGE = 4;
@@ -199,6 +203,7 @@ async function loadMatches() {
         const params = new URLSearchParams();
         if (currentSeason) params.append('season', currentSeason);
         if (currentDivision) params.append('division', currentDivision);
+        if (currentClub) params.append('club', currentClub);
         if (params.toString()) url += '?' + params.toString();
 
         const response = await fetch(url);
@@ -208,7 +213,7 @@ async function loadMatches() {
             throw new Error(data.error || 'Kunde inte ladda matcher');
         }
 
-        populateFilters(data.seasons, data.divisions);
+        populateFilters(data.seasons, data.divisions, data.weeks || []);
         allWeeks = data.weeks || [];
         displayedWeeks = 0;
         displayMatches();
@@ -220,9 +225,10 @@ async function loadMatches() {
     }
 }
 
-function populateFilters(seasons, divisions) {
+function populateFilters(seasons, divisions, weeks) {
     const seasonSelect = document.getElementById('season-filter');
     const divisionSelect = document.getElementById('division-filter');
+    const clubSelect = document.getElementById('club-filter');
 
     // Only populate if empty (first load)
     if (seasonSelect.options.length <= 1) {
@@ -256,6 +262,23 @@ function populateFilters(seasons, divisions) {
             option.textContent = cleanDivisionName(division);
             if (division === currentDivision) option.selected = true;
             divisionSelect.appendChild(option);
+        });
+    }
+
+    if (clubSelect.options.length <= 1) {
+        const clubNames = new Set();
+        weeks.forEach(week => {
+            (week.matches || []).forEach(match => {
+                clubNames.add(cleanTeamName(match.team1_name).replace(/\u00a0/g, ' '));
+                clubNames.add(cleanTeamName(match.team2_name).replace(/\u00a0/g, ' '));
+            });
+        });
+        const sorted = [...clubNames].sort((a, b) => a.localeCompare(b, 'sv'));
+        sorted.forEach(club => {
+            const option = document.createElement('option');
+            option.value = club;
+            option.textContent = club;
+            clubSelect.appendChild(option);
         });
     }
 }
@@ -465,6 +488,14 @@ function initPage() {
     if (divisionFilter) {
         divisionFilter.addEventListener('change', function() {
             currentDivision = this.value;
+            loadMatches();
+        });
+    }
+
+    var clubFilter = document.getElementById('club-filter');
+    if (clubFilter) {
+        clubFilter.addEventListener('change', function() {
+            currentClub = this.value;
             loadMatches();
         });
     }
