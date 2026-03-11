@@ -1246,6 +1246,43 @@ body {
 }
 
 /* Doubles Pairs Styles */
+/* ========== LINEUP ========== */
+
+.lineup-position-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    border-left: 4px solid #e5e7eb;
+}
+
+.lineup-position-card:has(.badge[style*="2563eb"]) { border-left-color: #2563eb; }
+.lineup-position-card:has(.badge[style*="16a34a"]) { border-left-color: #16a34a; }
+.lineup-position-card:has(.badge[style*="d97706"]) { border-left-color: #d97706; }
+
+.lineup-player {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.lineup-player:last-child {
+    border-bottom: none;
+}
+
+.lineup-players-list {
+    padding-left: 0.25rem;
+}
+
+@media (max-width: 576px) {
+    .lineup-position-card {
+        padding: 0.75rem;
+    }
+    .lineup-bar-container {
+        display: none;
+    }
+}
+
+/* ========== DOUBLES PAIRS ========== */
+
 .doubles-pairs-container {
     display: flex;
     flex-direction: column;
@@ -1388,6 +1425,30 @@ body {
         align-items: flex-start;
         flex-direction: row;
         gap: 0.75rem;
+    }
+
+    .doubles-date-block .table th.d-hide-mobile,
+    .doubles-date-block .table td.d-hide-mobile,
+    .doubles-player-card .table th.d-hide-mobile,
+    .doubles-player-card .table td.d-hide-mobile {
+        display: none;
+    }
+
+    .doubles-date-block .table,
+    .doubles-player-card .table {
+        font-size: 0.8rem;
+    }
+
+    .doubles-date-block .table th,
+    .doubles-date-block .table td,
+    .doubles-player-card .table th,
+    .doubles-player-card .table td {
+        padding: 0.25rem 0.3rem;
+        white-space: nowrap;
+    }
+
+    .doubles-player-card {
+        padding: 0.5rem;
     }
 }
 
