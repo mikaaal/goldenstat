@@ -2476,14 +2476,16 @@ function generateDoublesPairsHTML(data) {
     function fmtAvg(avg) { return avg ? `<small class="text-muted ms-1">(${parseFloat(avg).toFixed(1)})</small>` : ''; }
 
     function renderMatchRow(m) {
+        const opps = (m.opponents || []).map(o => cleanName(o)).join(' & ');
         return `<tr class="${m.won ? 'table-success' : 'table-danger'}" style="cursor:pointer" onclick="window.location.href='/sub_match_throws?sub_match_id=${m.sub_match_id}&team=${m.team_number || 1}'">
             <td><span class="badge bg-secondary">${m.position}</span></td>
-            <td>${m.playerName || ''}</td>
-            <td>${m.partnerName}${fmtAvg(m.player_avg)}</td>
-            <td>${cleanName(m.opponent_team)}</td>
-            <td>${(m.opponents || []).map(o => cleanName(o)).join(' & ')}${fmtAvg(m.opponent_avg)}</td>
+            <td class="d-hide-mobile">${m.playerName || ''}</td>
+            <td><span class="d-show-mobile">${m.playerName || ''} & </span>${m.partnerName}${fmtAvg(m.player_avg)}</td>
+            <td class="d-hide-mobile">${opps}${fmtAvg(m.opponent_avg)}</td>
             <td class="text-center">${m.won ? '✅' : '❌'} ${m.legs_won != null ? m.legs_won + '-' + m.legs_lost : ''}</td>
-        </tr>`;
+        </tr>` + (opps ? `<tr class="d-show-mobile-row ${m.won ? 'table-success' : 'table-danger'}" style="cursor:pointer" onclick="window.location.href='/sub_match_throws?sub_match_id=${m.sub_match_id}&team=${m.team_number || 1}'">
+            <td colspan="3"><span style="font-style:italic">${opps}${fmtAvg(m.opponent_avg)}</span></td>
+        </tr>` : '');
     }
 
     const toggleBtns = `
@@ -2543,18 +2545,17 @@ function generateDoublesPairsHTML(data) {
                         <thead><tr>
                             <th>Datum</th>
                             <th>Pos</th>
-                            <th>Motståndarlag</th>
                             <th>Motståndare</th>
                             <th class="text-center">Resultat</th>
                         </tr></thead>
                         <tbody>${matches.map(m => {
                             const d = new Date(m.date);
                             const weekday = d.toLocaleDateString('sv-SE', { weekday: 'short' });
+                            const opps = (m.opponents || []).map(o => cleanName(o)).join(' & ');
                             return `<tr class="${m.won ? 'table-success' : 'table-danger'}" style="cursor:pointer" onclick="window.location.href='/sub_match_throws?sub_match_id=${m.sub_match_id}&team=${m.team_number || 1}'">
-                                <td>${weekday} ${formatDate(m.date)}</td>
+                                <td>${weekday} ${formatDate(m.date)}<br><small class="text-muted">${cleanName(m.opponent_team)}</small></td>
                                 <td><span class="badge bg-secondary">${m.position}</span></td>
-                                <td>${cleanName(m.opponent_team)}</td>
-                                <td>${(m.opponents || []).map(o => cleanName(o)).join(' & ')}${fmtAvg(m.opponent_avg)}</td>
+                                <td>${opps}${fmtAvg(m.opponent_avg)}</td>
                                 <td class="text-center">${m.won ? '✅' : '❌'} ${m.legs_won != null ? m.legs_won + '-' + m.legs_lost : ''}</td>
                             </tr>`;
                         }).join('')}</tbody>
@@ -2596,20 +2597,21 @@ function generateDoublesPairsHTML(data) {
             const d = new Date(date);
             const weekday = d.toLocaleDateString('sv-SE', { weekday: 'short' });
             const dateLabel = date !== 'Okänt datum' ? weekday + ' ' + formatDate(date) : date;
+            const oppTeam = matches[0] ? cleanName(matches[0].opponent_team) : '';
             return `
             <div class="doubles-date-block mb-3">
                 <div class="d-flex align-items-center mb-1">
                     <span class="badge bg-dark me-2">${dateLabel}</span>
+                    <strong>Motståndare:</strong> ${oppTeam}
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover table-sm align-middle mb-0">
                         <thead><tr>
                             <th>Pos</th>
-                            <th>Spelare</th>
+                            <th class="d-hide-mobile">Spelare</th>
                             <th>Partner</th>
-                            <th>Motståndarlag</th>
-                            <th>Motståndare</th>
-                            <th class="text-center">Resultat</th>
+                            <th class="d-hide-mobile">Motståndare</th>
+                            <th class="text-center">Res</th>
                         </tr></thead>
                         <tbody>${matches.sort(posSort).map(m => renderMatchRow(m)).join('')}</tbody>
                     </table>
@@ -2639,13 +2641,15 @@ function generateDoublesPairsHTML(data) {
         const sortedDates = Object.keys(dateGroups).sort((a, b) => b.localeCompare(a));
 
         function renderPlayerMatchRow(m) {
+            const opps = (m.opponents || []).map(o => cleanName(o)).join(' & ');
             return `<tr class="${m.won ? 'table-success' : 'table-danger'}" style="cursor:pointer" onclick="window.location.href='/sub_match_throws?sub_match_id=${m.sub_match_id}&team=${m.team_number || 1}'">
                 <td><span class="badge bg-secondary">${m.position}</span></td>
                 <td>${m.partnerName}${fmtAvg(m.player_avg)}</td>
-                <td>${cleanName(m.opponent_team)}</td>
-                <td>${(m.opponents || []).map(o => cleanName(o)).join(' & ')}${fmtAvg(m.opponent_avg)}</td>
+                <td class="d-hide-mobile">${opps}${fmtAvg(m.opponent_avg)}</td>
                 <td class="text-center">${m.won ? '✅' : '❌'} ${m.legs_won != null ? m.legs_won + '-' + m.legs_lost : ''}</td>
-            </tr>`;
+            </tr>` + (opps ? `<tr class="d-show-mobile-row ${m.won ? 'table-success' : 'table-danger'}" style="cursor:pointer" onclick="window.location.href='/sub_match_throws?sub_match_id=${m.sub_match_id}&team=${m.team_number || 1}'">
+                <td colspan="3"><span style="font-style:italic">${opps}${fmtAvg(m.opponent_avg)}</span></td>
+            </tr>` : '');
         }
 
         return `
@@ -2660,9 +2664,8 @@ function generateDoublesPairsHTML(data) {
                 <table class="table table-hover table-sm align-middle mb-0">
                     <thead><tr>
                         <th>Pos</th>
-                        <th>Partner</th>
-                        <th>Mot</th>
-                        <th>Motståndare</th>
+                        <th></th>
+                        <th class="d-hide-mobile">Motståndare</th>
                         <th class="text-center">Res</th>
                     </tr></thead>
                     <tbody>
@@ -2671,7 +2674,8 @@ function generateDoublesPairsHTML(data) {
                             const d = new Date(date);
                             const weekday = d.toLocaleDateString('sv-SE', { weekday: 'short' });
                             const dateLabel = date !== 'Okänt datum' ? weekday + ' ' + formatDate(date) : date;
-                            return `<tr class="table-light"><td colspan="5"><span class="badge bg-dark">${dateLabel}</span></td></tr>` +
+                            const oppTeam = matches[0] ? cleanName(matches[0].opponent_team) : '';
+                            return `<tr class="table-light"><td colspan="2"><span class="badge bg-dark">${dateLabel}</span> <span class="d-show-mobile">mot <strong>${oppTeam}</strong></span></td><td class="d-hide-mobile"><strong>${oppTeam}</strong></td><td></td></tr>` +
                                 matches.sort(posSort).map(m => renderPlayerMatchRow(m)).join('');
                         }).join('')}
                     </tbody>
