@@ -573,7 +573,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         const teamParam = urlParams.get('team');
         if (teamParam) {
             document.getElementById('teamSearch').value = teamParam;
-            searchTeam();
+            await searchTeam();
+            const subtab = urlParams.get('subtab');
+            if (subtab) {
+                const tabBtn = document.getElementById(subtab + '-tab');
+                if (tabBtn) tabBtn.click();
+            }
         }
     } else if (activeTab === 'stats') {
         loadCurrentSeasonStats();
@@ -646,6 +651,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Setup browser history navigation
     setupHistoryNavigation();
 });
+
+function setSubTab(subtab) {
+    const url = new URL(window.location);
+    if (subtab && subtab !== 'players-list') {
+        url.searchParams.set('subtab', subtab);
+    } else {
+        url.searchParams.delete('subtab');
+    }
+    window.history.replaceState(window.history.state, '', url);
+}
 
 // Browser history navigation
 function setupHistoryNavigation() {
@@ -1890,19 +1905,25 @@ document.getElementById('teamSearch').addEventListener('input', function(e) {
         return;
     }
     
+    const divPriority = ['Superligan', 'SL6', 'SL4', '1FD', '2FD', '3FD', '4FD'];
     const suggestions = allTeams.filter(team =>
         team.toLowerCase().includes(query)
     ).sort((a, b) => {
-        // Extract season from team name (e.g., "Team (DIV) (2025-2026)" -> "2025-2026")
         const seasonRegex = /\((\d{4}-\d{4})\)$/;
         const seasonA = a.match(seasonRegex)?.[1] || '';
         const seasonB = b.match(seasonRegex)?.[1] || '';
-
-        // Sort by season descending (newest first), then alphabetically by team name
-        if (seasonA !== seasonB) {
-            return seasonB.localeCompare(seasonA);
-        }
-        return a.localeCompare(b);
+        // Sort by season descending first
+        if (seasonA !== seasonB) return seasonB.localeCompare(seasonA);
+        // Then by division priority
+        const divRegex = /\(([^)]+)\)\s+\(\d{4}-\d{4}\)$/;
+        const divA = a.match(divRegex)?.[1] || '';
+        const divB = b.match(divRegex)?.[1] || '';
+        const idxA = divPriority.indexOf(divA);
+        const idxB = divPriority.indexOf(divB);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b, 'sv');
     }).slice(0, 10);
     
     const suggestionsContainer = document.getElementById('teamSearchSuggestions');
@@ -1928,9 +1949,24 @@ function searchTeamByText() {
     document.getElementById('teamSearchSuggestions').style.display = 'none';
     
     // Find all matching teams
-    const matchingTeams = allTeams.filter(team => 
+    const divPriority2 = ['Superligan', 'SL6', 'SL4', '1FD', '2FD', '3FD', '4FD'];
+    const matchingTeams = allTeams.filter(team =>
         team.toLowerCase().includes(query)
-    );
+    ).sort((a, b) => {
+        const seasonRegex = /\((\d{4}-\d{4})\)$/;
+        const seasonA = a.match(seasonRegex)?.[1] || '';
+        const seasonB = b.match(seasonRegex)?.[1] || '';
+        if (seasonA !== seasonB) return seasonB.localeCompare(seasonA);
+        const divRegex = /\(([^)]+)\)\s+\(\d{4}-\d{4}\)$/;
+        const divA = a.match(divRegex)?.[1] || '';
+        const divB = b.match(divRegex)?.[1] || '';
+        const idxA = divPriority2.indexOf(divA);
+        const idxB = divPriority2.indexOf(divB);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b, 'sv');
+    });
     
     if (matchingTeams.length === 0) {
         alert('Inga lag hittades som matchar din sökning');
@@ -2034,27 +2070,27 @@ function showTeamData(playersData, lineupData) {
         <!-- Nav tabs for switching between views -->
         <ul class="nav nav-tabs mb-3" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="players-list-tab" data-bs-toggle="tab" data-bs-target="#players-list" type="button">
+                <button class="nav-link active" id="players-list-tab" data-bs-toggle="tab" data-bs-target="#players-list" type="button" onclick="setSubTab('players-list')">
                     📋 Spelare i ${division}
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="team-matches-tab" data-bs-toggle="tab" data-bs-target="#team-matches" type="button" onclick="loadTeamMatches(); trackSubTab('seriematcher')">
+                <button class="nav-link" id="team-matches-tab" data-bs-toggle="tab" data-bs-target="#team-matches" type="button" onclick="loadTeamMatches(); setSubTab('team-matches'); trackSubTab('seriematcher')">
                     📅 Seriematcher
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="club-players-tab" data-bs-toggle="tab" data-bs-target="#club-players" type="button" onclick="loadClubPlayers(); trackSubTab('alla-i-klubben')">
+                <button class="nav-link" id="club-players-tab" data-bs-toggle="tab" data-bs-target="#club-players" type="button" onclick="loadClubPlayers(); setSubTab('club-players'); trackSubTab('alla-i-klubben')">
                     🏠 Alla i klubben
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="doubles-pairs-tab" data-bs-toggle="tab" data-bs-target="#doubles-pairs" type="button" onclick="loadDoublesPairs(); trackSubTab('dubbelpar')">
+                <button class="nav-link" id="doubles-pairs-tab" data-bs-toggle="tab" data-bs-target="#doubles-pairs" type="button" onclick="loadDoublesPairs(); setSubTab('doubles-pairs'); trackSubTab('dubbelpar')">
                     👥 Dubbelpar
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="lineup-tab" data-bs-toggle="tab" data-bs-target="#lineup" type="button" onclick="trackSubTab('trolig-uppstallning')">
+                <button class="nav-link" id="lineup-tab" data-bs-toggle="tab" data-bs-target="#lineup" type="button" onclick="setSubTab('lineup'); trackSubTab('trolig-uppstallning')">
                     🎯 Trolig uppställning
                 </button>
             </li>
@@ -2164,114 +2200,71 @@ function showTeamData(playersData, lineupData) {
 }
 
 function generateLineupHTML(data, playersData) {
-    // Build lookup map for player stats
     const playerStats = {};
     if (playersData && playersData.players) {
-        playersData.players.forEach(p => {
-            playerStats[p.name] = p;
-        });
+        playersData.players.forEach(p => { playerStats[p.name] = p; });
     }
+
+    function renderPlayerBadge(p, type) {
+        const ps = playerStats[p.name];
+        const winPct = type === 'singles' ? (ps ? ps.singles_win_pct : null) : (ps ? ps.doubles_win_pct : null);
+        const avg = ps ? ps.average : null;
+        const winClass = winPct != null ? (winPct >= 60 ? 'text-success' : winPct >= 40 ? 'text-warning' : 'text-danger') : '';
+        return `<div class="lineup-player d-flex align-items-center justify-content-between py-1">
+            <div>
+                <strong>${goldenStat.makePlayerNameClickable(p.name)}</strong>
+                ${avg != null ? `<span class="text-muted ms-1" style="font-size:0.85em">${avg}</span>` : ''}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                ${winPct != null ? `<span class="badge ${winPct >= 60 ? 'bg-success' : winPct >= 40 ? 'bg-warning text-dark' : 'bg-danger'}" style="min-width:42px">${winPct}%</span>` : ''}
+                <div class="lineup-bar-container" style="width:60px;height:8px;background:#e9ecef;border-radius:4px;overflow:hidden">
+                    <div style="width:${p.percentage}%;height:100%;background:${p.percentage >= 70 ? '#198754' : p.percentage >= 40 ? '#ffc107' : '#6c757d'};border-radius:4px"></div>
+                </div>
+                <small class="text-muted" style="min-width:55px;text-align:right">${p.percentage}% <span style="font-size:0.8em">(${p.matches})</span></small>
+            </div>
+        </div>`;
+    }
+
+    // Match order: D1, S1, S2, D2, S3, S4, D3, S5, S6, AD
+    const blockOrder = ['D1', 'S1', 'S2', 'D2', 'S3', 'S4', 'D3', 'S5', 'S6', 'AD'];
+    const posLabels = {
+        'D1': '👥 Dubbel 1', 'D2': '👥 Dubbel 2', 'D3': '👥 Dubbel 3',
+        'S1': '🎯 Singel 1', 'S2': '🎯 Singel 2', 'S3': '🎯 Singel 3',
+        'S4': '🎯 Singel 4', 'S5': '🎯 Singel 5', 'S6': '🎯 Singel 6',
+        'AD': '⚡ Avgörande dubbel'
+    };
+    const posColors = {
+        'D1': '#2563eb', 'D2': '#2563eb', 'D3': '#2563eb',
+        'S1': '#16a34a', 'S2': '#16a34a', 'S3': '#16a34a',
+        'S4': '#16a34a', 'S5': '#16a34a', 'S6': '#16a34a',
+        'AD': '#d97706'
+    };
 
     return `
         <div class="text-center mb-4">
             <h6 class="text-muted">Baserat på ${data.total_matches} matcher${data.season ? ` i ${data.season}` : ''}${data.division ? ` (${data.division})` : ''}${!data.season && !data.division ? ' från alla säsonger' : ''}</h6>
+            <small class="text-muted">Visar mest använda spelare per position med vinstprocent och andel matcher</small>
         </div>
 
-        <!-- Doubles positions -->
-        <div class="mb-4">
-            <h6 class="text-muted mb-3">👥 Dubblar</h6>
-            <div class="row g-3">
-                ${['D1', 'D2', 'D3'].map(position => {
-                    const posData = data.positions[position];
-                    return posData ? `
-                        <div class="col-md-4">
-                            <div class="card text-center h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title text-primary">${position}</h6>
-                                    <div class="mb-2">
-                                        ${posData.players.map(p => {
-                                            const ps = playerStats[p.name];
-                                            return `<div><strong>${goldenStat.makePlayerNameClickable(p.name)}</strong></div>
-                                             ${ps ? `<small class="text-muted">${ps.average != null ? ps.average : '–'} · <span class="${ps.doubles_win_pct >= 50 ? 'text-success' : 'text-danger'}">${ps.doubles_win_pct}%</span></small><br>` : ''}
-                                             <small class="text-muted">${p.percentage}% (${p.matches} matcher)</small>`;
-                                        }).join('<hr class="my-2">')}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="col-md-4">
-                            <div class="card text-center h-100">
-                                <div class="card-body">
-                                    <h6 class="card-title text-muted">${position}</h6>
-                                    <small class="text-muted">Ingen data</small>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-
-        <!-- Singles positions -->
-        <div class="mb-4">
-            <h6 class="text-muted mb-3">🎯 Singlar</h6>
-            <div class="row g-3">
-                ${['S1', 'S2', 'S3', 'S4', 'S5', 'S6'].map(position => {
-                    const posData = data.positions[position];
-                    if (!posData) return `
-                        <div class="col-6 col-sm-4 col-md-4 col-lg-2">
-                            <div class="card text-center h-100">
-                                <div class="card-body py-2">
-                                    <h6 class="card-title text-muted">${position}</h6>
-                                    <small class="text-muted">Ingen data</small>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    const ps = playerStats[posData.top_player.name];
-                    return `
-                        <div class="col-6 col-sm-4 col-md-4 col-lg-2">
-                            <div class="card text-center h-100">
-                                <div class="card-body py-2">
-                                    <h6 class="card-title text-success">${position}</h6>
-                                    <div>
-                                        <strong>${goldenStat.makePlayerNameClickable(posData.top_player.name)}</strong>
-                                    </div>
-                                    ${ps ? `<div><small class="text-muted">${ps.average != null ? ps.average : '–'} · <span class="${ps.singles_win_pct >= 50 ? 'text-success' : 'text-danger'}">${ps.singles_win_pct}%</span></small></div>` : ''}
-                                    <small class="text-muted">${posData.top_player.percentage}%</small>
-                                    <div><small class="text-muted">${posData.top_player.matches} matcher</small></div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-
-        <!-- AD position if exists -->
-        ${data.positions['AD'] ? `
-            <div class="mb-4">
-                <h6 class="text-muted mb-3">⚡ Avgörande dubbel (AD)</h6>
-                <div class="row justify-content-center">
-                    <div class="col-md-6">
-                        <div class="card text-center">
-                            <div class="card-body">
-                                <h6 class="card-title text-warning">AD</h6>
-                                <div class="mb-2">
-                                    ${data.positions['AD'].players.map(p => {
-                                        const ps = playerStats[p.name];
-                                        return `<div><strong>${goldenStat.makePlayerNameClickable(p.name)}</strong></div>
-                                         ${ps ? `<small class="text-muted">${ps.average != null ? ps.average : '–'} · <span class="${ps.doubles_win_pct >= 50 ? 'text-success' : 'text-danger'}">${ps.doubles_win_pct}%</span></small><br>` : ''}
-                                         <small class="text-muted">${p.percentage}% (${p.matches} matcher)</small>`;
-                                    }).join('<hr class="my-2">')}
-                                </div>
-                            </div>
-                        </div>
+        <div class="lineup-grid">
+            ${blockOrder.map(pos => {
+                const posData = data.positions[pos];
+                if (!posData) return '';
+                const isDoubles = pos.startsWith('D') || pos === 'AD';
+                const players = isDoubles ? posData.players : (posData.all_players || [posData.top_player]).slice(0, 3);
+                const color = posColors[pos];
+                return `
+                <div class="lineup-position-card mb-3">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge me-2" style="background:${color};font-size:0.9em;padding:0.4em 0.7em">${pos}</span>
+                        <span style="font-weight:600;color:#374151">${posLabels[pos]}</span>
                     </div>
-                </div>
-            </div>
-        ` : ''}
+                    <div class="lineup-players-list">
+                        ${players.map(p => renderPlayerBadge(p, isDoubles ? 'doubles' : 'singles')).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
+        </div>
     `;
 }
 
@@ -2451,57 +2444,241 @@ async function loadDoublesPairs(forceReload = false) {
     }
 }
 
+let doublesPairsViewMode = 'player'; // 'player' or 'date'
+let lastDoublesPairsData = null;
+
+function toggleDoublesPairsView(mode) {
+    doublesPairsViewMode = mode;
+    if (lastDoublesPairsData) {
+        document.getElementById('doublesPairsContent').innerHTML = generateDoublesPairsHTML(lastDoublesPairsData);
+    }
+}
+
 function generateDoublesPairsHTML(data) {
-    return `
-        <div class="text-center mb-4">
+    lastDoublesPairsData = data;
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr);
+        return `${d.getDate()}/${d.getMonth()+1}`;
+    }
+
+    function cleanName(name) {
+        if (!name) return '';
+        return String(name).replace(/\s*\([^)]+\)\s*$/, '').trim();
+    }
+
+    const posOrder = { 'D1': 1, 'D2': 2, 'D3': 3, 'AD': 99 };
+    function posSort(a, b) {
+        return (posOrder[a.position] || 50) - (posOrder[b.position] || 50);
+    }
+
+    function fmtAvg(avg) { return avg ? `<small class="text-muted ms-1">(${parseFloat(avg).toFixed(1)})</small>` : ''; }
+
+    function renderMatchRow(m) {
+        return `<tr class="${m.won ? 'table-success' : 'table-danger'}" style="cursor:pointer" onclick="window.location.href='/sub_match_throws?sub_match_id=${m.sub_match_id}&team=${m.team_number || 1}'">
+            <td><span class="badge bg-secondary">${m.position}</span></td>
+            <td>${m.playerName || ''}</td>
+            <td>${m.partnerName}${fmtAvg(m.player_avg)}</td>
+            <td>${cleanName(m.opponent_team)}</td>
+            <td>${(m.opponents || []).map(o => cleanName(o)).join(' & ')}${fmtAvg(m.opponent_avg)}</td>
+            <td class="text-center">${m.won ? '✅' : '❌'} ${m.legs_won != null ? m.legs_won + '-' + m.legs_lost : ''}</td>
+        </tr>`;
+    }
+
+    const toggleBtns = `
+        <div class="text-center mb-3">
             <h6 class="text-muted">
                 ${data.total_doubles_matches} dubbelmatcher för ${data.team_name}
                 ${data.season ? ` under ${data.season}` : ''}
             </h6>
-        </div>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn ${doublesPairsViewMode === 'player' ? 'btn-primary' : 'btn-outline-primary'}" onclick="toggleDoublesPairsView('player')">Per spelare</button>
+                <button type="button" class="btn ${doublesPairsViewMode === 'date' ? 'btn-primary' : 'btn-outline-primary'}" onclick="toggleDoublesPairsView('date')">Per datum</button>
+                <button type="button" class="btn ${doublesPairsViewMode === 'pair' ? 'btn-primary' : 'btn-outline-primary'}" onclick="toggleDoublesPairsView('pair')">Per par</button>
+            </div>
+        </div>`;
 
-        <div class="doubles-pairs-container">
-            ${data.players.map(player => `
-                <div class="doubles-player-card mb-3">
-                    <div class="doubles-player-header">
-                        <div class="doubles-player-info">
-                            <span class="doubles-player-name">${goldenStat.makePlayerNameClickable(player.player)}</span>
-                            <span class="doubles-player-positions">(${Object.entries(player.positions || {}).sort((a, b) => {
-                                    // Sort D1, D2, D3 first, then D, then AD last
-                                    const order = {'D1': 1, 'D2': 2, 'D3': 3, 'D': 4, 'AD': 5};
-                                    return (order[a[0]] || 99) - (order[b[0]] || 99);
-                                }).map(([pos, count]) => `${pos}: ${count}`).join(', ')})</span>
-                        </div>
-                        <span class="badge bg-secondary">${player.total_doubles} ${player.total_doubles === 1 ? 'dubbel' : 'dubblar'}</span>
-                    </div>
-                    <div class="doubles-partners-list">
-                        ${player.partners.map(partner => `
-                            <div class="doubles-partner-row">
-                                <div class="partner-info">
-                                    <span class="partner-name">${goldenStat.makePlayerNameClickable(partner.partner)}</span>
-                                    <span class="partner-positions">
-                                        ${Object.entries(partner.positions).sort((a, b) => {
-                                            const order = {'D1': 1, 'D2': 2, 'D3': 3, 'D': 4, 'AD': 5};
-                                            return (order[a[0]] || 99) - (order[b[0]] || 99);
-                                        }).map(([pos, pdata]) =>
-                                            `<span class="position-badge"><span class="position-badge-label">${pos}</span> <span class="${pdata.wins > pdata.total - pdata.wins ? 'text-success' : pdata.wins < pdata.total - pdata.wins ? 'text-danger' : ''}">${pdata.wins}V</span>–${pdata.total - pdata.wins}F</span>`
-                                        ).join(' ')}
-                                    </span>
-                                </div>
-                                <div class="partner-stats">
-                                    <span class="partner-matches">${partner.total} matcher</span>
-                                    ${partner.average != null ? `<span class="partner-average">Snitt: ${partner.average}</span>` : ''}
-                                    <span class="partner-winrate ${partner.win_pct >= 50 ? 'text-success' : 'text-danger'}">
-                                        ${partner.wins} ${partner.wins === 1 ? 'vinst' : 'vinster'}, ${partner.total - partner.wins} ${(partner.total - partner.wins) === 1 ? 'förlust' : 'förluster'} (${partner.win_pct}%)
-                                    </span>
-                                </div>
-                            </div>
-                        `).join('')}
+    if (doublesPairsViewMode === 'pair') {
+        // Collect all matches, deduplicated, grouped by pair
+        const allMatches = [];
+        const seen = new Set();
+        for (const player of data.players) {
+            for (const partner of player.partners) {
+                for (const m of (partner.matches || [])) {
+                    const pair = [player.player, partner.partner].sort().join('|');
+                    const key = (m.sub_match_id || m.match_id) + '|' + pair;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        allMatches.push({ ...m, playerName: pair.split('|')[0], partnerName: pair.split('|')[1], pairKey: pair });
+                    }
+                }
+            }
+        }
+
+        // Group by pair
+        const pairGroups = {};
+        for (const m of allMatches) {
+            if (!pairGroups[m.pairKey]) pairGroups[m.pairKey] = [];
+            pairGroups[m.pairKey].push(m);
+        }
+        // Sort pairs by number of matches descending
+        const sortedPairs = Object.keys(pairGroups).sort((a, b) => pairGroups[b].length - pairGroups[a].length);
+
+        return toggleBtns + sortedPairs.map(pairKey => {
+            const matches = pairGroups[pairKey];
+            matches.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            const wins = matches.filter(m => m.won).length;
+            const [p1, p2] = pairKey.split('|');
+            return `
+            <div class="doubles-player-card mb-4">
+                <div class="doubles-player-header mb-2">
+                    <div class="doubles-player-info">
+                        <span class="doubles-player-name">${goldenStat.makePlayerNameClickable(p1)} & ${goldenStat.makePlayerNameClickable(p2)}</span>
+                        <span class="text-muted ms-2">${matches.length} matcher: ✅ ${wins} - ❌ ${matches.length - wins}</span>
                     </div>
                 </div>
-            `).join('')}
-        </div>
-    `;
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm align-middle mb-0">
+                        <thead><tr>
+                            <th>Datum</th>
+                            <th>Pos</th>
+                            <th>Motståndarlag</th>
+                            <th>Motståndare</th>
+                            <th class="text-center">Resultat</th>
+                        </tr></thead>
+                        <tbody>${matches.map(m => {
+                            const d = new Date(m.date);
+                            const weekday = d.toLocaleDateString('sv-SE', { weekday: 'short' });
+                            return `<tr class="${m.won ? 'table-success' : 'table-danger'}" style="cursor:pointer" onclick="window.location.href='/sub_match_throws?sub_match_id=${m.sub_match_id}&team=${m.team_number || 1}'">
+                                <td>${weekday} ${formatDate(m.date)}</td>
+                                <td><span class="badge bg-secondary">${m.position}</span></td>
+                                <td>${cleanName(m.opponent_team)}</td>
+                                <td>${(m.opponents || []).map(o => cleanName(o)).join(' & ')}${fmtAvg(m.opponent_avg)}</td>
+                                <td class="text-center">${m.won ? '✅' : '❌'} ${m.legs_won != null ? m.legs_won + '-' + m.legs_lost : ''}</td>
+                            </tr>`;
+                        }).join('')}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    if (doublesPairsViewMode === 'date') {
+        // Collect ALL matches across all players (deduplicate by sub_match using first player alphabetically)
+        const allMatches = [];
+        const seen = new Set();
+        for (const player of data.players) {
+            for (const partner of player.partners) {
+                for (const m of (partner.matches || [])) {
+                    const pair = [player.player, partner.partner].sort().join('|');
+                    const key = (m.sub_match_id || m.match_id) + '|' + pair;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        allMatches.push({ ...m, playerName: pair.split('|')[0], partnerName: pair.split('|')[1] });
+                    }
+                }
+            }
+        }
+        allMatches.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+        // Group by date
+        const dateGroups = {};
+        for (const m of allMatches) {
+            const key = m.date || 'Okänt datum';
+            if (!dateGroups[key]) dateGroups[key] = [];
+            dateGroups[key].push(m);
+        }
+        const sortedDates = Object.keys(dateGroups).sort((a, b) => b.localeCompare(a));
+
+        return toggleBtns + sortedDates.map(date => {
+            const matches = dateGroups[date];
+            const d = new Date(date);
+            const weekday = d.toLocaleDateString('sv-SE', { weekday: 'short' });
+            const dateLabel = date !== 'Okänt datum' ? weekday + ' ' + formatDate(date) : date;
+            return `
+            <div class="doubles-date-block mb-3">
+                <div class="d-flex align-items-center mb-1">
+                    <span class="badge bg-dark me-2">${dateLabel}</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm align-middle mb-0">
+                        <thead><tr>
+                            <th>Pos</th>
+                            <th>Spelare</th>
+                            <th>Partner</th>
+                            <th>Motståndarlag</th>
+                            <th>Motståndare</th>
+                            <th class="text-center">Resultat</th>
+                        </tr></thead>
+                        <tbody>${matches.sort(posSort).map(m => renderMatchRow(m)).join('')}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // Default: per player view
+    return toggleBtns + data.players.map(player => {
+        const playerMatches = [];
+        for (const partner of player.partners) {
+            for (const m of (partner.matches || [])) {
+                playerMatches.push({ ...m, partnerName: partner.partner, playerName: player.player });
+            }
+        }
+        playerMatches.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        const wins = playerMatches.filter(m => m.won).length;
+        const losses = playerMatches.length - wins;
+
+        const dateGroups = {};
+        for (const m of playerMatches) {
+            const key = m.date || 'Okänt datum';
+            if (!dateGroups[key]) dateGroups[key] = [];
+            dateGroups[key].push(m);
+        }
+        const sortedDates = Object.keys(dateGroups).sort((a, b) => b.localeCompare(a));
+
+        function renderPlayerMatchRow(m) {
+            return `<tr class="${m.won ? 'table-success' : 'table-danger'}" style="cursor:pointer" onclick="window.location.href='/sub_match_throws?sub_match_id=${m.sub_match_id}&team=${m.team_number || 1}'">
+                <td><span class="badge bg-secondary">${m.position}</span></td>
+                <td>${m.partnerName}${fmtAvg(m.player_avg)}</td>
+                <td>${cleanName(m.opponent_team)}</td>
+                <td>${(m.opponents || []).map(o => cleanName(o)).join(' & ')}${fmtAvg(m.opponent_avg)}</td>
+                <td class="text-center">${m.won ? '✅' : '❌'} ${m.legs_won != null ? m.legs_won + '-' + m.legs_lost : ''}</td>
+            </tr>`;
+        }
+
+        return `
+        <div class="doubles-player-card mb-4">
+            <div class="doubles-player-header mb-2">
+                <div class="doubles-player-info">
+                    <span class="doubles-player-name">${goldenStat.makePlayerNameClickable(player.player)}</span>
+                    <span class="text-muted ms-2">${playerMatches.length} dubblar: ✅ ${wins} - ❌ ${losses}</span>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover table-sm align-middle mb-0">
+                    <thead><tr>
+                        <th>Pos</th>
+                        <th>Partner</th>
+                        <th>Mot</th>
+                        <th>Motståndare</th>
+                        <th class="text-center">Res</th>
+                    </tr></thead>
+                    <tbody>
+                        ${sortedDates.map(date => {
+                            const matches = dateGroups[date];
+                            const d = new Date(date);
+                            const weekday = d.toLocaleDateString('sv-SE', { weekday: 'short' });
+                            const dateLabel = date !== 'Okänt datum' ? weekday + ' ' + formatDate(date) : date;
+                            return `<tr class="table-light"><td colspan="5"><span class="badge bg-dark">${dateLabel}</span></td></tr>` +
+                                matches.sort(posSort).map(m => renderPlayerMatchRow(m)).join('');
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>`;
+    }).join('');
 }
 
 function generateClubPlayersHTML(data) {

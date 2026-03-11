@@ -710,15 +710,21 @@ def get_team_doubles_pairs(team_name):
                     sm.match_name,
                     m.match_date,
                     m.season,
+                    m.id as match_id,
                     smp.team_number,
                     smp.player_id,
                     COALESCE(smpm.correct_player_name, p.name) as player_name,
                     smp.player_avg,
                     smp.team_number,
                     CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as player_team,
+                    CASE WHEN smp.team_number = 1 THEN t2.name ELSE t1.name END as opponent_team,
                     (SELECT SUM(CASE WHEN legs.winner_team = smp.team_number THEN 1 ELSE 0 END) >
                             SUM(CASE WHEN legs.winner_team != smp.team_number AND legs.winner_team IS NOT NULL THEN 1 ELSE 0 END)
-                     FROM legs WHERE legs.sub_match_id = sm.id) as won
+                     FROM legs WHERE legs.sub_match_id = sm.id) as won,
+                    (SELECT SUM(CASE WHEN legs.winner_team = smp.team_number THEN 1 ELSE 0 END)
+                     FROM legs WHERE legs.sub_match_id = sm.id) as legs_won,
+                    (SELECT SUM(CASE WHEN legs.winner_team != smp.team_number AND legs.winner_team IS NOT NULL THEN 1 ELSE 0 END)
+                     FROM legs WHERE legs.sub_match_id = sm.id) as legs_lost
                 FROM sub_match_participants smp
                 JOIN players p ON smp.player_id = p.id
                 JOIN sub_matches sm ON smp.sub_match_id = sm.id
@@ -729,7 +735,7 @@ def get_team_doubles_pairs(team_name):
                     ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = p.id
                 WHERE {where_clause}
                   AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
-                  AND (sm.match_type = 'Doubles' OR sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %')
+                  AND (sm.match_type = 'Doubles' OR sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' OR sm.match_name LIKE '%Dubbel%' OR sm.match_name LIKE '%Doubles%')
                 ORDER BY sm.id, smp.player_id
             """, params + [team_name])
 
@@ -745,24 +751,55 @@ def get_team_doubles_pairs(team_name):
                     'match_date': row['match_date'],
                     'player_avg': row['player_avg'],
                     'team_number': row['team_number'],
-                    'sub_match_id': row['sub_match_id']
+                    'sub_match_id': row['sub_match_id'],
+                    'match_id': row['match_id'],
+                    'opponent_team': row['opponent_team'],
+                    'player_team': row['player_team'],
+                    'legs_won': row['legs_won'] or 0,
+                    'legs_lost': row['legs_lost'] or 0,
                 })
 
             # Extract position from match_name
             def get_position(match_name):
-                if ' Doubles1' in match_name or match_name.endswith(' D1'):
-                    return 'D1'
-                elif ' Doubles2' in match_name or match_name.endswith(' D2'):
-                    return 'D2'
-                elif ' Doubles3' in match_name or match_name.endswith(' D3'):
-                    return 'D3'
-                elif ' AD' in match_name:
+                import re
+                m = re.search(r'(?:Doubles|Dubbel)\s*(\d+)', match_name)
+                if m:
+                    return f'D{m.group(1)}'
+                if match_name.endswith(' D1'): return 'D1'
+                if match_name.endswith(' D2'): return 'D2'
+                if match_name.endswith(' D3'): return 'D3'
+                if ' AD' in match_name:
                     return 'AD'
-                return 'D'
+                return None
+
+            # Fetch opponent players for all sub_matches in one go
+            all_sub_match_ids = list(sub_matches.keys())
+            opponent_players = defaultdict(list)
+            opponent_avg = {}
+            if all_sub_match_ids:
+                placeholders = ','.join('?' * len(all_sub_match_ids))
+                cursor.execute(f"""
+                    SELECT
+                        smp.sub_match_id,
+                        smp.team_number,
+                        smp.player_avg,
+                        COALESCE(smpm.correct_player_name, p.name) as player_name
+                    FROM sub_match_participants smp
+                    JOIN players p ON smp.player_id = p.id
+                    LEFT JOIN sub_match_player_mappings smpm
+                        ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = p.id
+                    WHERE smp.sub_match_id IN ({placeholders})
+                    ORDER BY smp.sub_match_id, smp.team_number, p.name
+                """, all_sub_match_ids)
+                for opp_row in cursor.fetchall():
+                    key = (opp_row['sub_match_id'], opp_row['team_number'])
+                    opponent_players[key].append(opp_row['player_name'])
+                    if opp_row['player_avg'] and opp_row['player_avg'] > 0:
+                        opponent_avg[key] = opp_row['player_avg']
 
             # Build pair statistics
             pair_stats = defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(lambda: {'total': 0, 'wins': 0}), 'sub_match_ids': []})
-            player_pairs = defaultdict(lambda: defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(lambda: {'total': 0, 'wins': 0}), 'sub_match_ids': []}))
+            player_pairs = defaultdict(lambda: defaultdict(lambda: {'total': 0, 'wins': 0, 'positions': defaultdict(lambda: {'total': 0, 'wins': 0}), 'sub_match_ids': [], 'matches': []}))
 
             for sub_match_id, players in sub_matches.items():
                 if len(players) >= 2:
@@ -771,14 +808,38 @@ def get_team_doubles_pairs(team_name):
                     if len(valid_players) >= 2:
                         p1, p2 = sorted([valid_players[0]['player_name'], valid_players[1]['player_name']])
                         position = get_position(valid_players[0]['match_name'])
+                        if position is None:
+                            continue  # Skip non-doubles matches
                         won = valid_players[0]['won']
+                        team_num = valid_players[0]['team_number']
+                        opp_team_num = 2 if team_num == 1 else 1
+
+                        # Get opponent names and avg
+                        opponents = opponent_players.get((sub_match_id, opp_team_num), [])
+                        opp_avg = opponent_avg.get((sub_match_id, opp_team_num))
+
+                        match_detail = {
+                            'date': valid_players[0]['match_date'][:10] if valid_players[0]['match_date'] else None,
+                            'position': position,
+                            'opponent_team': valid_players[0]['opponent_team'],
+                            'opponents': opponents,
+                            'won': bool(won),
+                            'match_id': valid_players[0]['match_id'],
+                            'sub_match_id': sub_match_id,
+                            'legs_won': valid_players[0]['legs_won'],
+                            'legs_lost': valid_players[0]['legs_lost'],
+                            'player_avg': valid_players[0]['player_avg'],
+                            'opponent_avg': opp_avg,
+                            'player_team': valid_players[0]['player_team'],
+                            'team_number': team_num,
+                        }
 
                         pair_key = f"{p1} + {p2}"
                         pair_stats[pair_key]['total'] += 1
                         pair_stats[pair_key]['positions'][position]['total'] += 1
                         pair_stats[pair_key]['sub_match_ids'].append({
                             'sub_match_id': sub_match_id,
-                            'team_number': valid_players[0]['team_number']
+                            'team_number': team_num
                         })
                         if won:
                             pair_stats[pair_key]['wins'] += 1
@@ -786,7 +847,7 @@ def get_team_doubles_pairs(team_name):
 
                         sm_info = {
                             'sub_match_id': sub_match_id,
-                            'team_number': valid_players[0]['team_number']
+                            'team_number': team_num
                         }
 
                         # Track per player
@@ -795,6 +856,7 @@ def get_team_doubles_pairs(team_name):
                             player_pairs[pa][pb]['total'] += 1
                             player_pairs[pa][pb]['positions'][position]['total'] += 1
                             player_pairs[pa][pb]['sub_match_ids'].append(sm_info)
+                            player_pairs[pa][pb]['matches'].append(match_detail)
                             if won:
                                 player_pairs[pa][pb]['wins'] += 1
                                 player_pairs[pa][pb]['positions'][position]['wins'] += 1
@@ -857,13 +919,16 @@ def get_team_doubles_pairs(team_name):
                 for partner, stats in sorted(partners.items(), key=lambda x: -x[1]['total']):
                     win_pct = round(stats['wins'] / stats['total'] * 100) if stats['total'] > 0 else 0
                     pair_avg = calc_pair_avg(stats['sub_match_ids'])
+                    # Sort matches by date descending
+                    sorted_matches = sorted(stats.get('matches', []), key=lambda m: m.get('date') or '', reverse=True)
                     partner_list.append({
                         'partner': partner,
                         'total': stats['total'],
                         'wins': stats['wins'],
                         'win_pct': win_pct,
                         'positions': {pos: dict(pdata) for pos, pdata in stats['positions'].items()},
-                        'average': pair_avg
+                        'average': pair_avg,
+                        'matches': sorted_matches
                     })
                     # Aggregate positions for the player
                     for pos, pdata in stats['positions'].items():
