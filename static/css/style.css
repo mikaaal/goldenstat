@@ -1237,7 +1237,8 @@ body {
     }
 
     .player-card-stats {
-        gap: 1rem;
+        flex-wrap: wrap;
+        gap: 0.15rem 1rem;
     }
 
     .player-card-stat {

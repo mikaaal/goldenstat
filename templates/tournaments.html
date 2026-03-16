@@ -1343,10 +1343,24 @@ async function searchCupPlayer() {
             const date = g.date ? new Date(g.date).toLocaleDateString('sv-SE') : '';
             const hcpBadge = g.has_hcp ? '<span class="badge bg-info ms-2" title="Handicap-turnering">HCP</span>' : '';
             const doublesBadge = g.is_doubles ? '<span class="badge bg-warning text-dark ms-2" title="Dubbelturnering">2v2</span>' : '';
+
+            // Find partner name for doubles tournaments
+            let partnerBadge = '';
+            if (g.is_doubles && g.matches.length > 0) {
+                const firstMatch = g.matches[0];
+                const isP1 = firstMatch.p1_name.includes(playerName);
+                const mySide = isP1 ? firstMatch.p1_name : firstMatch.p2_name;
+                const names = mySide.split(/\s+&\s+/);
+                const partner = names.find(n => !n.includes(playerName));
+                if (partner) {
+                    partnerBadge = `<span class="badge bg-light text-dark ms-2">med ${esc(partner.trim())}</span>`;
+                }
+            }
+
             html += `<div class="card mb-3 fade-in-up cup-tournament-card" data-tid="${g.tournament_id}">
                 <div class="card-header bg-dark bg-opacity-75 text-white d-flex justify-content-between align-items-center"
                      style="cursor:pointer" onclick="window.location.href='/tournaments/tournament?id=${g.tournament_id}'">
-                    <h6 class="mb-0">${esc(g.title)}${hcpBadge}${doublesBadge}</h6>
+                    <h6 class="mb-0">${esc(g.title)}${hcpBadge}${doublesBadge}${partnerBadge}</h6>
                     <small>${date}</small>
                 </div>
                 <div class="card-body p-0">
