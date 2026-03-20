@@ -327,6 +327,7 @@ class CupImporter:
             player_data = leg_data.get('playerData', [])
             for side_index, side_throws in enumerate(player_data):
                 side_number = side_index + 1
+                prev_remaining = None
 
                 for round_index, throw_data in enumerate(side_throws):
                     score = throw_data.get('score', 0)
@@ -334,6 +335,7 @@ class CupImporter:
 
                     # First row (score=0) is starting position, skip
                     if round_index == 0 and score == 0:
+                        prev_remaining = remaining
                         continue
 
                     round_number = round_index  # 1-based after skipping index 0
@@ -342,7 +344,9 @@ class CupImporter:
                     darts_used = 3
                     if score < 0:
                         darts_used = abs(score)
-                        score = remaining + abs(score)
+                        score = prev_remaining if prev_remaining is not None else remaining + abs(score)
+
+                    prev_remaining = remaining
 
                     self.db.insert_throw({
                         'leg_id': leg_id,

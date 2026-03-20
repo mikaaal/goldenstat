@@ -372,16 +372,19 @@ class NewSeasonImporter:
             player_data = leg_data.get('playerData', [])
             for team_index, team_throws in enumerate(player_data):
                 team_number = team_index + 1
-                
+                prev_remaining = None
+
                 for round_index, throw_data in enumerate(team_throws, 1):
                     score = throw_data.get('score', 0)
                     remaining = throw_data.get('left', 501)
-                    
+
                     # Determine darts used
                     darts_used = 3  # Default
                     if score < 0:
                         darts_used = abs(score)  # Negative score indicates darts used to finish
-                        score = remaining + abs(score)  # Calculate actual score
+                        score = prev_remaining if prev_remaining is not None else remaining + abs(score)
+
+                    prev_remaining = remaining
                     
                     throw_info = {
                         'leg_id': leg_id,
