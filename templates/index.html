@@ -2289,6 +2289,9 @@ async function loadTeamMatches() {
         if (window.currentTeamSeason) {
             params.append('season', window.currentTeamSeason);
         }
+        if (LEAGUE) {
+            params.append('league', LEAGUE);
+        }
 
         const response = await fetch(`/api/series_matches?${params}`);
         const data = await response.json();
@@ -2321,7 +2324,7 @@ async function loadTeamMatches() {
                 const lost = isTeam1 ? match.team1_sub_wins < match.team2_sub_wins : match.team2_sub_wins < match.team1_sub_wins;
                 const rowClass = won ? 'table-success' : (lost ? 'table-danger' : '');
 
-                html += `<tr class="${rowClass}" style="cursor:pointer" onclick="window.location.href='/match_overview?match_id=${match.id}'">
+                html += `<tr class="${rowClass}" style="cursor:pointer" onclick="window.location.href='/match_overview?match_id=${match.id}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}'">
                     <td>${formatted}</td>
                     <td>${match.team1_name}${isTeam1 ? '' : ''}</td>
                     <td class="text-center fw-bold">${match.team1_sub_wins} - ${match.team2_sub_wins}</td>

@@ -14,6 +14,14 @@
                     🏆 Turneringar
                 </a>
             </li>
+            <!-- Topplistor: dold från meny tills vidare, sidan funkar fortfarande via direktlänk -->
+            <!--
+            <li class="nav-item" role="presentation">
+                <a class="nav-link{% if request.path == '/tournaments/top' %} active{% endif %}" href="/tournaments/top">
+                    🎯 Topplistor
+                </a>
+            </li>
+            -->
         </ul>
     </div>
 </div>
@@ -207,6 +215,94 @@
                 </div>
             </div>
             <div id="cupPlayerMatchesContainer"></div>
+        </div>
+    </div>
+
+    <!-- View 5: Top Stats -->
+    <div id="view-top-stats" class="cups-view d-none">
+        <div class="row justify-content-center mb-4 mt-4">
+            <div class="col-md-10">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4 text-center">
+                        <h4 class="mb-2">🎯 Topplistor</h4>
+                        <p class="text-muted mb-0">De mest imponerande prestationerna i cupspel (singel, 501)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="cupTopStatsLoading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laddar statistik...</span>
+            </div>
+            <p class="mt-2 text-muted">Laddar statistik...</p>
+        </div>
+
+        <div id="cupTopStatsContent" style="display: none;">
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0">🔥 Högsta pilsnitt i en match</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="cupTopAverages" class="list-group list-group-flush"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h6 class="mb-0">🎯 Högsta utgång</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="cupTopCheckouts" class="list-group list-group-flush"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-warning text-dark">
+                            <h6 class="mb-0">⚡ Kortast leg</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="cupTopShortestLegs" class="list-group list-group-flush"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-info text-white">
+                            <h6 class="mb-0">💯 Flest gjorda 180 i en match</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="cupTopMost180s" class="list-group list-group-flush"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-10">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-dark text-white">
+                            <h6 class="mb-0">🏟️ Flest spelade cuper</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="cupTopMostCups" class="list-group list-group-flush"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1485,6 +1581,66 @@ function trackPageView(page) {
     }).catch(err => console.debug('Pageview tracking failed:', err));
 }
 
+// ============= Top Stats =============
+async function initTopStats() {
+    document.querySelectorAll('.cups-view').forEach(v => v.classList.add('d-none'));
+    document.getElementById('view-top-stats').classList.remove('d-none');
+
+    try {
+        const response = await fetch('/api/cup-top-stats');
+        const data = await response.json();
+
+        document.getElementById('cupTopStatsLoading').style.display = 'none';
+        document.getElementById('cupTopStatsContent').style.display = 'block';
+
+        function renderItem(item, index, badgeClass, valueHtml) {
+            const matchLink = `/tournaments/match?id=${item.cup_match_id}`;
+            return `
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge ${badgeClass} rounded-pill me-2">${index + 1}</span>
+                        <strong>${item.player_name}</strong>
+                        <br>
+                        <small class="text-muted">vs ${item.opponent_name} - ${item.tournament_name} (${item.match_date})</small>
+                        <br>
+                        <a href="${matchLink}" class="small text-primary">Visa match →</a>
+                    </div>
+                    ${valueHtml}
+                </div>`;
+        }
+
+        document.getElementById('cupTopAverages').innerHTML = data.top_averages.map((item, i) =>
+            renderItem(item, i, 'bg-primary', `<span class="badge bg-primary rounded-pill fs-5">${item.average.toFixed(2)}</span>`)
+        ).join('') || '<p class="text-muted text-center py-3">Ingen data</p>';
+
+        document.getElementById('cupTopCheckouts').innerHTML = data.top_checkouts.map((item, i) =>
+            renderItem(item, i, 'bg-success', `<span class="badge bg-success rounded-pill fs-5">${item.checkout}</span>`)
+        ).join('') || '<p class="text-muted text-center py-3">Ingen data</p>';
+
+        document.getElementById('cupTopShortestLegs').innerHTML = data.shortest_legs.map((item, i) =>
+            renderItem(item, i, 'bg-warning text-dark', `<span class="badge bg-warning text-dark rounded-pill fs-5">${item.darts} pilar</span>`)
+        ).join('') || '<p class="text-muted text-center py-3">Ingen data</p>';
+
+        document.getElementById('cupTopMost180s').innerHTML = data.most_180s.map((item, i) =>
+            renderItem(item, i, 'bg-info', `<span class="badge bg-info rounded-pill fs-5">${item.count_180} st</span>`)
+        ).join('') || '<p class="text-muted text-center py-3">Ingen data</p>';
+
+        document.getElementById('cupTopMostCups').innerHTML = (data.most_cups || []).map((item, i) => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="badge bg-dark rounded-pill me-2">${i + 1}</span>
+                    <strong>${esc(item.player_name)}</strong>
+                </div>
+                <span class="badge bg-dark rounded-pill fs-5">${item.cup_count} cuper</span>
+            </div>`
+        ).join('') || '<p class="text-muted text-center py-3">Ingen data</p>';
+
+    } catch (error) {
+        console.error('Kunde inte ladda cup-topplistor:', error);
+        document.getElementById('cupTopStatsLoading').innerHTML = '<p class="text-danger">Kunde inte ladda statistik</p>';
+    }
+}
+
 // ============= Router =============
 if (PAGE_PATH === '/tournaments/match') {
     trackPageView('tournaments/match');
@@ -1495,6 +1651,9 @@ if (PAGE_PATH === '/tournaments/match') {
 } else if (PAGE_PATH === '/tournaments/list') {
     trackPageView('tournaments/list');
     initTournamentList();
+} else if (PAGE_PATH === '/tournaments/top') {
+    trackPageView('tournaments/top');
+    initTopStats();
 } else {
     trackPageView('tournaments/players');
     initPlayerSearch();
