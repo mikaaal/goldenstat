@@ -546,6 +546,216 @@ def get_tournaments_db():
     return conn
 
 
+@tournaments_bp.route('/tournaments/top')
+def tournaments_top_page():
+    """Tournament top stats page"""
+    return render_template('tournaments.html', cups_active=True)
+
+
+@tournaments_bp.route('/api/cup-top-stats')
+def api_cup_top_stats():
+    """Top statistics across all cup tournaments (singles only, 501)"""
+    try:
+        conn = get_tournaments_db()
+        cursor = conn.cursor()
+
+        # Only include singles 501 tournaments with detailed throw data, exclude bad data.
+        # Deduplicate RR matches (stored in both directions) by keeping participant1 < participant2.
+        rr_dedup = "AND (cm.phase != 'rr' OR cm.participant1_id < cm.participant2_id)"
+        tournament_filter = f"AND t.start_score = 501 AND t.team_games = 0 AND cm.bad_data = 0 {rr_dedup}"
+        tournament_filter_ms = "AND t.start_score = 501 AND t.team_games = 0 AND ms.bad_data = 0"
+
+        # Helper: flatten both sides of a cup match into rows with
+        # (match_id, tournament_id, player_pid, opp_pid, side, average)
+        # This avoids cartesian products from IN() joins.
+        # Only include one direction of RR matches to avoid duplicates.
+        sides_cte = f"""
+            match_sides AS (
+                SELECT cm.id as match_id, cm.tournament_id, cm.participant1_id as player_pid,
+                       cm.participant2_id as opp_pid, 1 as side, cm.p1_average as average,
+                       cm.has_detail, cm.bad_data
+                FROM cup_matches cm
+                WHERE (cm.phase != 'rr' OR cm.participant1_id < cm.participant2_id)
+                UNION ALL
+                SELECT cm.id, cm.tournament_id, cm.participant2_id,
+                       cm.participant1_id, 2, cm.p2_average, cm.has_detail, cm.bad_data
+                FROM cup_matches cm
+                WHERE (cm.phase != 'rr' OR cm.participant1_id < cm.participant2_id)
+            )
+        """
+
+        # Helper: join player name with canonical mapping
+        def player_join(alias, pa_alias, pp_alias, pl_alias, cpm_alias, pid_expr):
+            return f"""
+                JOIN participants {pa_alias} ON {pa_alias}.id = {pid_expr}
+                JOIN participant_players {pp_alias} ON {pp_alias}.participant_id = {pa_alias}.id
+                JOIN players {pl_alias} ON {pp_alias}.player_id = {pl_alias}.id
+                LEFT JOIN cup_player_mappings {cpm_alias} ON {cpm_alias}.alias_player_id = {pl_alias}.id
+            """
+
+        # Top 10 highest averages in a cup match
+        cursor.execute(f"""
+            WITH {sides_cte}
+            SELECT
+                COALESCE(cpm.canonical_name, pl.name) as player_name,
+                ms.average,
+                ms.side,
+                COALESCE(cpm2.canonical_name, opp_pl.name) as opponent_name,
+                t.title as tournament_name,
+                DATE(t.tournament_date) as match_date,
+                ms.match_id as cup_match_id
+            FROM match_sides ms
+            JOIN tournaments t ON ms.tournament_id = t.id
+            {player_join('player', 'pa', 'pp', 'pl', 'cpm', 'ms.player_pid')}
+            {player_join('opponent', 'opp_pa', 'opp_pp', 'opp_pl', 'cpm2', 'ms.opp_pid')}
+            WHERE ms.has_detail = 1
+                AND ms.average > 0
+                {tournament_filter_ms}
+            ORDER BY ms.average DESC
+            LIMIT 10
+        """)
+        top_averages = [dict(row) for row in cursor.fetchall()]
+
+        # Top 10 highest checkouts
+        cursor.execute(f"""
+            SELECT
+                COALESCE(cpm.canonical_name, pl.name) as player_name,
+                prev.remaining_score as checkout,
+                curr.side_number as side,
+                COALESCE(cpm2.canonical_name, opp_pl.name) as opponent_name,
+                t.title as tournament_name,
+                DATE(t.tournament_date) as match_date,
+                cm.id as cup_match_id
+            FROM throws curr
+            JOIN throws prev ON curr.leg_id = prev.leg_id
+                AND curr.side_number = prev.side_number
+                AND prev.round_number = curr.round_number - 1
+            JOIN legs l ON curr.leg_id = l.id
+            JOIN cup_matches cm ON l.cup_match_id = cm.id
+            JOIN tournaments t ON cm.tournament_id = t.id
+            {player_join('player', 'pa', 'pp', 'pl', 'cpm',
+                "CASE WHEN curr.side_number = 1 THEN cm.participant1_id ELSE cm.participant2_id END")}
+            {player_join('opponent', 'opp_pa', 'opp_pp', 'opp_pl', 'cpm2',
+                "CASE WHEN curr.side_number = 1 THEN cm.participant2_id ELSE cm.participant1_id END")}
+            WHERE curr.remaining_score = 0
+                AND prev.remaining_score > 0
+                AND curr.side_number = l.winner_side
+                AND cm.has_detail = 1
+                {tournament_filter}
+            ORDER BY prev.remaining_score DESC, t.tournament_date DESC
+            LIMIT 10
+        """)
+        top_checkouts = [dict(row) for row in cursor.fetchall()]
+
+        # Top 10 shortest legs (minimum darts)
+        cursor.execute(f"""
+            WITH completed_legs AS (
+                SELECT DISTINCT l.id
+                FROM legs l
+                JOIN throws th ON l.id = th.leg_id
+                WHERE th.remaining_score = 0
+            ),
+            leg_darts AS (
+                SELECT
+                    l.id as leg_id,
+                    l.winner_side,
+                    l.cup_match_id,
+                    SUM(CASE WHEN th.darts_used IS NOT NULL THEN th.darts_used ELSE 3 END) as total_darts
+                FROM legs l
+                JOIN completed_legs cl ON l.id = cl.id
+                JOIN throws th ON l.id = th.leg_id AND th.side_number = l.winner_side
+                JOIN cup_matches cm ON l.cup_match_id = cm.id
+                JOIN tournaments t ON cm.tournament_id = t.id
+                WHERE NOT (th.score = 0 AND th.remaining_score = (SELECT start_score FROM tournaments WHERE id = cm.tournament_id))
+                    AND cm.has_detail = 1
+                    {tournament_filter}
+                GROUP BY l.id, l.winner_side, l.cup_match_id
+            )
+            SELECT
+                COALESCE(cpm.canonical_name, pl.name) as player_name,
+                ld.total_darts as darts,
+                ld.winner_side as side,
+                COALESCE(cpm2.canonical_name, opp_pl.name) as opponent_name,
+                t.title as tournament_name,
+                DATE(t.tournament_date) as match_date,
+                cm.id as cup_match_id
+            FROM leg_darts ld
+            JOIN cup_matches cm ON ld.cup_match_id = cm.id
+            JOIN tournaments t ON cm.tournament_id = t.id
+            {player_join('player', 'pa', 'pp', 'pl', 'cpm',
+                "CASE WHEN ld.winner_side = 1 THEN cm.participant1_id ELSE cm.participant2_id END")}
+            {player_join('opponent', 'opp_pa', 'opp_pp', 'opp_pl', 'cpm2',
+                "CASE WHEN ld.winner_side = 1 THEN cm.participant2_id ELSE cm.participant1_id END")}
+            WHERE ld.total_darts > 0
+            ORDER BY ld.total_darts ASC, t.tournament_date DESC
+            LIMIT 10
+        """)
+        shortest_legs = [dict(row) for row in cursor.fetchall()]
+
+        # Top 10 most 180s in a single match
+        cursor.execute(f"""
+            WITH match_180s AS (
+                SELECT
+                    cm.id as cup_match_id,
+                    th.side_number,
+                    COUNT(*) as count_180
+                FROM throws th
+                JOIN legs l ON th.leg_id = l.id
+                JOIN cup_matches cm ON l.cup_match_id = cm.id
+                JOIN tournaments t ON cm.tournament_id = t.id
+                WHERE th.score = 180
+                    AND cm.has_detail = 1
+                    {tournament_filter}
+                GROUP BY cm.id, th.side_number
+            )
+            SELECT
+                COALESCE(cpm.canonical_name, pl.name) as player_name,
+                m180.count_180,
+                m180.side_number as side,
+                COALESCE(cpm2.canonical_name, opp_pl.name) as opponent_name,
+                t.title as tournament_name,
+                DATE(t.tournament_date) as match_date,
+                cm.id as cup_match_id
+            FROM match_180s m180
+            JOIN cup_matches cm ON m180.cup_match_id = cm.id
+            JOIN tournaments t ON cm.tournament_id = t.id
+            {player_join('player', 'pa', 'pp', 'pl', 'cpm',
+                "CASE WHEN m180.side_number = 1 THEN cm.participant1_id ELSE cm.participant2_id END")}
+            {player_join('opponent', 'opp_pa', 'opp_pp', 'opp_pl', 'cpm2',
+                "CASE WHEN m180.side_number = 1 THEN cm.participant2_id ELSE cm.participant1_id END")}
+            ORDER BY m180.count_180 DESC, t.tournament_date DESC
+            LIMIT 10
+        """)
+        most_180s = [dict(row) for row in cursor.fetchall()]
+
+        # Top 10 most cups played (all tournaments)
+        cursor.execute("""
+            SELECT
+                COALESCE(cpm.canonical_name, pl.name) as player_name,
+                COUNT(DISTINCT p.tournament_id) as cup_count
+            FROM participants p
+            JOIN participant_players pp ON pp.participant_id = p.id
+            JOIN players pl ON pp.player_id = pl.id
+            LEFT JOIN cup_player_mappings cpm ON cpm.alias_player_id = pl.id
+            GROUP BY COALESCE(cpm.canonical_player_id, pp.player_id)
+            ORDER BY cup_count DESC
+            LIMIT 10
+        """)
+        most_cups = [dict(row) for row in cursor.fetchall()]
+
+        conn.close()
+        return jsonify({
+            'top_averages': top_averages,
+            'top_checkouts': top_checkouts,
+            'shortest_legs': shortest_legs,
+            'most_180s': most_180s,
+            'most_cups': most_cups,
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @tournaments_bp.route('/tournaments')
 def tournaments_page():
     """Tournament default - player search"""
@@ -586,10 +796,10 @@ def api_tournaments():
             SELECT
                 t.id, t.tdid, t.title, t.tournament_date, t.start_score,
                 (SELECT COUNT(*) FROM participants p WHERE p.tournament_id = t.id) as participant_count,
-                (SELECT COUNT(*) FROM cup_matches cm WHERE cm.tournament_id = t.id) as match_count,
+                (SELECT COUNT(*) FROM cup_matches cm WHERE cm.tournament_id = t.id AND cm.bad_data = 0) as match_count,
                 (SELECT COUNT(*) FROM legs l
                  JOIN cup_matches cm ON l.cup_match_id = cm.id
-                 WHERE cm.tournament_id = t.id) as leg_count,
+                 WHERE cm.tournament_id = t.id AND cm.bad_data = 0) as leg_count,
                 (SELECT COUNT(*) FROM participants px WHERE px.tournament_id = t.id AND px.start_score != t.start_score) > 0 as has_hcp,
                 (SELECT MAX(cnt) FROM (
                     SELECT COUNT(*) as cnt FROM participant_players pp
@@ -643,7 +853,7 @@ def api_tournament_detail(tid):
                 FROM throws t
                 JOIN legs l ON t.leg_id = l.id
                 JOIN cup_matches cm ON l.cup_match_id = cm.id
-                WHERE cm.tournament_id = ? 
+                WHERE cm.tournament_id = ? AND cm.bad_data = 0
                 AND (
                     (t.side_number = 1 AND cm.participant1_id = ?) OR
                     (t.side_number = 2 AND cm.participant2_id = ?)
@@ -766,8 +976,8 @@ def api_tournament_detail(tid):
                         SUM(CASE WHEN (cm.participant1_id = ? AND cm.p1_legs_won < cm.p2_legs_won) OR 
                                       (cm.participant2_id = ? AND cm.p2_legs_won < cm.p1_legs_won) 
                             THEN 1 ELSE 0 END) as losses
-                    FROM cup_matches cm 
-                    WHERE cm.tournament_id = ? 
+                    FROM cup_matches cm
+                    WHERE cm.tournament_id = ? AND cm.bad_data = 0
                     AND (cm.participant1_id = ? OR cm.participant2_id = ?)
                     AND cm.p1_legs_won IS NOT NULL AND cm.p2_legs_won IS NOT NULL
                     GROUP BY opponent_id
@@ -806,7 +1016,7 @@ def api_tournament_detail(tid):
             FROM cup_matches cm
             JOIN participants p1 ON cm.participant1_id = p1.id
             JOIN participants p2 ON cm.participant2_id = p2.id
-            WHERE cm.tournament_id = ?
+            WHERE cm.tournament_id = ? AND cm.bad_data = 0
             ORDER BY cm.phase, cm.phase_detail, cm.id
         """, (tid,))
         all_matches = [dict(r) for r in cursor.fetchall()]
@@ -1053,7 +1263,7 @@ def api_tournament_players():
             FROM players pl
             JOIN participant_players pp ON pp.player_id = pl.id
             JOIN participants pa ON pa.id = pp.participant_id
-            JOIN cup_matches cm ON cm.participant1_id = pa.id OR cm.participant2_id = pa.id
+            JOIN cup_matches cm ON (cm.participant1_id = pa.id OR cm.participant2_id = pa.id) AND cm.bad_data = 0
             WHERE pl.id NOT IN (SELECT alias_player_id FROM cup_player_mappings)
             ORDER BY pl.name
         """)
@@ -1129,13 +1339,14 @@ def api_tournament_player_matches(player_name):
             JOIN participants p1 ON cm.participant1_id = p1.id
             JOIN participants p2 ON cm.participant2_id = p2.id
             JOIN tournaments t ON cm.tournament_id = t.id
-            WHERE cm.participant1_id IN (
+            WHERE cm.bad_data = 0
+            AND (cm.participant1_id IN (
                 SELECT pp.participant_id FROM participant_players pp
                 WHERE pp.player_id IN ({placeholders})
             ) OR cm.participant2_id IN (
                 SELECT pp.participant_id FROM participant_players pp
                 WHERE pp.player_id IN ({placeholders})
-            )
+            ))
             ORDER BY t.tournament_date DESC, cm.phase, cm.phase_detail, cm.id
         """, player_ids + player_ids)
         all_matches = [dict(r) for r in cursor.fetchall()]
@@ -1144,7 +1355,7 @@ def api_tournament_player_matches(player_name):
         cursor.execute("""
             SELECT tournament_id, phase, MAX(CAST(phase_detail AS INTEGER)) as max_round
             FROM cup_matches
-            WHERE phase IN ('t', 's2')
+            WHERE phase IN ('t', 's2') AND bad_data = 0
             GROUP BY tournament_id, phase
         """)
         max_rounds = {(r[0], r[1]): r[2] for r in cursor.fetchall()}

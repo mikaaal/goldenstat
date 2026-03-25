@@ -75,22 +75,28 @@ class CupImporter:
         if t_date:
             tournament_date = datetime.fromtimestamp(t_date).isoformat()
 
+        # Detect doubles: check if any participant name contains a team separator
+        entry_list = data.get('entry_list', [])
+        is_doubles = any(
+            TEAM_NAME_SEPARATOR.search(entry['name'])
+            for entry in entry_list
+            if entry.get('name')
+        )
+        team_games = 1 if is_doubles else data.get('team_games', 0)
+
         tournament_id = self.db.get_or_create_tournament({
             'tdid': tdid,
             'title': data.get('title', ''),
             'tournament_date': tournament_date,
             'status': data.get('status'),
-            'team_games': data.get('team_games', 0),
+            'team_games': team_games,
             'lgid': data.get('lgid'),
             'start_score': start_score,
         })
         self.stats['tournament'] = tdid
         print(f"Tournament: {data.get('title', tdid)} (id={tournament_id})")
 
-        team_games = data.get('team_games', 0)
-
         # Step 2: Process entry_list
-        entry_list = data.get('entry_list', [])
         participant_map = {}  # tpid -> participant_id
         for entry in entry_list:
             tpid = entry['tpid']
@@ -276,6 +282,7 @@ class CupImporter:
 
             try:
                 set_data = self.fetch_set_data(tmid)
+                sides_reversed = False
 
                 # If empty, try reversed tpid order
                 if not set_data or set_data == []:
@@ -283,12 +290,18 @@ class CupImporter:
                     if len(alt_parts) == 3:
                         alt_tmid = f"{alt_parts[0]}_{alt_parts[2]}_{alt_parts[1]}"
                         set_data = self.fetch_set_data(alt_tmid)
+                        if set_data and set_data != []:
+                            sides_reversed = True
 
                 if set_data and set_data != []:
-                    self._import_set_data(match_id, set_data)
+                    self._import_set_data(match_id, set_data, sides_reversed)
                     self.db.mark_match_has_detail(match_id)
-                    self.stats['matches_with_detail'] += 1
-                    print(" OK")
+                    if self._check_bad_data(match_id):
+                        self.db.flag_bad_data(match_id)
+                        print(" OK (flagged bad data)")
+                    else:
+                        self.stats['matches_with_detail'] += 1
+                        print(" OK")
                 else:
                     print(" (no data)")
 
@@ -299,19 +312,25 @@ class CupImporter:
 
             time.sleep(0.5)
 
-    def _import_set_data(self, cup_match_id: int, set_data: list):
+    def _import_set_data(self, cup_match_id: int, set_data: list, sides_reversed: bool = False):
         """Import leg and throw data from set_data API response."""
         # set_data is a list of sub-matches; for cups typically just one
         for submatch in set_data:
             leg_data_list = submatch.get('legData', [])
             for leg_index, leg_data in enumerate(leg_data_list, 1):
-                self._import_leg(cup_match_id, leg_index, leg_data)
+                self._import_leg(cup_match_id, leg_index, leg_data, sides_reversed)
 
-    def _import_leg(self, cup_match_id: int, leg_number: int, leg_data: dict):
+    def _import_leg(self, cup_match_id: int, leg_number: int, leg_data: dict, sides_reversed: bool = False):
         """Import a single leg with its throws. Same logic as new_season_importer.py."""
         try:
             winner_side = leg_data.get('winner', 0) + 1  # 0/1 -> 1/2
             first_side = leg_data.get('first', 0) + 1
+
+            # If data was fetched with reversed tmid, swap sides to match DB participant order
+            if sides_reversed:
+                winner_side = 3 - winner_side  # 1->2, 2->1
+                first_side = 3 - first_side
+
             total_rounds = leg_data.get('currentRound', 0)
 
             leg_id = self.db.insert_leg({
@@ -327,6 +346,9 @@ class CupImporter:
             player_data = leg_data.get('playerData', [])
             for side_index, side_throws in enumerate(player_data):
                 side_number = side_index + 1
+                # If data was fetched with reversed tmid, swap side numbers
+                if sides_reversed:
+                    side_number = 3 - side_number  # 1->2, 2->1
                 prev_remaining = None
 
                 for round_index, throw_data in enumerate(side_throws):
@@ -360,6 +382,52 @@ class CupImporter:
 
         except Exception as e:
             self.stats['errors'].append(f"Error importing leg {leg_number} for match {cup_match_id}: {e}")
+
+    def _check_bad_data(self, cup_match_id: int) -> bool:
+        """Check if imported match data has obvious errors. Returns True if bad."""
+        import sqlite3
+        with sqlite3.connect(self.db.db_path) as conn:
+            c = conn.cursor()
+
+            # Get tournament start_score
+            c.execute("""
+                SELECT t.start_score FROM cup_matches cm
+                JOIN tournaments t ON cm.tournament_id = t.id WHERE cm.id = ?
+            """, (cup_match_id,))
+            row = c.fetchone()
+            start_score = row[0] if row else 501
+
+            # Check for legs with fewer darts than theoretically possible (9 for 501)
+            min_darts = 9 if start_score == 501 else 6
+            c.execute("""
+                SELECT l.id,
+                    SUM(CASE WHEN th.darts_used IS NOT NULL THEN th.darts_used ELSE 3 END) as total_darts
+                FROM legs l
+                JOIN throws th ON l.id = th.leg_id AND th.side_number = l.winner_side
+                WHERE l.cup_match_id = ?
+                    AND NOT (th.score = 0 AND th.remaining_score = ?)
+                GROUP BY l.id
+                HAVING total_darts < ?
+            """, (cup_match_id, start_score, min_darts))
+            if c.fetchone():
+                return True
+
+            # Check for inconsistent remaining scores (score doesn't reduce remaining correctly)
+            c.execute("""
+                SELECT l.leg_number, th.side_number, th.round_number, th.score, th.remaining_score
+                FROM legs l JOIN throws th ON l.id = th.leg_id
+                WHERE l.cup_match_id = ?
+                ORDER BY l.leg_number, th.side_number, th.round_number
+            """, (cup_match_id,))
+            prev = {}
+            for r in c.fetchall():
+                key = (r[0], r[1])  # leg_number, side_number
+                if key in prev and r[3] >= 0:
+                    if abs((prev[key] - r[3]) - r[4]) > 1:
+                        return True
+                prev[key] = r[4]
+
+        return False
 
     def _write_log(self, tdid: str):
         """Write import log to import_logs directory."""

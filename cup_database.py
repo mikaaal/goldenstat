@@ -89,6 +89,7 @@ class CupDatabase:
                     p2_average REAL,
                     tmid VARCHAR(255),
                     has_detail INTEGER DEFAULT 0,
+                    bad_data INTEGER DEFAULT 0,
                     FOREIGN KEY (tournament_id) REFERENCES tournaments(id),
                     FOREIGN KEY (participant1_id) REFERENCES participants(id),
                     FOREIGN KEY (participant2_id) REFERENCES participants(id),
@@ -329,6 +330,12 @@ class CupDatabase:
         """Mark a cup_match as having detail data fetched."""
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("UPDATE cup_matches SET has_detail = 1 WHERE id = ?", (match_id,))
+            conn.commit()
+
+    def flag_bad_data(self, match_id: int):
+        """Flag a cup_match as having bad/unreliable data."""
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute("UPDATE cup_matches SET bad_data = 1 WHERE id = ?", (match_id,))
             conn.commit()
 
     def get_canonical_player_id(self, player_id: int) -> int:
