@@ -58,7 +58,17 @@
       "Bash(gh release list:*)",
       "Bash(where:*)",
       "Bash(gh.exe --version:*)",
-      "Bash(winget:*)"
+      "Bash(winget:*)",
+      "Bash(wc -l c:/DEVTOOLS/development/goldenstat/routes/*.py c:/DEVTOOLS/development/goldenstat/*.py)",
+      "Bash(/c/Python314/python.exe -c \"import sqlite3; conn = sqlite3.connect\\(''cups.db''\\); c = conn.cursor\\(\\); c.execute\\(''PRAGMA table_info\\(cup_matches\\)''\\); print\\([r[1] for r in c.fetchall\\(\\)]\\)\")",
+      "Bash(/c/Python314/python.exe -c \":*)",
+      "Bash(/c/Python314/python.exe -c \"import sqlite3; c=sqlite3.connect\\(''cups.db''\\).cursor\\(\\); c.execute\\(''SELECT bad_data, COUNT\\(*\\) FROM cup_matches GROUP BY bad_data''\\); [print\\(r\\) for r in c.fetchall\\(\\)]\")",
+      "Bash(/c/Python314/python.exe -c \"import flask; print\\(flask.__version__\\)\")",
+      "Bash(/c/Python314/python.exe -c \"import sqlite3,time;conn=sqlite3.connect\\(''''cups.db''''\\);c=conn.cursor\\(\\);t=time.time\\(\\);c.execute\\(''''SELECT COUNT\\(DISTINCT pl.name\\) FROM players pl JOIN participant_players pp ON pp.player_id=pl.id JOIN participants pa ON pp.participant_id=pa.id JOIN cup_matches cm ON \\(cm.participant1_id=pa.id OR cm.participant2_id=pa.id\\) AND cm.bad_data=0 WHERE pl.id NOT IN \\(SELECT alias_player_id FROM cup_player_mappings\\)''''\\);r=c.fetchone\\(\\)[0];conn.close\\(\\);print\\(f''''{r} players in {time.time\\(\\)-t:.2f}s''''\\)\")",
+      "Bash(/c/Python314/python.exe -c \"print\\(''hello''\\)\")",
+      "Bash(/c/Python314/python.exe -c \"import sqlite3; c=sqlite3.connect\\(''cups.db''\\).cursor\\(\\); c.execute\\(''SELECT bad_data, COUNT\\(*\\) FROM cup_matches GROUP BY bad_data''\\); print\\([r for r in c.fetchall\\(\\)]\\)\")",
+      "Bash(wc -l /c/DEVTOOLS/development/goldenstat/routes/*.py)",
+      "Bash(wc -l tests/*.py)"
     ],
     "deny": [],
     "ask": []

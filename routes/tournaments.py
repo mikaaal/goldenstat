@@ -539,6 +539,23 @@ def calculate_fun_facts(matches, player_name):
     return fun_facts
 
 
+def _ensure_cups_schema():
+    """Ensure cups.db has all required columns (migrations for existing databases)"""
+    try:
+        conn = sqlite3.connect(TOURNAMENTS_DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("PRAGMA table_info(cup_matches)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'bad_data' not in columns:
+            conn.execute("ALTER TABLE cup_matches ADD COLUMN bad_data INTEGER DEFAULT 0")
+            conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+_ensure_cups_schema()
+
+
 def get_tournaments_db():
     """Get a connection to the tournaments database"""
     conn = sqlite3.connect(TOURNAMENTS_DB_PATH)
@@ -1263,8 +1280,12 @@ def api_tournament_players():
             FROM players pl
             JOIN participant_players pp ON pp.player_id = pl.id
             JOIN participants pa ON pa.id = pp.participant_id
-            JOIN cup_matches cm ON (cm.participant1_id = pa.id OR cm.participant2_id = pa.id) AND cm.bad_data = 0
-            WHERE pl.id NOT IN (SELECT alias_player_id FROM cup_player_mappings)
+            WHERE pa.id IN (
+                SELECT participant1_id FROM cup_matches WHERE bad_data = 0
+                UNION
+                SELECT participant2_id FROM cup_matches WHERE bad_data = 0
+            )
+            AND pl.id NOT IN (SELECT alias_player_id FROM cup_player_mappings)
             ORDER BY pl.name
         """)
         players = [row[0] for row in cursor.fetchall()]

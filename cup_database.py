@@ -36,6 +36,12 @@ class CupDatabase:
                     CREATE INDEX idx_cup_player_mappings_canonical ON cup_player_mappings(canonical_player_id);
                 """)
 
+            # Ensure bad_data column exists on cup_matches (added later)
+            cursor.execute("PRAGMA table_info(cup_matches)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'bad_data' not in columns:
+                conn.execute("ALTER TABLE cup_matches ADD COLUMN bad_data INTEGER DEFAULT 0")
+
     def _create_schema(self, conn):
         """Create the initial database schema"""
         conn.executescript("""
