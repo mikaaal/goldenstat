@@ -148,7 +148,10 @@ class CupImporter:
         # Step 4: Fetch detailed match data
         self._fetch_all_details(tournament_id, tdid)
 
-        # Step 5: Log results
+        # Step 5: Fix any swapped sides in imported matches
+        self._fix_swapped_sides(tournament_id)
+
+        # Step 6: Log results
         self._write_log(tdid)
         self._print_summary()
 
@@ -428,6 +431,59 @@ class CupImporter:
                 prev[key] = r[4]
 
         return False
+
+    def _fix_swapped_sides(self, tournament_id: int):
+        """Detect and fix matches where side 1/2 are swapped relative to p1/p2."""
+        import sqlite3
+        with sqlite3.connect(self.db.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            c = conn.cursor()
+
+            c.execute("""
+                SELECT id, p1_average, p2_average
+                FROM cup_matches
+                WHERE tournament_id = ? AND has_detail = 1 AND p1_average > 0 AND p2_average > 0
+            """, (tournament_id,))
+            matches = c.fetchall()
+
+            swapped_ids = []
+            for m in matches:
+                mid = m['id']
+                c.execute("""
+                    SELECT th.side_number,
+                           CAST(SUM(th.score) AS REAL) / SUM(CASE WHEN th.darts_used IS NOT NULL THEN th.darts_used ELSE 3 END) * 3
+                    FROM throws th
+                    JOIN legs l ON th.leg_id = l.id
+                    WHERE l.cup_match_id = ?
+                    GROUP BY th.side_number
+                """, (mid,))
+                avgs = {r[0]: r[1] for r in c.fetchall()}
+                if 1 not in avgs or 2 not in avgs:
+                    continue
+
+                stored_ok = abs(m['p1_average'] - avgs[1]) < 0.5
+                stored_swapped = abs(m['p1_average'] - avgs[2]) < 0.5 and abs(m['p2_average'] - avgs[1]) < 0.5
+
+                if stored_swapped and not stored_ok:
+                    swapped_ids.append(mid)
+
+            if not swapped_ids:
+                print("Side check: all matches OK.")
+                return
+
+            placeholders = ','.join('?' * len(swapped_ids))
+            c.execute(f"""
+                UPDATE throws SET side_number = 3 - side_number
+                WHERE leg_id IN (
+                    SELECT l.id FROM legs l WHERE l.cup_match_id IN ({placeholders})
+                )
+            """, swapped_ids)
+            c.execute(f"""
+                UPDATE legs SET winner_side = 3 - winner_side, first_side = 3 - first_side
+                WHERE cup_match_id IN ({placeholders})
+            """, swapped_ids)
+            conn.commit()
+            print(f"Side check: fixed {len(swapped_ids)} matches with swapped sides.")
 
     def _write_log(self, tdid: str):
         """Write import log to import_logs directory."""
