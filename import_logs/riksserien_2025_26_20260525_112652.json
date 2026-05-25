@@ -1,0 +1,87 @@
+{
+  "timestamp": "2026-05-25T11:26:52.616602",
+  "season": "2025/2026",
+  "total_matches": 58,
+  "results": [
+    {
+      "division": "Elit",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Elit Dam",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Superettan",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Div 1A",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Div 1B",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Div 2A",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Div 2B",
+      "status": "ok",
+      "matches": 2
+    },
+    {
+      "division": "Div 2C",
+      "status": "ok",
+      "matches": 7
+    },
+    {
+      "division": "Div 3A",
+      "status": "ok",
+      "matches": 7
+    },
+    {
+      "division": "Div 3B",
+      "status": "ok",
+      "matches": 7
+    },
+    {
+      "division": "Div 3C",
+      "status": "ok",
+      "matches": 7
+    },
+    {
+      "division": "Div 3D",
+      "status": "ok",
+      "matches": 8
+    },
+    {
+      "division": "Div 3E",
+      "status": "ok",
+      "matches": 5
+    },
+    {
+      "division": "Div 3F",
+      "status": "ok",
+      "matches": 6
+    },
+    {
+      "division": "Div 3G",
+      "status": "ok",
+      "matches": 4
+    },
+    {
+      "division": "Div 3H",
+      "status": "ok",
+      "matches": 5
+    }
+  ]
+}
