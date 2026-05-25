@@ -1,6 +1,6 @@
 # Match URLs for division t_iBbo_6823
-# Generated: 2026-01-30 15:10:17
-# Total URLs: 60
+# Generated: 2026-05-25 11:34:47
+# Total URLs: 90
 #
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_gerv_fuwx_3bAW
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_gerv_3bAW_fuwx
@@ -62,3 +62,33 @@ https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_se
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_n4tp_OvEw_sKTF
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_3tbd_3b2o_sxtg
 https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_3tbd_sxtg_3b2o
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_6lsu_vbry_3b2o
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_6lsu_3b2o_vbry
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_e8pv_fuwx_mUYe
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_e8pv_mUYe_fuwx
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_03ij_sxtg_sKTF
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_03ij_sKTF_sxtg
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_axzg_OvEw_qCpJ
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_axzg_qCpJ_OvEw
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_nico_PWVg_3bAW
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_nico_3bAW_PWVg
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_kouj_mUYe_OvEw
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_kouj_OvEw_mUYe
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_qgt5_3bAW_vbry
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_qgt5_vbry_3bAW
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_12t9_qCpJ_fuwx
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_12t9_fuwx_qCpJ
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_rkqk_sKTF_3b2o
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_rkqk_3b2o_sKTF
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_uqs9_PWVg_sxtg
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_uqs9_sxtg_PWVg
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_jh2f_qCpJ_PWVg
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_jh2f_PWVg_qCpJ
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_fi3n_3b2o_mUYe
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_fi3n_mUYe_3b2o
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_t1te_sxtg_vbry
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_t1te_vbry_sxtg
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_glcz_3bAW_sKTF
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_glcz_sKTF_3bAW
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_7f8p_fuwx_OvEw
+https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_iBbo_6823_lg_0_7f8p_OvEw_fuwx
