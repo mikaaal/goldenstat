@@ -136,8 +136,8 @@ def get_team_lineup(team_name):
             division = None
 
             # Handle new team name format: "Team (Division) (Season)" or "Team Name (Season)"
-            # Try new format first: "Team (Division) (YYYY-YYYY)"
-            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}-\d{4})\)$', team_name)
+            # Try new format first: "Team (Division) (YYYY-YYYY)" or "Team (Division) (YYYY)"
+            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}(?:-\d{4})?)\)$', team_name)
             if new_format_match:
                 # Extract team, division, and season from new format
                 base_team_name = new_format_match.group(1)
@@ -173,8 +173,8 @@ def get_team_lineup(team_name):
                         # Team not found
                         team_result = None
             else:
-                # Try old format: "Team Name (YYYY-YYYY)"
-                old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
+                # Try old format: "Team Name (YYYY-YYYY)" or "Team Name (YYYY)"
+                old_format_match = re.search(r'^(.+)\s+\((\d{4}(?:-\d{4})?)\)$', team_name)
                 if old_format_match:
                     team_name = old_format_match.group(1)
                     season = old_format_match.group(2).replace('-', '/')
@@ -256,6 +256,13 @@ def get_team_lineup(team_name):
                             WHEN match_name LIKE '% Doubles1%' THEN 'D1'
                             WHEN match_name LIKE '% Doubles2%' THEN 'D2'
                             WHEN match_name LIKE '% Doubles3%' THEN 'D3'
+                            WHEN match_name LIKE '%Singel 1 %' OR match_name LIKE '%Singel 1(%' THEN 'S1'
+                            WHEN match_name LIKE '%Singel 2 %' OR match_name LIKE '%Singel 2(%' THEN 'S2'
+                            WHEN match_name LIKE '%Singel 3 %' OR match_name LIKE '%Singel 3(%' THEN 'S3'
+                            WHEN match_name LIKE '%Singel 4 %' OR match_name LIKE '%Singel 4(%' THEN 'S4'
+                            WHEN match_name LIKE '%Dubbel 1 %' OR match_name LIKE '%Dubbel 1(%' THEN 'D1'
+                            WHEN match_name LIKE '%Dubbel 2 %' OR match_name LIKE '%Dubbel 2(%' THEN 'D2'
+                            WHEN match_name LIKE '% Lag (%' THEN 'Lag'
                             ELSE 'Unknown'
                         END as position,
                         SUM(matches_in_position) as total_matches
@@ -311,8 +318,12 @@ def get_team_lineup(team_name):
                         'top_player': data['players'][0] if data['players'] else None,
                         'all_players': data['players']
                     }
+                elif pos == 'Lag':  # 4v4 team match — show top 4 most frequent players
+                    formatted_positions[pos] = {
+                        'players': data['players'][:4],
+                        'total_matches': data['total_position_matches']
+                    }
                 else:  # Doubles positions (including AD)
-                    # For doubles, we might want to show partnerships
                     formatted_positions[pos] = {
                         'players': data['players'][:3],  # Top 3 players for this position
                         'total_matches': data['total_position_matches']
@@ -360,8 +371,8 @@ def get_team_players(team_name):
             division = None
 
             # Handle team name format with season/division
-            # Try new format first: "Team (Division) (YYYY-YYYY)"
-            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}-\d{4})\)$', team_name)
+            # Try new format first: "Team (Division) (YYYY-YYYY)" or "Team (Division) (YYYY)"
+            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}(?:-\d{4})?)\)$', team_name)
             if new_format_match:
                 base_team_name = new_format_match.group(1)
                 division_from_name = new_format_match.group(2)
@@ -388,8 +399,8 @@ def get_team_players(team_name):
                     team_name = base_team_name
                     division = division_from_name
             else:
-                # Try old format: "Team Name (YYYY-YYYY)"
-                old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
+                # Try old format: "Team Name (YYYY-YYYY)" or "Team Name (YYYY)"
+                old_format_match = re.search(r'^(.+)\s+\((\d{4}(?:-\d{4})?)\)$', team_name)
                 if old_format_match:
                     team_name = old_format_match.group(1)
                     season = old_format_match.group(2).replace('-', '/')
@@ -526,7 +537,7 @@ def get_team_players(team_name):
 
                         # Count darts for this match (same logic as database.py)
                         cursor.execute('''
-                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score
+                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score, t.round_number
                             FROM legs l
                             JOIN throws t ON t.leg_id = l.id
                             WHERE l.sub_match_id = ? AND t.team_number = ?
@@ -542,9 +553,10 @@ def get_team_players(team_name):
                             score = throw['score']
                             darts_used = throw['darts_used']
                             remaining = throw['remaining_score']
+                            round_number = throw['round_number']
 
-                            # Skip starting throw
-                            if score == 0 and remaining == 501:
+                            # Skip starting marker (round 1, score 0) — not a real throw
+                            if score == 0 and round_number == 1:
                                 continue
 
                             if remaining == 0:
@@ -655,7 +667,7 @@ def get_team_doubles_pairs(team_name):
 
             # Handle team name format with season/division
             division = division_param  # Use parameter if provided
-            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}-\d{4})\)$', team_name)
+            new_format_match = re.search(r'^(.+?)\s+\(([^)]+)\)\s+\((\d{4}(?:-\d{4})?)\)$', team_name)
             if new_format_match:
                 base_team_name = new_format_match.group(1)
                 division_from_name = new_format_match.group(2)
@@ -676,7 +688,7 @@ def get_team_doubles_pairs(team_name):
                     if not division:  # Only set if not already provided
                         division = division_from_name
             else:
-                old_format_match = re.search(r'^(.+)\s+\((\d{4}-\d{4})\)$', team_name)
+                old_format_match = re.search(r'^(.+)\s+\((\d{4}(?:-\d{4})?)\)$', team_name)
                 if old_format_match:
                     team_name = old_format_match.group(1)
                     season = old_format_match.group(2).replace('-', '/')
@@ -880,7 +892,7 @@ def get_team_doubles_pairs(team_name):
                         player_avg = avg_row['player_avg']
                         # Count darts
                         cursor.execute('''
-                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score
+                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score, t.round_number
                             FROM legs l
                             JOIN throws t ON t.leg_id = l.id
                             WHERE l.sub_match_id = ? AND t.team_number = ?
@@ -892,7 +904,8 @@ def get_team_doubles_pairs(team_name):
                             score = throw['score']
                             darts_used = throw['darts_used']
                             remaining = throw['remaining_score']
-                            if score == 0 and remaining == 501:
+                            round_number = throw['round_number']
+                            if score == 0 and round_number == 1:
                                 continue
                             if remaining == 0:
                                 if score <= 3:
@@ -1120,7 +1133,7 @@ def get_club_players(club_name):
                         team_number = match['team_number']
 
                         cursor.execute('''
-                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score
+                            SELECT l.leg_number, t.score, t.darts_used, t.remaining_score, t.round_number
                             FROM legs l
                             JOIN throws t ON t.leg_id = l.id
                             WHERE l.sub_match_id = ? AND t.team_number = ?
@@ -1134,9 +1147,10 @@ def get_club_players(club_name):
                             score = throw['score']
                             darts_used = throw['darts_used']
                             remaining = throw['remaining_score']
+                            round_number = throw['round_number']
 
-                            # Skip starting throw (score=0, remaining=501)
-                            if score == 0 and remaining == 501:
+                            # Skip starting marker (round 1, score 0) — not a real throw
+                            if score == 0 and round_number == 1:
                                 continue
 
                             if remaining == 0:

@@ -2154,3 +2154,57 @@ body {
 .cups-theme .logo-icon:hover {
     box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
 }
+
+/* ========== SOMMARSERIE THEME — TURKOS HAV + SOL ========== */
+
+.sommarserien-theme {
+    --primary-color: #0891b2;
+    --primary-dark: #164e63;
+    --primary-light: #22d3ee;
+    --primary-ultralight: #ecfeff;
+    --primary-ghost: #f0fdff;
+    --tab-active: #0891b2;
+    --accent-gold: #fde047;
+}
+
+.sommarserien-theme body,
+.sommarserien-theme {
+    background-color: #f0fdff;
+}
+
+/* Sommarserie hero — hav till sol */
+.sommarserien-hero {
+    background: linear-gradient(135deg, #164e63 0%, #0891b2 55%, #fbbf24 100%);
+}
+
+.sommarserien-hero::before {
+    background: radial-gradient(circle at 75% 50%, rgba(253, 224, 71, 0.25) 0%, transparent 55%),
+                radial-gradient(circle at 25% 50%, rgba(34, 211, 238, 0.15) 0%, transparent 50%);
+}
+
+.sommarserien-theme .sticky-tabs .nav-link:hover {
+    color: #0891b2;
+    border-bottom-color: #0891b2;
+}
+
+.sommarserien-theme .sticky-tabs .nav-link.active {
+    color: #0891b2;
+    border-bottom-color: #0891b2;
+}
+
+.sommarserien-theme .card {
+    border-left: 4px solid #67e8f9;
+    border-color: rgba(103, 232, 249, 0.4);
+}
+
+.sommarserien-theme .footer-minimal::before {
+    background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.5), transparent);
+}
+
+.sommarserien-theme .logo-icon {
+    box-shadow: 0 4px 15px rgba(8, 145, 178, 0.3);
+}
+
+.sommarserien-theme .logo-icon:hover {
+    box-shadow: 0 6px 20px rgba(8, 145, 178, 0.4);
+}

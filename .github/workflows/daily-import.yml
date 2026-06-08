@@ -70,12 +70,18 @@ jobs:
           echo "🔧 Applicerar SQL-migreringar..."
           python apply_migrations.py goldenstat.db migrations/goldenstat
           python apply_migrations.py cups.db migrations/cups
+          python apply_migrations.py sommarserien.db migrations/sommarserien
 
       - name: Run daily import
         if: ${{ github.event.inputs.skip_league_import != 'true' }}
         run: |
           echo "🤖 Kör daglig import..."
           python daily_import.py
+
+      - name: Run sommarserien import
+        run: |
+          echo "☀️ Kör sommarserien-import..."
+          python import_sommarserien_2026.py
 
       - name: Run nightly cup import
         run: |
@@ -94,6 +100,11 @@ jobs:
           if [ -f "cups.db" ]; then
             echo "✅ cups.db uppdaterad"
             ls -lh cups.db
+            changed=true
+          fi
+          if [ -f "sommarserien.db" ]; then
+            echo "✅ sommarserien.db uppdaterad"
+            ls -lh sommarserien.db
             changed=true
           fi
           if [ "$changed" = "false" ]; then
@@ -120,7 +131,7 @@ jobs:
 
           # Ladda upp/ersätt databasfiler
           gh release upload db-latest \
-            goldenstat.db cups.db riksserien.db \
+            goldenstat.db cups.db riksserien.db sommarserien.db \
             --clobber
 
           echo "✅ Databaser uppladdade till release db-latest"
@@ -139,6 +150,7 @@ jobs:
             git add "$latest_log" || true
           fi
           git add import_logs/cup_*.json 2>/dev/null || true
+          git add import_logs/sommarserien_*.json 2>/dev/null || true
 
           if git diff --staged --quiet; then
             echo "Inga ändringar att committa"
@@ -155,6 +167,7 @@ jobs:
           path: |
             import_logs/daily_import_*.json
             import_logs/cup_*.json
+            import_logs/sommarserien_*.json
           retention-days: 30
 
       - name: Summary

@@ -306,7 +306,7 @@ class DartDatabase:
 
                 # Count darts for this match (using correct checkout logic)
                 cursor.execute('''
-                    SELECT l.leg_number, t.score, t.darts_used, t.remaining_score
+                    SELECT l.leg_number, t.score, t.darts_used, t.remaining_score, t.round_number
                     FROM legs l
                     JOIN throws t ON t.leg_id = l.id
                     WHERE l.sub_match_id = ? AND t.team_number = ?
@@ -317,9 +317,9 @@ class DartDatabase:
                 match_darts = 0
                 last_remaining = {}
 
-                for leg_num, score, darts_used, remaining in all_throws:
-                    # Skip starting throw (score=0, remaining=501)
-                    if score == 0 and remaining == 501:
+                for leg_num, score, darts_used, remaining, round_number in all_throws:
+                    # Skip starting marker (round 1, score 0) — not a real throw
+                    if score == 0 and round_number == 1:
                         continue
 
                     if remaining == 0:
@@ -486,12 +486,13 @@ class DartDatabase:
                 # Check if this is AD (Avgörande Dubbel) - treat it as Doubles
                 is_ad = match['match_name'] and (' AD' in match['match_name'] or match['match_name'].endswith(' AD'))
                 is_doubles = match['match_type'] == 'Doubles' or is_ad
+                is_team = match['match_type'] == 'Team'
 
-                if is_doubles:
-                    # Doubles or AD - show both opponents
+                if is_doubles or is_team:
+                    # Doubles/AD/Team - show all opponents
                     match['opponent'] = ' + '.join(opponents) if opponents else 'Unknown'
 
-                    # Get teammate for doubles matches (from the same team, excluding the current player and their aliases)
+                    # Get teammates (all other players on the same team)
                     cursor.execute("""
                         SELECT p.name as original_name, smp2.player_id
                         FROM sub_match_participants smp2
@@ -520,7 +521,10 @@ class DartDatabase:
                         display_name = mapping_result['correct_player_name'] if mapping_result else teammate['original_name']
                         teammates.append(display_name)
 
-                    match['teammate'] = teammates[0] if teammates else None
+                    if is_team:
+                        match['teammate'] = ' + '.join(teammates) if teammates else None
+                    else:
+                        match['teammate'] = teammates[0] if teammates else None
                 else:
                     # Singles - only one opponent, no teammate
                     match['opponent'] = opponents[0] if opponents else 'Unknown'

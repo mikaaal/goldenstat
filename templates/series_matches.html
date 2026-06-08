@@ -8,28 +8,28 @@
     <div class="container">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/{% if league == 'riksserien' %}?league=riksserien{% endif %}">
+                <a class="nav-link" href="/{% if league == 'riksserien' %}?league=riksserien{% elif league == 'sommarserien' %}?league=sommarserien{% endif %}">
                     👤 Spelare
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=teams{% if league == 'riksserien' %}&league=riksserien{% endif %}">
+                <a class="nav-link" href="/?tab=teams{% if league == 'riksserien' %}&league=riksserien{% elif league == 'sommarserien' %}&league=sommarserien{% endif %}">
                     👥 Lag
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link active" href="/series_matches{% if league == 'riksserien' %}?league=riksserien{% endif %}">
+                <a class="nav-link active" href="/series_matches{% if league == 'riksserien' %}?league=riksserien{% elif league == 'sommarserien' %}?league=sommarserien{% endif %}">
                     📋 Seriematcher
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=stats{% if league == 'riksserien' %}&league=riksserien{% endif %}">
+                <a class="nav-link" href="/?tab=stats{% if league == 'riksserien' %}&league=riksserien{% elif league == 'sommarserien' %}&league=sommarserien{% endif %}">
                     🎯 Topplistor
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=weekly{% if league == 'riksserien' %}&league=riksserien{% endif %}">
-                    ⭐ {% if league == 'riksserien' %}Omgångens bästa{% else %}Veckans prestationer!{% endif %}
+                <a class="nav-link" href="/?tab=weekly{% if league == 'riksserien' %}&league=riksserien{% elif league == 'sommarserien' %}&league=sommarserien{% endif %}">
+                    ⭐ {% if league == 'riksserien' %}Omgångens bästa{% elif league == 'sommarserien' %}Veckans prestationer!{% else %}Veckans prestationer!{% endif %}
                 </a>
             </li>
         </ul>
@@ -182,6 +182,9 @@
     border-radius: 6px;
     margin-bottom: 0.75rem;
     font-size: 1rem;
+}
+.sommarserien-theme .division-header {
+    background: #0891b2;
 }
 </style>
 

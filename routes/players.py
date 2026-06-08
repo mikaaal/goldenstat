@@ -411,9 +411,10 @@ def get_player_throws(player_name):
                         score = throw['score']
                         remaining = throw['remaining_score']
                         darts_used = throw['darts_used']
+                        round_number = throw.get('round_number', 0)
 
-                        # Skip starting throw (score=0, remaining=501)
-                        if score == 0 and remaining == 501:
+                        # Skip starting marker (round 1, score 0) — not a real throw
+                        if score == 0 and round_number == 1:
                             continue
 
                         if remaining == 0:

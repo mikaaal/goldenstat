@@ -359,7 +359,7 @@ def get_top_stats():
                     JOIN completed_legs cl ON l.id = cl.id
                     JOIN throws t ON l.id = t.leg_id AND t.team_number = l.winner_team
                     JOIN sub_matches sm ON l.sub_match_id = sm.id
-                    WHERE NOT (t.score = 0 AND t.remaining_score = 501)
+                    WHERE NOT (t.score = 0 AND t.round_number = 1)
                     GROUP BY l.id, l.winner_team, sm.id
                 )
                 SELECT
@@ -597,7 +597,7 @@ def get_weekly_stats():
                     JOIN throws t ON l.id = t.leg_id AND t.team_number = l.winner_team
                     JOIN sub_matches sm ON l.sub_match_id = sm.id
                     JOIN true_singles ts ON sm.id = ts.id
-                    WHERE NOT (t.score = 0 AND t.remaining_score = 501)
+                    WHERE NOT (t.score = 0 AND t.round_number = 1)
                     GROUP BY l.id, l.winner_team, sm.id
                 )
                 SELECT
