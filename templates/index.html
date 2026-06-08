@@ -16,7 +16,7 @@
                 </button>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/series_matches{% if league == 'riksserien' %}?league=riksserien{% endif %}">
+                <a class="nav-link" href="/series_matches{% if league == 'riksserien' %}?league=riksserien{% elif league == 'sommarserien' %}?league=sommarserien{% endif %}">
                     📋 Seriematcher
                 </a>
             </li>
@@ -43,6 +43,7 @@
     <div class="tab-pane fade{% if tab == 'players' %} show active{% endif %}" id="players-tab-content" role="tabpanel">
 
 <!-- Nyhetsbanner -->
+{% if league != 'sommarserien' %}
 <div class="news-banner mb-4">
     <div class="news-banner-header">
         <span class="news-icon">🎉</span>
@@ -50,35 +51,15 @@
         <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="alert" aria-label="Close" onclick="this.closest('.news-banner').style.display='none'"></button>
     </div>
     <div class="news-banner-body">
-        <a href="/tournaments" class="news-item-link" onclick="trackClick('news_cupstatistik')">
-            <span class="news-item-icon">🏆</span>
+        <a href="/?league=sommarserien" class="news-item-link" onclick="trackClick('news_sommarserien')">
+            <span class="news-item-icon">☀️</span>
             <div>
-                <strong>Cupstatistik</strong> - Nu finns detaljerad statistik från cuper och turneringar! Sök spelare, se matcher, legs och kaststatistik.
+                <strong>Sommarserien</strong> - Nu finns statistik för StDF &amp; OBDT Sommarserien! Klicka här för att utforska.
             </div>
         </a>
-        {% if league == 'riksserien' %}
-        <a href="/series_matches?league=riksserien" class="news-item-link" onclick="trackClick('news_seriematcher_riksserien')">
-            <span class="news-item-icon">📋</span>
-            <div>
-                <strong>Seriematcher</strong> - Se alla spelade seriematcher i Riksserien, grupperat per vecka och division. Klicka på en match för att se detaljer!
-            </div>
-        </a>
-        {% else %}
-        <a href="/?league=riksserien" class="news-item-link" onclick="trackClick('news_riksserien')">
-            <span class="news-item-icon"><svg class="flag-icon-lg" viewBox="0 0 16 10" width="24" height="15"><rect width="16" height="10" fill="#006AA7"/><rect x="5" width="2" height="10" fill="#FECC00"/><rect y="4" width="16" height="2" fill="#FECC00"/></svg></span>
-            <div>
-                <strong>Riksserien</strong> - Nu finns även Riksserien på EasyStat! Klicka här för att utforska statistik från Sveriges nationella dartserie!
-            </div>
-        </a>
-        <a href="/series_matches" class="news-item-link" onclick="trackClick('news_seriematcher')">
-            <span class="news-item-icon">📋</span>
-            <div>
-                <strong>Seriematcher</strong> - Se alla spelade seriematcher, grupperat per vecka och division. Klicka på en match för att se detaljer!
-            </div>
-        </a>
-        {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- Söksektion för spelare -->
 <div class="row justify-content-center">
@@ -242,7 +223,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="form-check form-switch text-center mt-3">
+                        <div class="form-check form-switch text-center mt-3" id="compareVenueWrapper">
                             <input class="form-check-input" type="checkbox" id="compareVenueToggle" checked onchange="if(document.getElementById('compareTeamA').value && document.getElementById('compareTeamB').value) compareTeams()">
                             <label class="form-check-label" for="compareVenueToggle">Basera på hemma/borta</label>
                         </div>
@@ -305,14 +286,14 @@
                         <!-- Season toggle buttons -->
                         <div class="btn-group mb-3" role="group" aria-label="Säsongsfilter">
                             <button type="button" class="btn btn-outline-primary active" id="currentSeasonBtn" onclick="switchToCurrentSeason()">
-                                Säsongen 2025/2026
+                                Säsongen {% if league == 'sommarserien' %}2026{% else %}2025/2026{% endif %}
                             </button>
                             <button type="button" class="btn btn-outline-primary" id="allSeasonsBtn" onclick="switchToAllSeasons()">
                                 Alla säsonger
                             </button>
                         </div>
 
-                        <p class="text-muted mb-0 mt-3" id="statsDescription">De mest imponerande prestationerna under säsongen 2025/2026</p>
+                        <p class="text-muted mb-0 mt-3" id="statsDescription">De mest imponerande prestationerna under säsongen {% if league == 'sommarserien' %}2026{% else %}2025/2026{% endif %}</p>
                     </div>
                 </div>
             </div>
@@ -529,6 +510,9 @@
 
 {% block scripts %}
 <script>
+
+// Aktuell säsong för den valda ligan
+const CURRENT_SEASON = LEAGUE === 'sommarserien' ? '2026' : '2025/2026';
 
 // Globala variabler
 let currentFilters = {
@@ -792,8 +776,8 @@ async function loadTeamList() {
 }
 
 function populateCompareDropdowns() {
-    // Find the latest season suffix from allTeams
-    const seasonPattern = /\((\d{4}-\d{4})\)$/;
+    // Find the latest season suffix from allTeams — supports both YYYY-YYYY and YYYY
+    const seasonPattern = /\((\d{4}(?:-\d{4})?)\)$/;
     let latestSeason = '';
     allTeams.forEach(t => {
         const m = t.match(seasonPattern);
@@ -804,7 +788,7 @@ function populateCompareDropdowns() {
     const currentSeasonTeams = allTeams.filter(t => t.endsWith(`(${latestSeason})`)).sort();
 
     // Group by division: "Team (Div) (Season)" -> division = "Div", "Team (Season)" -> division = "Övriga"
-    const divPattern = /^(.+?)\s+\(([^)]+)\)\s+\(\d{4}-\d{4}\)$/;
+    const divPattern = /^(.+?)\s+\(([^)]+)\)\s+\(\d{4}(?:-\d{4})?\)$/;
     const grouped = {};
     currentSeasonTeams.forEach(t => {
         const m = t.match(divPattern);
@@ -850,6 +834,10 @@ function populateCompareDropdowns() {
     };
     document.getElementById('compareTeamA').addEventListener('change', updateBtn);
     document.getElementById('compareTeamB').addEventListener('change', updateBtn);
+
+    // Dölj hemma/borta-toggle för sommarserien
+    const venueWrapper = document.getElementById('compareVenueWrapper');
+    if (venueWrapper) venueWrapper.style.display = LEAGUE === 'sommarserien' ? 'none' : '';
 }
 
 function swapCompareTeams() {
@@ -876,7 +864,7 @@ async function compareTeams() {
     resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     try {
-        const useVenue = document.getElementById('compareVenueToggle').checked;
+        const useVenue = LEAGUE !== 'sommarserien' && document.getElementById('compareVenueToggle').checked;
 
         // Always fetch players without venue filter
         const [playersA, playersB] = await Promise.all([
@@ -923,8 +911,8 @@ async function compareTeams() {
             venueNoteB = `(alla ${lineupBAll.total_matches} matcher)`;
         }
 
-        const nameA = teamA.replace(/\s*\(\d{4}-\d{4}\)$/, '');
-        const nameB = teamB.replace(/\s*\(\d{4}-\d{4}\)$/, '');
+        const nameA = teamA.replace(/\s*\(\d{4}(?:-\d{4})?\)$/, '');
+        const nameB = teamB.replace(/\s*\(\d{4}(?:-\d{4})?\)$/, '');
         document.getElementById('compareResultTitle').textContent = `${nameA} vs ${nameB}`;
         resultBody.innerHTML = generateCompareHTML(lineupA, playersA, lineupB, playersB, nameA, nameB, venueNoteA, venueNoteB);
     } catch (error) {
@@ -938,26 +926,34 @@ function generateCompareHTML(lineupA, playersA, lineupB, playersB, nameA, nameB,
     if (playersA && playersA.players) playersA.players.forEach(p => { statsA[p.name] = p; });
     if (playersB && playersB.players) playersB.players.forEach(p => { statsB[p.name] = p; });
 
-    const blockOrder = ['D1', 'S1', 'S2', 'D2', 'S3', 'S4', 'D3', 'S5', 'S6', 'AD'];
+    // Sommarserien: Lag → D1 → D2 → S1-S4. Övriga: interleaved standard order.
+    const isSommarserien = LEAGUE === 'sommarserien';
+    const blockOrder = isSommarserien
+        ? ['Lag', 'D1', 'D2', 'S1', 'S2', 'S3', 'S4']
+        : ['D1', 'S1', 'S2', 'D2', 'S3', 'S4', 'D3', 'S5', 'S6', 'AD'];
     const isDoubles = pos => pos.startsWith('D') || pos === 'AD';
+    const isTeam   = pos => pos === 'Lag';
 
-    // Deduplicate players: assign each player to at most one position (AD exempt)
     function assignLineup(lineup) {
-        const assigned = {};  // pos -> assigned player(s)
+        const assigned = {};
         const usedPlayers = new Set();
 
-        // Collect all singles positions with their candidates sorted by matches
+        // Lag (4v4): up to 4 players, no deduplication constraint
+        if (isSommarserien) {
+            const lagData = lineup.positions['Lag'];
+            if (lagData && lagData.players) {
+                assigned['Lag'] = { type: 'team', players: lagData.players.slice(0, 4) };
+            }
+        }
+
+        // Singles: greedy deduplication
         const singlesPositions = blockOrder
             .filter(pos => pos.startsWith('S') && lineup.positions[pos])
             .map(pos => ({
                 pos,
                 candidates: lineup.positions[pos].all_players || [lineup.positions[pos].top_player].filter(Boolean)
             }));
-
-        // Sort positions by how few candidates they have (most constrained first)
         singlesPositions.sort((a, b) => a.candidates.length - b.candidates.length);
-
-        // Greedy assignment for singles
         for (const { pos, candidates } of singlesPositions) {
             const pick = candidates.find(c => !usedPlayers.has(c.name));
             if (pick) {
@@ -966,7 +962,7 @@ function generateCompareHTML(lineupA, playersA, lineupB, playersB, nameA, nameB,
             }
         }
 
-        // Doubles: deduplicate between doubles positions (separate from singles)
+        // Doubles: deduplicate between doubles positions only
         const usedDoublesPlayers = new Set();
         for (const pos of blockOrder.filter(p => p.startsWith('D'))) {
             const posData = lineup.positions[pos];
@@ -992,7 +988,14 @@ function generateCompareHTML(lineupA, playersA, lineupB, playersB, nameA, nameB,
         const data = assigned[pos];
         if (!data) return '<span class="text-muted">–</span>';
 
-        if (data.type === 'doubles') {
+        if (data.type === 'team') {
+            // 4v4 Lag: visa alla 4 spelare utan snitt (laget spelar ihop)
+            return (data.players || []).map(p => `
+                <div class="compare-player">
+                    <span class="compare-player-name">${goldenStat.makePlayerNameClickable(p.name)}</span>
+                </div>`
+            ).join('') || '<span class="text-muted">–</span>';
+        } else if (data.type === 'doubles') {
             return (data.players || []).map(p => {
                 const ps = stats[p.name];
                 const wpct = ps ? ps.doubles_win_pct : null;
@@ -1018,16 +1021,18 @@ function generateCompareHTML(lineupA, playersA, lineupB, playersB, nameA, nameB,
         const hasB = assignedB[pos];
         if (!hasA && !hasB) return '';
 
-        const label = isDoubles(pos) ? '👥' : '🎯';
+        const label = isTeam(pos) ? '👥👥' : isDoubles(pos) ? '👥' : '🎯';
+        const blockClass = isTeam(pos) ? 'compare-block-team' : isDoubles(pos) ? 'compare-block-doubles' : 'compare-block-singles';
+        const posLabel = isTeam(pos) ? '4v4' : pos;
         return `
-            <div class="compare-block ${isDoubles(pos) ? 'compare-block-doubles' : 'compare-block-singles'}">
+            <div class="compare-block ${blockClass}">
                 <div class="compare-side compare-side-a">
                     <div class="compare-team-label d-md-none">${nameA}</div>
                     ${renderSide(assignedA, statsA, pos)}
                 </div>
                 <div class="compare-position">
                     <span class="compare-position-icon">${label}</span>
-                    <span class="compare-position-name">${pos}</span>
+                    <span class="compare-position-name">${posLabel}</span>
                 </div>
                 <div class="compare-side compare-side-b">
                     <div class="compare-team-label d-md-none">${nameB}</div>
@@ -1209,7 +1214,7 @@ async function showPlayerStats(stats) {
     console.log('Mottagen throwData:', throwData); // Debug
 
     // Calculate doubles season stats
-    const currentSeason = currentFilters.season || '2025/2026';
+    const currentSeason = currentFilters.season || CURRENT_SEASON;
     const seasonDoubles = stats.recent_matches.filter(m => m.match_type === 'Doubles' && m.season === currentSeason);
     const seasonDoublesWins = seasonDoubles.filter(m => m.won === 1).length;
     const seasonDoublesTotal = seasonDoubles.length;
@@ -1514,9 +1519,9 @@ async function showPlayerStats(stats) {
                                 ${stats.recent_matches.map(match => `
                                     <tr class="${match.sub_match_id ? 'table-row-clickable' : ''}" ${match.sub_match_id ? 'onclick="navigateTo(\'/sub_match_throws?sub_match_id=' + match.sub_match_id + '&team=' + match.team_number + '\')" title="Klicka för att se kastomgångar"' : ''} data-match-type="${match.match_type}" data-match-date="${match.match_date}" data-average="${match.player_avg || 0}">
                                         <td><small style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small></td>
-                                        <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'}">${parseMatchPosition(match.match_name) || (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
+                                        <td><small><span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : match.match_type === 'Team' ? 'bg-warning text-dark' : 'bg-secondary'}">${match.match_type === 'Team' ? 'Lag' : parseMatchPosition(match.match_name) || (match.match_type === 'Singles' ? 'S' : 'D')}</span></small></td>
                                         <td><small>
-                                            ${(match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))) && match.teammate ?
+                                            ${(match.match_type === 'Team' || match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))) && match.teammate ?
                                                 `<div><strong>Du spelade med:</strong> ${match.teammate}</div>` :
                                                 ''
                                             }
@@ -1564,9 +1569,9 @@ async function showPlayerStats(stats) {
                                             <div>
                                                 <div class="d-flex align-items-center gap-2 mb-1">
                                                     <small class="text-muted" style="white-space: nowrap;">${match.match_date ? new Date(match.match_date).toLocaleDateString('sv-SE') : 'N/A'}</small>
-                                                    <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : 'bg-secondary'} badge-sm">${parseMatchPosition(match.match_name) || (match.match_type === 'Singles' ? 'S' : 'D')}</span>
+                                                    <span class="badge ${match.match_type === 'Singles' ? 'bg-primary' : match.match_type === 'Team' ? 'bg-warning text-dark' : 'bg-secondary'} badge-sm">${match.match_type === 'Team' ? 'Lag' : parseMatchPosition(match.match_name) || (match.match_type === 'Singles' ? 'S' : 'D')}</span>
                                                 </div>
-                                                ${(match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))) && match.teammate ?
+                                                ${(match.match_type === 'Team' || match.match_type === 'Doubles' || (match.match_name && match.match_name.includes(' AD'))) && match.teammate ?
                                                     `<div><small><strong>Med:</strong> ${match.teammate}</small></div>` :
                                                     ''
                                                 }
@@ -1909,13 +1914,13 @@ document.getElementById('teamSearch').addEventListener('input', function(e) {
     const suggestions = allTeams.filter(team =>
         team.toLowerCase().includes(query)
     ).sort((a, b) => {
-        const seasonRegex = /\((\d{4}-\d{4})\)$/;
+        const seasonRegex = /\((\d{4}(?:-\d{4})?)\)$/;
         const seasonA = a.match(seasonRegex)?.[1] || '';
         const seasonB = b.match(seasonRegex)?.[1] || '';
         // Sort by season descending first
         if (seasonA !== seasonB) return seasonB.localeCompare(seasonA);
         // Then by division priority
-        const divRegex = /\(([^)]+)\)\s+\(\d{4}-\d{4}\)$/;
+        const divRegex = /\(([^)]+)\)\s+\(\d{4}(?:-\d{4})?\)$/;
         const divA = a.match(divRegex)?.[1] || '';
         const divB = b.match(divRegex)?.[1] || '';
         const idxA = divPriority.indexOf(divA);
@@ -1953,11 +1958,11 @@ function searchTeamByText() {
     const matchingTeams = allTeams.filter(team =>
         team.toLowerCase().includes(query)
     ).sort((a, b) => {
-        const seasonRegex = /\((\d{4}-\d{4})\)$/;
+        const seasonRegex = /\((\d{4}(?:-\d{4})?)\)$/;
         const seasonA = a.match(seasonRegex)?.[1] || '';
         const seasonB = b.match(seasonRegex)?.[1] || '';
         if (seasonA !== seasonB) return seasonB.localeCompare(seasonA);
-        const divRegex = /\(([^)]+)\)\s+\(\d{4}-\d{4}\)$/;
+        const divRegex = /\(([^)]+)\)\s+\(\d{4}(?:-\d{4})?\)$/;
         const divA = a.match(divRegex)?.[1] || '';
         const divB = b.match(divRegex)?.[1] || '';
         const idxA = divPriority2.indexOf(divA);
@@ -3047,7 +3052,7 @@ function switchToCurrentSeason() {
     document.getElementById('currentSeasonBtn').classList.add('active');
 
     // Update description
-    document.getElementById('statsDescription').textContent = 'De mest imponerande prestationerna under säsongen 2025/2026';
+    document.getElementById('statsDescription').textContent = `De mest imponerande prestationerna under säsongen ${CURRENT_SEASON}`;
 
     currentStatsView = 'season';
 
@@ -3124,11 +3129,12 @@ function populateStatsWithData(data) {
             <span class="badge bg-info rounded-pill fs-5">${item.count_180} st</span>
         </div>
     `).join('');
+
 }
 
 async function loadCurrentSeasonStats() {
     try {
-        const response = await fetch('/api/top-stats?season=2025/2026');
+        const response = await fetch(`/api/top-stats?season=${encodeURIComponent(CURRENT_SEASON)}`);
         const data = await response.json();
 
         // Cache the data
@@ -3319,6 +3325,15 @@ async function loadWeeklyStats(division = null, weekOffset = null) {
                 currentWeekOffset = 0;
                 const division = document.getElementById('weeklyDivisionFilter').value;
                 await loadWeeklyStats(division, 0);
+                return;
+            }
+
+            // If current week has no matches, default to most recent week with data
+            if (data.total_matches === 0 && availableWeeks.length > 0) {
+                currentWeekOffset = availableWeeks[0].week_offset;
+                document.getElementById('weeklyWeekSelector').value = currentWeekOffset;
+                const division = document.getElementById('weeklyDivisionFilter').value;
+                await loadWeeklyStats(division, currentWeekOffset);
                 return;
             }
         }

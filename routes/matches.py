@@ -117,7 +117,7 @@ def get_sub_match_info(sub_match_id):
                 FROM throws t
                 JOIN legs l ON t.leg_id = l.id
                 WHERE l.sub_match_id = ?
-                  AND NOT (t.score = 0 AND t.remaining_score = 501)
+                  AND NOT (t.score = 0 AND t.round_number = 1)
                 ORDER BY l.leg_number, t.round_number, t.team_number
             """, (sub_match_id,))
 
@@ -352,7 +352,7 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                 FROM throws t
                 JOIN legs l ON t.leg_id = l.id
                 WHERE l.sub_match_id = ?
-                  AND NOT (t.score = 0 AND t.remaining_score = 501)
+                  AND NOT (t.score = 0 AND t.round_number = 1)
                 ORDER BY l.leg_number, t.round_number, t.team_number
             """, (sub_match_id,))
 

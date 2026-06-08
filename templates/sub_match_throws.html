@@ -6,28 +6,28 @@
     <div class="container">
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/{% if league == 'riksserien' %}?league=riksserien{% endif %}">
+                <a class="nav-link" href="/{% if league == 'riksserien' %}?league=riksserien{% elif league == 'sommarserien' %}?league=sommarserien{% endif %}">
                     👤 Spelare
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=teams{% if league == 'riksserien' %}&league=riksserien{% endif %}">
+                <a class="nav-link" href="/?tab=teams{% if league == 'riksserien' %}&league=riksserien{% elif league == 'sommarserien' %}&league=sommarserien{% endif %}">
                     👥 Lag
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/series_matches{% if league == 'riksserien' %}?league=riksserien{% endif %}">
+                <a class="nav-link" href="/series_matches{% if league == 'riksserien' %}?league=riksserien{% elif league == 'sommarserien' %}?league=sommarserien{% endif %}">
                     📋 Seriematcher
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=stats{% if league == 'riksserien' %}&league=riksserien{% endif %}">
+                <a class="nav-link" href="/?tab=stats{% if league == 'riksserien' %}&league=riksserien{% elif league == 'sommarserien' %}&league=sommarserien{% endif %}">
                     🎯 Topplistor
                 </a>
             </li>
             <li class="nav-item" role="presentation">
-                <a class="nav-link" href="/?tab=weekly{% if league == 'riksserien' %}&league=riksserien{% endif %}">
-                    ⭐ {% if league == 'riksserien' %}Omgångens bästa{% else %}Veckans prestationer!{% endif %}
+                <a class="nav-link" href="/?tab=weekly{% if league == 'riksserien' %}&league=riksserien{% elif league == 'sommarserien' %}&league=sommarserien{% endif %}">
+                    ⭐ {% if league == 'riksserien' %}Omgångens bästa{% elif league == 'sommarserien' %}Veckans prestationer!{% else %}Veckans prestationer!{% endif %}
                 </a>
             </li>
         </ul>
@@ -521,7 +521,7 @@ function displayThrowData(data) {
                                 <span class="stat-value">${team1Stats.average_score ? parseFloat(team1Stats.average_score).toFixed(2) : 'N/A'}</span>
                                 <span class="stat-label">Snitt</span>
                             </div>
-                            ${window.matchTeamData.team1_players_data && window.matchTeamData.team1_players_data.length > 0 ? `
+                            ${window.matchTeamData.team1_players_data && window.matchTeamData.team1_players_data.length > 0 && LEAGUE !== 'sommarserien' ? `
                             <div class="stat-item">
                                 <span class="stat-value">${(window.matchTeamData.team1_players_data[0].won_legs_avg || 0).toFixed(2)}</span>
                                 <span class="stat-label">Vunna</span>
@@ -547,10 +547,11 @@ function displayThrowData(data) {
                             </div>
                         </div>
                         <div class="stat-row">
+                            ${LEAGUE !== 'sommarserien' ? `
                             <div class="stat-item">
                                 <span class="stat-value">${team1Stats.first_9_dart_avg}</span>
                                 <span class="stat-label">Första 9</span>
-                            </div>
+                            </div>` : ''}
                             <div class="stat-item">
                                 <span class="stat-value">${team1Stats.short_legs_detail && team1Stats.short_legs_detail.length > 0 ? team1Stats.short_legs_detail.join(', ') : '-'}</span>
                                 <span class="stat-label">Korta legs</span>
@@ -585,7 +586,7 @@ function displayThrowData(data) {
                                 <span class="stat-value">${team2Stats.average_score ? parseFloat(team2Stats.average_score).toFixed(2) : 'N/A'}</span>
                                 <span class="stat-label">Snitt</span>
                             </div>
-                            ${window.matchTeamData.team2_players_data && window.matchTeamData.team2_players_data.length > 0 ? `
+                            ${window.matchTeamData.team2_players_data && window.matchTeamData.team2_players_data.length > 0 && LEAGUE !== 'sommarserien' ? `
                             <div class="stat-item">
                                 <span class="stat-value">${(window.matchTeamData.team2_players_data[0].won_legs_avg || 0).toFixed(2)}</span>
                                 <span class="stat-label">Vunna</span>
@@ -611,10 +612,11 @@ function displayThrowData(data) {
                             </div>
                         </div>
                         <div class="stat-row">
+                            ${LEAGUE !== 'sommarserien' ? `
                             <div class="stat-item">
                                 <span class="stat-value">${team2Stats.first_9_dart_avg}</span>
                                 <span class="stat-label">Första 9</span>
-                            </div>
+                            </div>` : ''}
                             <div class="stat-item">
                                 <span class="stat-value">${team2Stats.short_legs_detail && team2Stats.short_legs_detail.length > 0 ? team2Stats.short_legs_detail.join(', ') : '-'}</span>
                                 <span class="stat-label">Korta legs</span>

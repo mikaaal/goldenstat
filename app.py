@@ -114,6 +114,8 @@ def get_current_db_path():
     league = request.args.get('league', '')
     if league == 'riksserien':
         return 'riksserien.db'
+    if league == 'sommarserien':
+        return 'sommarserien.db'
     return db.db_path
 
 
@@ -122,6 +124,8 @@ def get_current_db():
     league = request.args.get('league', '')
     if league == 'riksserien':
         return DartDatabase(db_path='riksserien.db')
+    if league == 'sommarserien':
+        return DartDatabase(db_path='sommarserien.db')
     return db
 
 
