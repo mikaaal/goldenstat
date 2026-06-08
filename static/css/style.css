@@ -87,9 +87,19 @@ body {
 }
 
 @media (max-width: 576px) {
+    .navbar .container {
+        flex-wrap: wrap;
+    }
+    .league-selector {
+        width: 100%;
+        justify-content: center;
+        margin-left: 0 !important;
+        padding: 4px 0 6px;
+        gap: 4px;
+    }
     .league-btn {
-        font-size: 12px;
-        padding: 5px 12px;
+        font-size: 11px;
+        padding: 4px 9px;
     }
 }
 
