@@ -28,6 +28,7 @@ RUN git clone --branch ${RAILWAY_GIT_BRANCH:-main} --single-branch --depth 1 \
 RUN curl -sL -o /app/goldenstat.db "https://github.com/mikaaal/goldenstat/releases/download/db-latest/goldenstat.db" \
     && curl -sL -o /app/cups.db "https://github.com/mikaaal/goldenstat/releases/download/db-latest/cups.db" \
     && curl -sL -o /app/riksserien.db "https://github.com/mikaaal/goldenstat/releases/download/db-latest/riksserien.db" \
+    && curl -sL -o /app/sommarserien.db "https://github.com/mikaaal/goldenstat/releases/download/db-latest/sommarserien.db" \
     && echo "Databases downloaded:" && ls -lh /app/*.db
 
 # Installera Python dependencies
