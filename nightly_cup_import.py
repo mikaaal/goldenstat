@@ -42,6 +42,9 @@ SKIP_TDIDS = {
 # Extra tournaments not in any league (imported by tdid directly)
 EXTRA_TDIDS = [
     "t_IcSW_1256",  # MiNi Onsdagscup 220302
+    "t_jYZ5_2448",
+    "t_dyUx_3975",
+    "t_cIP9_1442",
 ]
 
 # Date corrections for tournaments with wrong dates in the API
