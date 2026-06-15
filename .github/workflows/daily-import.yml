@@ -11,7 +11,7 @@ on:
       skip_league_import:
         description: 'Skippa seriematch-import (daily_import.py)'
         required: false
-        default: false
+        default: true
         type: boolean
 
   # Kör när importfiler ändras (för testning)
