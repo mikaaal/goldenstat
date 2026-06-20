@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-06-20T03:08:51.243888",
+  "season": "2026",
+  "total_matches": 0,
+  "results": [
+    {
+      "division": "Pool A",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Pool B",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Pool C",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Pool D",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Pool E",
+      "status": "ok",
+      "matches": 0
+    },
+    {
+      "division": "Pool F",
+      "status": "ok",
+      "matches": 0
+    }
+  ]
+}
