@@ -45,6 +45,13 @@ EXTRA_TDIDS = [
     "t_jYZ5_2448",
     "t_dyUx_3975",
     "t_cIP9_1442",
+    "t_Dvrf_8758",
+    "t_nFEt_0533",
+    "t_67KK_2305",
+    "t_ZOpc_1458",
+    "t_8Q1a_0117",
+    "t_ksuy_1511"
+
 ]
 
 # Date corrections for tournaments with wrong dates in the API

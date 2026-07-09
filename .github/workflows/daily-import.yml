@@ -28,6 +28,9 @@ on:
     branches:
       - main
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 # Grant write permissions to push changes back to repo
 permissions:
   contents: write
