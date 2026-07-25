@@ -50,7 +50,10 @@ EXTRA_TDIDS = [
     "t_67KK_2305",
     "t_ZOpc_1458",
     "t_8Q1a_0117",
-    "t_ksuy_1511"
+    "t_ksuy_1511",
+    "t_acs0_3384",
+    "t_ZBGs_8927",
+    "t_2mGb_9022"
 
 ]
 
