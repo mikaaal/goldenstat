@@ -25,7 +25,7 @@ LEAGUES = [
     {"lgid": "lg_w7Bw_7076", "name": "SoFo House Poängsamlarcup"},
     {"lgid": "lg_qaVN_1417", "name": "SoFo House Poängsamlarcup 2027"},
     {"lgid": "lg_InWB_0595", "name": "Oilers Poängsamlarcup"},
-    {"lgid": "lg_V27R_4845", "name": "NWD Poängsamlarcup"},
+    {"lgid": "lg_obTt_7229", "name": "NWD Poängsamlarcup"},
     {"lgid": "lg_wF2x_7591", "name": "StDF"},
     {"lgid": "lg_fz61_5884", "name": "StDF GPn"},
 ]
@@ -55,7 +55,13 @@ EXTRA_TDIDS = [
     "t_ZBGs_8927",
     "t_2mGb_9022",
     "t_MqsU_0131",
-    "t_bvjQ_9939"
+    "t_bvjQ_9939",
+    "t_o95S_0177",
+    "t_lwJI_6750",
+    "t_MNjc_5673",
+    "t_maHQ_3759",
+    "t_LkY6_8629",
+    "t_belt_8760"
 
 ]
 

@@ -81,10 +81,13 @@ jobs:
           echo "🤖 Kör daglig import..."
           python daily_import.py
 
-      - name: Run sommarserien import
-        run: |
-          echo "☀️ Kör sommarserien-import..."
-          python import_sommarserien_2026.py
+      # Sommarserien 2026 är avslutad (2026-08-30) - importen avstängd.
+      # Databasen hämtas och laddas upp som vanligt så att datan finns kvar.
+      # Slå på igen genom att avkommentera stegen nedan.
+      # - name: Run sommarserien import
+      #   run: |
+      #     echo "☀️ Kör sommarserien-import..."
+      #     python import_sommarserien_2026.py
 
       - name: Run nightly cup import
         run: |
