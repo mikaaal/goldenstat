@@ -1,9 +1,12 @@
 name: Daily Database Import
 
 on:
-  # Kör dagligen kl 02:00 UTC (03:00/04:00 svensk tid beroende på sommartid)
+  # Kör dagligen kl 00:23 UTC = 01:23 vintertid / 02:23 sommartid.
+  # Cron i GitHub Actions är alltid UTC, så tiden måste ligga efter 01:00
+  # svensk tid även i vintertid (UTC+1) - därav 00:23 och inte tidigare.
+  # Ojämn minut för att undvika den värsta kön på hel timme.
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '23 0 * * *'
 
   # Tillåt manuell körning
   workflow_dispatch:
