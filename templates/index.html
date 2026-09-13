@@ -286,14 +286,14 @@
                         <!-- Season toggle buttons -->
                         <div class="btn-group mb-3" role="group" aria-label="Säsongsfilter">
                             <button type="button" class="btn btn-outline-primary active" id="currentSeasonBtn" onclick="switchToCurrentSeason()">
-                                Säsongen {% if league == 'sommarserien' %}2026{% else %}2025/2026{% endif %}
+                                Säsongen {{ current_season }}
                             </button>
                             <button type="button" class="btn btn-outline-primary" id="allSeasonsBtn" onclick="switchToAllSeasons()">
                                 Alla säsonger
                             </button>
                         </div>
 
-                        <p class="text-muted mb-0 mt-3" id="statsDescription">De mest imponerande prestationerna under säsongen {% if league == 'sommarserien' %}2026{% else %}2025/2026{% endif %}</p>
+                        <p class="text-muted mb-0 mt-3" id="statsDescription">De mest imponerande prestationerna under säsongen {{ current_season }}</p>
                     </div>
                 </div>
             </div>
@@ -512,7 +512,7 @@
 <script>
 
 // Aktuell säsong för den valda ligan
-const CURRENT_SEASON = LEAGUE === 'sommarserien' ? '2026' : '2025/2026';
+const CURRENT_SEASON = {{ current_season | tojson }};
 
 // Globala variabler
 let currentFilters = {

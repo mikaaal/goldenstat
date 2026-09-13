@@ -11,17 +11,44 @@ def get_effective_player_ids_for_database(cursor, player_name):
     result = cursor.fetchone()
     return [result['id']] if result else []
 
+class MissingDatabaseError(RuntimeError):
+    """Databasen som skulle anvandas finns inte pa disk."""
+
+
 class DartDatabase:
-    def __init__(self, db_path: str = "goldenstat.db"):
+    def __init__(self, db_path: str = "goldenstat.db", create_if_missing: bool = True):
         self.db_path = db_path
+        self.create_if_missing = create_if_missing
         self.init_database()
-    
+
     def init_database(self):
         """Initialize the database with schema if it doesn't exist"""
         if not os.path.exists(self.db_path):
+            if not self.create_if_missing:
+                release_url = (
+                    "https://github.com/mikaaal/goldenstat/releases/"
+                    f"download/db-latest/{self.db_path}"
+                )
+                raise MissingDatabaseError("\n".join([
+                    f"Databasen '{self.db_path}' finns inte.",
+                    "En import ska aldrig skapa en tom databas - da hamnar",
+                    "datan i fel serie. Hamta den riktiga filen forst:",
+                    f'  curl -L -o {self.db_path} "{release_url}"',
+                    "Ar det en helt ny serie: anvand create_if_missing=True.",
+                ]))
+            # database_schema.sql ligger i archive/docs/ sedan cleanup 2025-10-05.
+            # Utan den blir en nyskapad databas en tom fil helt utan tabeller,
+            # vilket forst syns som "no such table" langt senare i importen.
+            schema_path = os.path.join(os.path.dirname(__file__), "database_schema.sql")
+            if not os.path.exists(schema_path):
+                raise MissingDatabaseError("\n".join([
+                    f"Kan inte skapa '{self.db_path}': schemafilen saknas.",
+                    f"Forvantad sokvag: {schema_path}",
+                    "Utan schema blir databasen en tom fil utan tabeller.",
+                    "Kopiera tillbaka archive/docs/database_schema.sql till projektroten.",
+                ]))
             with sqlite3.connect(self.db_path) as conn:
                 # Read and execute schema
-                schema_path = os.path.join(os.path.dirname(__file__), "database_schema.sql")
                 if os.path.exists(schema_path):
                     with open(schema_path, 'r') as f:
                         conn.executescript(f.read())

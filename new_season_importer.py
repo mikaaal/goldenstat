@@ -5,15 +5,40 @@ Uses the new API endpoints for importing match data
 """
 import requests
 import json
+import re
 import time
 from itertools import combinations
 from typing import List, Dict, Optional, Any
 from datetime import datetime
-from database import DartDatabase
+from database import DartDatabase, MissingDatabaseError
+
+# Sasongen star i matchtiteln, t.ex.
+#   "Stockholmsserien (2025/2026) - 2A Division 2A Doubles1"
+SEASON_IN_TITLE = re.compile(r'\((\d{4}/\d{4})\)')
+
+
+def season_from_title(title: str) -> Optional[str]:
+    """Plocka ut sasongen ur matchtiteln, t.ex. '2025/2026'"""
+    if not title:
+        return None
+    match = SEASON_IN_TITLE.search(title)
+    return match.group(1) if match else None
+
+
+def season_from_date(match_date: datetime) -> str:
+    """Harled sasong ur matchdatum. Serien loper sep-maj, brytpunkt 1 juli."""
+    year = match_date.year
+    if match_date.month >= 7:
+        return f"{year}/{year + 1}"
+    return f"{year - 1}/{year}"
+
 
 class NewSeasonImporter:
-    def __init__(self, db_path: str = "goldenstat.db"):
-        self.db = DartDatabase(db_path)
+    def __init__(self, db_path: str = "goldenstat.db", create_if_missing: bool = False):
+        # create_if_missing=False som default: en import ska skriva till en
+        # databas som redan finns. Annars kan fel DB_PATH tyst skapa en ny
+        # databas och lagga datan i fel serie.
+        self.db = DartDatabase(db_path, create_if_missing=create_if_missing)
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -146,7 +171,7 @@ class NewSeasonImporter:
             print(f"❌ Error fetching {match_url}: {e}")
             return None
     
-    def extract_match_info(self, match_data: List[Dict], season: str = "2025/2026", division_override: str = None) -> Dict[str, Any]:
+    def extract_match_info(self, match_data: List[Dict], season: str = None, division_override: str = None) -> Dict[str, Any]:
         """Extract match information from API response"""
         if not match_data:
             return {}
@@ -170,7 +195,13 @@ class NewSeasonImporter:
 
         # Extract season and division from title
         title = first_submatch.get('title', '')
-        # Season is passed as parameter
+
+        # Sasong: explicit parameter vinner (riksserien/sommarserien satter den),
+        # annars las den ur titeln, annars harleds den ur matchdatumet.
+        # Utan detta hamnade en ny sasong pa forra sasongens etikett.
+        if not season:
+            season = season_from_title(title) or season_from_date(match_date)
+
         division = "Unknown"
 
         if division_override:
@@ -422,7 +453,7 @@ class NewSeasonImporter:
             print(f"❌ Error loading URLs from file: {e}")
             return []
 
-    def import_division(self, tdid: str, url_file: str = None, season: str = "2025/2026") -> Dict[str, int]:
+    def import_division(self, tdid: str, url_file: str = None, season: str = None) -> Dict[str, int]:
         """Import all matches from a division"""
         print(f"\n🎯 Starting import for division {tdid}")
         
@@ -489,7 +520,7 @@ def main():
     
     division_id = sys.argv[1]
     url_file = sys.argv[2] if len(sys.argv) > 2 else None
-    season = sys.argv[3] if len(sys.argv) > 3 else "2025/2026"
+    season = sys.argv[3] if len(sys.argv) > 3 else None
     
     importer = NewSeasonImporter()
     result = importer.import_division(division_id, url_file, season)

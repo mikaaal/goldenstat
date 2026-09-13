@@ -20,12 +20,33 @@ def _get_cache_backend():
     return None
 
 
+def get_current_season(db_path=None):
+    """Aktuell sasong = sasongen for den senast spelade matchen.
+
+    Las ur databasen i stallet for att hardkodas, sa att en ny sasong slar
+    igenom automatiskt nar de forsta matcherna importerats.
+    """
+    try:
+        with sqlite3.connect(db_path or _get_current_db_path()) as conn:
+            row = conn.execute("""
+                SELECT season
+                FROM matches
+                WHERE season IS NOT NULL
+                ORDER BY match_date DESC
+                LIMIT 1
+            """).fetchone()
+            return row[0] if row else None
+    except sqlite3.Error:
+        return None
+
+
 @league_bp.route('/')
 def index():
     """Main page with player search"""
     league = request.args.get('league', '')
     tab = request.args.get('tab', 'players')
-    return render_template('index.html', league=league, tab=tab)
+    return render_template('index.html', league=league, tab=tab,
+                           current_season=get_current_season())
 
 
 @league_bp.route('/api/last-import')

@@ -51,9 +51,22 @@ class RiksserienDailyImport:
         print(f"[START] STARTAR RIKSSERIEN DAGLIG IMPORT {self.timestamp}")
         print(f"[LOG] Loggfil: {self.log_file}")
 
+    DB_PATH = "riksserien.db"
+
     def run_full_import(self):
         """Kor fullstandig import av alla Riksserien-divisioner"""
         try:
+            # Avbryt direkt om databasen saknas - en import ska aldrig skapa
+            # en tom databas och lagga riksseriedata i fel fil.
+            if not Path(self.DB_PATH).exists():
+                msg = (f"Databasen {self.DB_PATH} saknas - importen avbryts. "
+                       f"Hamta den fran release db-latest forst.")
+                print(f"[ERROR] {msg}")
+                self.import_log["errors"].append(msg)
+                self.import_log["status"] = "failed"
+                self.save_log()
+                return
+
             url_files = list(Path("riksserien_match_urls").glob("*_match_urls*.txt"))
 
             if not url_files:
@@ -83,7 +96,7 @@ class RiksserienDailyImport:
         try:
             print(f"  [DIV] Division: {file_info['division_id']} ({file_info['division_name']})")
 
-            smart_importer = SmartSeasonImporter("riksserien.db")
+            smart_importer = SmartSeasonImporter(self.DB_PATH)
 
             result = smart_importer.import_from_url_file_smart(
                 str(url_file),

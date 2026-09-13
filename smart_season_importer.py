@@ -13,8 +13,8 @@ import datetime
 class SmartSeasonImporter(NewSeasonImporter):
     """Season importer med automatisk intelligent spelarmappning"""
 
-    def __init__(self, db_path: str = "goldenstat.db"):
-        super().__init__(db_path)
+    def __init__(self, db_path: str = "goldenstat.db", create_if_missing: bool = False):
+        super().__init__(db_path, create_if_missing=create_if_missing)
         self.matcher = SmartPlayerMatcher(db_path)
         self.import_log = {
             "players_handled": [],
@@ -603,7 +603,7 @@ class SmartSeasonImporter(NewSeasonImporter):
             self.import_log["errors"].append(error_msg)
             raise
 
-    def import_from_url_file_smart(self, url_file_path: str, division_id: str, division_name: str = None, season: str = "2025/2026") -> Dict[str, int]:
+    def import_from_url_file_smart(self, url_file_path: str, division_id: str, division_name: str = None, season: str = None) -> Dict[str, int]:
         """Import från URL-fil med smart spelarmappning"""
         matches_imported = 0
 
@@ -775,7 +775,7 @@ class SmartSeasonImporter(NewSeasonImporter):
         """Import en match med smart player handling"""
         try:
             # Extract match info - wrap single match in list as expected by extract_match_info
-            match_info = self.extract_match_info([match_data], "2025/2026")
+            match_info = self.extract_match_info([match_data])
 
             # Get or create teams
             team1_id = self.db.get_or_create_team(match_info['team1_name'], division_id)

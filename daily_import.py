@@ -54,9 +54,22 @@ class AutomatedDailyImport:
         print(f"[START] STARTAR AUTOMATISERAD DAGLIG IMPORT {self.timestamp}")
         print(f"[LOG] Loggfil: {self.log_file}")
 
+    DB_PATH = "goldenstat.db"
+
     def run_full_import(self):
         """Kör fullständig automatiserad import av alla divisioner för aktuell säsong"""
         try:
+            # Avbryt direkt om databasen saknas, i stallet for att fela en gang
+            # per URL-fil. En import ska aldrig skapa en tom databas.
+            if not Path(self.DB_PATH).exists():
+                msg = (f"Databasen {self.DB_PATH} saknas - importen avbryts. "
+                       f"Hamta den fran release db-latest forst.")
+                print(f"[ERROR] {msg}")
+                self.import_log["errors"].append(msg)
+                self.import_log["status"] = "failed"
+                self.save_log()
+                return
+
             # Hitta alla match-url filer i current_match_urls katalogen
             url_files = list(Path("current_match_urls").glob("*_match_urls*.txt"))
 
@@ -91,12 +104,17 @@ class AutomatedDailyImport:
             print(f"  [DIV] Division: {file_info['division_id']} ({file_info['division_name']})")
 
             # Skapa smart importer
-            smart_importer = SmartSeasonImporter("goldenstat.db")
+            smart_importer = SmartSeasonImporter(self.DB_PATH)
 
             # Kör importen med smart player matching
+            # division_name kommer fran filnamnet och ar det auktoritativa
+            # divisionsnamnet (fran Nakkas divisionslista). Utan det gissas
+            # divisionen ur matchtiteln, vilket gav "Mixed"/"Superligan" i
+            # stallet for X1/X2/SL6.
             result = smart_importer.import_from_url_file_smart(
                 str(url_file),
-                file_info['division_id']
+                file_info['division_id'],
+                division_name=file_info['division_name']
             )
 
             # Samla statistik från smart importer
@@ -144,7 +162,8 @@ class AutomatedDailyImport:
         parts = filename.replace("_match_urls", "_SPLIT_").replace(".txt", "").split("_SPLIT_")
 
         division_id = parts[0] if parts else "unknown"
-        division_name = parts[1] if len(parts) > 1 else "unknown"
+        # Tomt suffix (t.ex. "t_XXXX_1234_match_urls.txt") ar inget divisionsnamn
+        division_name = parts[1] if len(parts) > 1 and parts[1] else None
 
         return {
             "division_id": division_id,
