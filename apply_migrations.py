@@ -20,6 +20,12 @@ def apply_migrations(db_path: str, migrations_dir: str) -> int:
 
     Returns: antal nya migreringar som kördes.
     """
+    # sqlite3.connect() skapar filen om den saknas. Utan den här kontrollen
+    # får en import en tom databas i stället för ett tydligt fel.
+    if not Path(db_path).exists():
+        print(f"[MIGRATIONS] Databas saknas: {db_path} — hoppar över")
+        return 0
+
     migrations_path = Path(migrations_dir)
     if not migrations_path.is_dir():
         print(f"[MIGRATIONS] Katalog saknas: {migrations_dir} — hoppar över")
@@ -77,9 +83,5 @@ if __name__ == "__main__":
 
     db_path = sys.argv[1]
     migrations_dir = sys.argv[2]
-
-    if not Path(db_path).exists():
-        print(f"[MIGRATIONS] Databas saknas: {db_path} — hoppar över")
-        sys.exit(0)
 
     apply_migrations(db_path, migrations_dir)
