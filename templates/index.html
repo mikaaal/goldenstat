@@ -1220,6 +1220,22 @@ async function showPlayerStats(stats) {
     const seasonDoublesTotal = seasonDoubles.length;
     const seasonDoublesWinPct = seasonDoublesTotal > 0 ? ((seasonDoublesWins / seasonDoublesTotal) * 100).toFixed(1) : 0;
 
+    // Individuellt pilsnitt i dubbel finns bara för matcher med fast kastordning (fr.o.m. 2026/2027)
+    const doublesIndividual = stats.doubles.individual && stats.doubles.individual.matches > 0 ? stats.doubles.individual : null;
+    const seasonDoublesIndividual = stats.doubles.individual_by_season && stats.doubles.individual_by_season[currentSeason]
+        && stats.doubles.individual_by_season[currentSeason].matches > 0 ? stats.doubles.individual_by_season[currentSeason] : null;
+    const individualDoublesCard = (individual) => `
+                    <div class="row g-2 mt-2">
+                        <div class="col-12 col-md-4">
+                            <div class="card text-center bg-light h-100">
+                                <div class="card-body py-2">
+                                    <h5 class="text-primary mb-1">${individual.average_score}</h5>
+                                    <small class="card-text">Pilsnitt, egna kast (${individual.matches} ${individual.matches === 1 ? 'match' : 'matcher'})</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
     document.getElementById('playerResultsBody').innerHTML = `
         <!-- Navigation tabs -->
         <ul class="nav nav-tabs nav-fill mb-3" id="playerTabs" role="tablist">
@@ -1422,6 +1438,7 @@ async function showPlayerStats(stats) {
                             </div>
                         </div>
                     </div>
+                    ${seasonDoublesIndividual ? individualDoublesCard(seasonDoublesIndividual) : ''}
                 </div>
                 ` : ''}
 
@@ -1454,6 +1471,7 @@ async function showPlayerStats(stats) {
                             </div>
                         </div>
                     </div>
+                    ${doublesIndividual ? individualDoublesCard(doublesIndividual) : ''}
                 </div>
 
                 <!-- Progress Chart -->

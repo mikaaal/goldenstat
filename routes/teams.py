@@ -2,6 +2,7 @@ import re
 import sqlite3
 from collections import defaultdict
 from flask import Blueprint, request, jsonify
+from database import throw_order_sql
 
 teams_bp = Blueprint('teams', __name__)
 
@@ -715,6 +716,16 @@ def get_team_doubles_pairs(team_name):
 
             where_clause = " AND ".join(where_conditions)
 
+            # I dubbel med fast kastordning ar player_avg individuellt, sa parets
+            # och motstandarnas snitt tas fran sub-matchens lagsnitt
+            throw_order_expr = throw_order_sql(conn)
+            team_avg_sql = f"""
+                CASE WHEN {throw_order_expr} IS NOT NULL
+                          AND (CASE WHEN smp.team_number = 1 THEN sm.team1_avg ELSE sm.team2_avg END) > 0
+                     THEN (CASE WHEN smp.team_number = 1 THEN sm.team1_avg ELSE sm.team2_avg END)
+                     ELSE smp.player_avg
+                END"""
+
             # Get all doubles matches for this team with both players
             cursor.execute(f"""
                 SELECT
@@ -726,7 +737,7 @@ def get_team_doubles_pairs(team_name):
                     smp.team_number,
                     smp.player_id,
                     COALESCE(smpm.correct_player_name, p.name) as player_name,
-                    smp.player_avg,
+                    {team_avg_sql} as player_avg,
                     smp.team_number,
                     CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END as player_team,
                     CASE WHEN smp.team_number = 1 THEN t2.name ELSE t1.name END as opponent_team,
@@ -794,10 +805,11 @@ def get_team_doubles_pairs(team_name):
                     SELECT
                         smp.sub_match_id,
                         smp.team_number,
-                        smp.player_avg,
+                        {team_avg_sql} as player_avg,
                         COALESCE(smpm.correct_player_name, p.name) as player_name
                     FROM sub_match_participants smp
                     JOIN players p ON smp.player_id = p.id
+                    JOIN sub_matches sm ON smp.sub_match_id = sm.id
                     LEFT JOIN sub_match_player_mappings smpm
                         ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = p.id
                     WHERE smp.sub_match_id IN ({placeholders})
@@ -882,9 +894,10 @@ def get_team_doubles_pairs(team_name):
                     sm_id = info['sub_match_id']
                     tn = info['team_number']
                     # Get player_avg for all participants in this sub-match on this team
-                    cursor.execute("""
-                        SELECT smp.player_avg
+                    cursor.execute(f"""
+                        SELECT {team_avg_sql} as player_avg
                         FROM sub_match_participants smp
+                        JOIN sub_matches sm ON smp.sub_match_id = sm.id
                         WHERE smp.sub_match_id = ? AND smp.team_number = ? AND smp.player_avg > 0
                     """, (sm_id, tn))
                     avg_rows = cursor.fetchall()

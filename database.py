@@ -11,6 +11,63 @@ def get_effective_player_ids_for_database(cursor, player_name):
     result = cursor.fetchone()
     return [result['id']] if result else []
 
+# Nya regler fran sasongen 2026/2027: i en dubbel borjar alltid den spelare som
+# star forst i lagets ordning varje leg. Lagets besok alternerar darmed
+# order[0], order[1], order[0], ... och varje besok kan knytas till en spelare.
+# sub_match_participants.throw_order ar spelarens plats i den ordningen (0/1),
+# NULL nar det inte gar att veta vem som kastade (singlar, aldre dubblar).
+DOUBLES_TEAM_SIZE = 2
+
+
+def visit_throw_order(round_number: int) -> Optional[int]:
+    """Plats i kastordningen for spelaren som kastade besoket.
+
+    round_number 1 ar startmarkoren (score 0, 501 kvar), lagets forsta riktiga
+    besok i varje leg har round_number 2.
+    """
+    if round_number is None or round_number < 2:
+        return None
+    return (round_number - 2) % DOUBLES_TEAM_SIZE
+
+
+def has_throw_order_column(conn) -> bool:
+    """Riksserien- och aldre databaser saknar kolumnen tills en import lagt till den"""
+    columns = conn.execute("PRAGMA table_info(sub_match_participants)").fetchall()
+    return any(column[1] == 'throw_order' for column in columns)
+
+
+def throw_order_sql(conn, alias: str = 'smp') -> str:
+    """SQL-uttryck for throw_order som fungerar aven utan kolumnen"""
+    return f"{alias}.throw_order" if has_throw_order_column(conn) else "NULL"
+
+
+def individual_doubles_stats(team_throws: List[Dict], throw_order: int) -> Dict[str, Any]:
+    """Statistik for en spelares egna besok i en dubbel med fast kastordning.
+
+    team_throws: lagets kast i sub-matchen (alla legs) med round_number, score,
+    remaining_score och darts_used. Importen lagrar en checkout som poang i
+    score och antal pilar i darts_used, sa inga aldre format behover hanteras.
+    """
+    own = [t for t in team_throws if visit_throw_order(t['round_number']) == throw_order]
+    points = sum(t['score'] for t in own)
+    darts = sum(t['darts_used'] or 3 for t in own)
+    checkouts = [t['score'] for t in own if t['remaining_score'] == 0]
+    scores = [t['score'] for t in own]
+
+    return {
+        'throw_order': throw_order,
+        'average': round(points / darts * 3, 2) if darts else 0,
+        'points': points,
+        'darts': darts,
+        'visits': len(own),
+        'throws_100_139': len([s for s in scores if 100 <= s < 140]),
+        'throws_140_179': len([s for s in scores if 140 <= s < 180]),
+        'throws_180': len([s for s in scores if s == 180]),
+        'checkouts': len(checkouts),
+        'high_finishes_detail': sorted([c for c in checkouts if c >= 100], reverse=True),
+    }
+
+
 class MissingDatabaseError(RuntimeError):
     """Databasen som skulle anvandas finns inte pa disk."""
 
@@ -53,7 +110,13 @@ class DartDatabase:
                     with open(schema_path, 'r') as f:
                         conn.executescript(f.read())
                 conn.commit()
-    
+
+    def ensure_throw_order_column(self):
+        """Lagg till sub_match_participants.throw_order om kolumnen saknas"""
+        with sqlite3.connect(self.db_path) as conn:
+            if not has_throw_order_column(conn):
+                conn.execute("ALTER TABLE sub_match_participants ADD COLUMN throw_order INTEGER")
+
     def get_or_create_team(self, name: str, division: Optional[str] = None) -> int:
         """Get team ID or create new team if it doesn't exist"""
         with sqlite3.connect(self.db_path) as conn:
@@ -261,8 +324,24 @@ class DartDatabase:
             if result:
                 return  # Participant already exists, skip
             
+            # throw_order skrivs bara nar den ar kand, sa att databaser utan
+            # kolumnen fortsatter fungera for singlar och aldre dubblar
+            if participant_data.get('throw_order') is not None:
+                cursor.execute("""
+                    INSERT INTO sub_match_participants
+                    (sub_match_id, player_id, team_number, player_avg, throw_order)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    participant_data['sub_match_id'],
+                    participant_data['player_id'],
+                    participant_data['team_number'],
+                    participant_data.get('player_avg'),
+                    participant_data['throw_order']
+                ))
+                return
+
             cursor.execute("""
-                INSERT INTO sub_match_participants 
+                INSERT INTO sub_match_participants
                 (sub_match_id, player_id, team_number, player_avg)
                 VALUES (?, ?, ?, ?)
             """, (
@@ -444,10 +523,12 @@ class DartDatabase:
                 params.append(team_filter)
             
             where_clause = " AND ".join(where_conditions)
-            
+            throw_order_expr = throw_order_sql(conn)
+
             # Get all matches for this player with detailed stats and filtering
             cursor.execute(f"""
-                SELECT 
+                SELECT
+                    {throw_order_expr} as throw_order,
                     m.match_date,
                     m.season,
                     m.division,
@@ -575,11 +656,35 @@ class DartDatabase:
             # Calculate weighted average for singles (weight by number of darts)
             singles_avg_score = self._calculate_weighted_average(singles_avg_matches)
             
-            # Doubles stats  
+            # Doubles stats
             doubles_total = len(doubles_matches)
             doubles_wins = sum(1 for match in doubles_matches if match['won'])
             doubles_losses = doubles_total - doubles_wins
-            
+
+            # Individuellt pilsnitt i dubblar med fast kastordning, viktat pa pilar
+            individual_totals = {'points': 0, 'darts': 0, 'matches': 0}
+            individual_by_season = {}
+            for match in doubles_matches:
+                if match['throw_order'] is None:
+                    continue
+                cursor.execute("""
+                    SELECT t.round_number, t.score, t.remaining_score, t.darts_used
+                    FROM throws t
+                    JOIN legs l ON t.leg_id = l.id
+                    WHERE l.sub_match_id = ? AND t.team_number = ?
+                """, (match['sub_match_id'], match['team_number']))
+                own = individual_doubles_stats([dict(row) for row in cursor.fetchall()], match['throw_order'])
+                season_totals = individual_by_season.setdefault(
+                    match['season'], {'points': 0, 'darts': 0, 'matches': 0})
+                for totals in (individual_totals, season_totals):
+                    totals['points'] += own['points']
+                    totals['darts'] += own['darts']
+                    totals['matches'] += 1
+
+            def summarize_individual(totals):
+                average = totals['points'] / totals['darts'] * 3 if totals['darts'] else 0
+                return {'average_score': round(average, 2), 'matches': totals['matches']}
+
             return {
                 'player_id': player_id,
                 'player_name': player_name,
@@ -599,7 +704,12 @@ class DartDatabase:
                     'total_matches': doubles_total,
                     'wins': doubles_wins,
                     'losses': doubles_losses,
-                    'win_percentage': (doubles_wins / max(1, doubles_total)) * 100
+                    'win_percentage': (doubles_wins / max(1, doubles_total)) * 100,
+                    'individual': summarize_individual(individual_totals),
+                    'individual_by_season': {
+                        season: summarize_individual(totals)
+                        for season, totals in individual_by_season.items()
+                    }
                 },
                 'recent_matches': matches  # All matches
             }

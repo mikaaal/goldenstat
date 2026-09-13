@@ -2,6 +2,7 @@ import re
 import sqlite3
 from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template
+from database import throw_order_sql, individual_doubles_stats, visit_throw_order
 
 matches_bp = Blueprint('matches', __name__)
 
@@ -44,13 +45,15 @@ def get_sub_match_info(sub_match_id):
 
             # Get players for each team
             team_players = {}
+            throw_order_expr = throw_order_sql(conn)
 
             for team_num in [1, 2]:
-                cursor.execute("""
+                cursor.execute(f"""
                     SELECT
                         p.name as original_name,
                         smp.player_avg,
-                        smp.player_id
+                        smp.player_id,
+                        {throw_order_expr} as throw_order
                     FROM sub_match_participants smp
                     JOIN players p ON smp.player_id = p.id
                     WHERE smp.sub_match_id = ? AND smp.team_number = ?
@@ -81,7 +84,8 @@ def get_sub_match_info(sub_match_id):
                     canonical_players.append({
                         'name': display_name,
                         'player_id': player['player_id'],
-                        'average': player['player_avg']
+                        'average': player['player_avg'],
+                        'throw_order': player['throw_order']
                     })
 
                 # Deduplicate: if "Erik" and "Erik (Oilers)" both appear with the same avg,
@@ -189,6 +193,17 @@ def get_sub_match_info(sub_match_id):
                     player['lost_legs_avg'] = round(lost_avg, 2)
                     player['won_legs_throws'] = len(won_leg_throws)
                     player['lost_legs_throws'] = len(lost_leg_throws)
+
+                    # Dubbel med fast kastordning: spelarens egna besok
+                    player['individual'] = None
+                    if player['throw_order'] is not None:
+                        own = individual_doubles_stats(team_throws, player['throw_order'])
+                        player['individual'] = {
+                            'average': own['average'],
+                            'won_legs_avg': individual_doubles_stats(won_leg_throws, player['throw_order'])['average'],
+                            'lost_legs_avg': individual_doubles_stats(lost_leg_throws, player['throw_order'])['average'],
+                            'visits': own['visits']
+                        }
 
             return jsonify({
                 'sub_match_info': dict(sub_match),
@@ -358,6 +373,29 @@ def get_sub_match_player_throws(sub_match_id, player_name):
 
             throws = [dict(row) for row in cursor.fetchall()]
 
+            # Dubbel med fast kastordning: knyt varje besok till en spelare
+            throw_order_expr = throw_order_sql(conn)
+            cursor.execute(f"""
+                SELECT
+                    smp.team_number,
+                    {throw_order_expr} as throw_order,
+                    COALESCE(smpm.correct_player_name, p.name) as name
+                FROM sub_match_participants smp
+                JOIN players p ON smp.player_id = p.id
+                LEFT JOIN sub_match_player_mappings smpm
+                    ON smpm.sub_match_id = smp.sub_match_id AND smpm.original_player_id = smp.player_id
+                WHERE smp.sub_match_id = ? AND {throw_order_expr} IS NOT NULL
+                ORDER BY smp.team_number, throw_order
+            """, (sub_match_id,))
+
+            individual_statistics = {}
+            for row in cursor.fetchall():
+                team_throws = [t for t in throws if t['team_number'] == row['team_number']]
+                own_stats = individual_doubles_stats(team_throws, row['throw_order'])
+                own_stats['name'] = row['name']
+                individual_statistics.setdefault(row['team_number'], []).append(own_stats)
+            fixed_order = bool(individual_statistics)
+
             # Separate throws by player and opponent
             player_throws = [t for t in throws if t['team_number'] == sub_match_info['team_number']]
             opponent_throws = [t for t in throws if t['team_number'] != sub_match_info['team_number']]
@@ -399,7 +437,8 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                     'round_number': throw['round_number'],
                     'score': throw['score'],
                     'remaining_score': throw['remaining_score'],
-                    'darts_used': throw['darts_used']
+                    'darts_used': throw['darts_used'],
+                    'throw_order': visit_throw_order(throw['round_number']) if fixed_order else None
                 })
 
             for throw in opponent_throws:
@@ -408,7 +447,8 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                     'round_number': throw['round_number'],
                     'score': throw['score'],
                     'remaining_score': throw['remaining_score'],
-                    'darts_used': throw['darts_used']
+                    'darts_used': throw['darts_used'],
+                    'throw_order': visit_throw_order(throw['round_number']) if fixed_order else None
                 })
 
             # Calculate statistics for both players
@@ -429,6 +469,9 @@ def get_sub_match_player_throws(sub_match_id, player_name):
 
                 # Use the database player_avg instead of calculating it
                 avg_score = sub_match_info['player_avg'] if team_number == sub_match_info['team_number'] else opponent_avg
+                if fixed_order and sub_match_info[f'team{team_number}_avg']:
+                    # player_avg ar individuellt i dubbel med fast kastordning
+                    avg_score = sub_match_info[f'team{team_number}_avg']
                 max_score = max(scores, default=0)
                 legs_won = sum(1 for leg in legs_with_throws.values() if leg['winner_team'] == team_number)
 
@@ -604,7 +647,8 @@ def get_sub_match_player_throws(sub_match_id, player_name):
                 'opponent_statistics': {
                     **opponent_stats,
                     'legs_total': len(legs_with_throws)
-                }
+                },
+                'individual_statistics': individual_statistics
             })
 
     except Exception as e:
@@ -738,13 +782,16 @@ def get_match_overview(match_id):
                     sm.match_name,
                     sm.match_type,
                     sm.team1_legs,
-                    sm.team2_legs
+                    sm.team2_legs,
+                    sm.team1_avg,
+                    sm.team2_avg
                 FROM sub_matches sm
                 WHERE sm.match_id = ?
                 ORDER BY sm.id
             """, (match_id,))
 
             sub_matches_raw = cursor.fetchall()
+            throw_order_expr = throw_order_sql(conn)
 
             # Process each sub-match to get player info and averages
             sub_matches = []
@@ -809,6 +856,19 @@ def get_match_overview(match_id):
                     team2_players.append(name)
                     if player['player_avg']:
                         team2_avg = max(team2_avg, player['player_avg'])
+
+                # Dubbel med fast kastordning: player_avg ar individuellt,
+                # lagets snitt ligger pa sub-matchen
+                cursor.execute(f"""
+                    SELECT DISTINCT smp.team_number
+                    FROM sub_match_participants smp
+                    WHERE smp.sub_match_id = ? AND {throw_order_expr} IS NOT NULL
+                """, (sm['id'],))
+                fixed_order_teams = {row['team_number'] for row in cursor.fetchall()}
+                if 1 in fixed_order_teams and sm['team1_avg']:
+                    team1_avg = sm['team1_avg']
+                if 2 in fixed_order_teams and sm['team2_avg']:
+                    team2_avg = sm['team2_avg']
 
                 # Derive match_type from position (handles imports where Dubbel was tagged as Singles)
                 effective_match_type = 'Doubles' if position.startswith('D') or position == 'AD' else 'Singles'

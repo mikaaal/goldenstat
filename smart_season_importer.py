@@ -6,7 +6,7 @@ Baserad på NewSeasonImporter men med intelligent spelarmappning
 import time
 import sqlite3
 from typing import List, Dict, Optional
-from new_season_importer import NewSeasonImporter
+from new_season_importer import NewSeasonImporter, fixed_doubles_order_applies, individual_doubles_averages
 from smart_import_handler import SmartPlayerMatcher
 import datetime
 
@@ -79,7 +79,7 @@ class SmartSeasonImporter(NewSeasonImporter):
             return team_name.split('(')[0].strip()
         return team_name.strip()
 
-    def import_players_smart(self, sub_match_id: int, stats_data: List[Dict], team1_id: int, team2_id: int, team1_name: str = None, team2_name: str = None):
+    def import_players_smart(self, sub_match_id: int, stats_data: List[Dict], team1_id: int, team2_id: int, team1_name: str = None, team2_name: str = None, submatch_data: Dict = None):
         """Import players med INTELLIGENT AUTOMATISK mappning - ersätter original import_players"""
         try:
             # Använd de riktiga teamnamnen från match_info (fallback till ID-lookup)
@@ -102,7 +102,14 @@ class SmartSeasonImporter(NewSeasonImporter):
                 if not order:  # Skippa om order är None eller tom lista
                     continue
 
-                for player_info in order:
+                # Dubbel med fast kastordning: varje besök kan knytas till en
+                # spelare, så player_avg blir spelarens eget snitt i stället för lagets
+                fixed_order = submatch_data is not None and fixed_doubles_order_applies(
+                    submatch_data, order, self.fixed_doubles_order_from)
+                individual_avgs = (individual_doubles_averages(submatch_data.get('legData'), team_index)
+                                   if fixed_order else None)
+
+                for position, player_info in enumerate(order):
                     raw_player_name = player_info.get('oname', 'Unknown').strip()
 
                     if not raw_player_name or raw_player_name == 'Unknown':
@@ -126,7 +133,8 @@ class SmartSeasonImporter(NewSeasonImporter):
                         'sub_match_id': sub_match_id,
                         'player_id': final_player_id,
                         'team_number': team_number,
-                        'player_avg': player_avg
+                        'player_avg': individual_avgs[position] if fixed_order else player_avg,
+                        'throw_order': position if fixed_order else None
                     }
 
                     self.db.insert_sub_match_participant(participant_data)
@@ -588,7 +596,8 @@ class SmartSeasonImporter(NewSeasonImporter):
             sub_match_id = self.db.insert_sub_match(sub_match_info)
 
             # Import players med SMART MATCHING
-            self.import_players_smart(sub_match_id, stats_data, team1_id, team2_id, team1_name, team2_name)
+            self.import_players_smart(sub_match_id, stats_data, team1_id, team2_id, team1_name, team2_name,
+                                      submatch_data=submatch_data)
 
             # Import legs and throws (unchanged)
             leg_data_list = submatch_data.get('legData', [])
@@ -758,7 +767,8 @@ class SmartSeasonImporter(NewSeasonImporter):
             sub_match_id = self.db.insert_sub_match(sub_match_data)
 
             # Import players MED SMART MAPPNING
-            self.import_players_smart(sub_match_id, stats, team1_id, team2_id, team1_name, team2_name)
+            self.import_players_smart(sub_match_id, stats, team1_id, team2_id, team1_name, team2_name,
+                                      submatch_data=submatch_data)
 
             # Import legs and throws (samma som NewSeasonImporter)
             leg_data_list = submatch_data.get('legData', [])

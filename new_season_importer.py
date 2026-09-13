@@ -5,12 +5,13 @@ Uses the new API endpoints for importing match data
 """
 import requests
 import json
+import os
 import re
 import time
 from itertools import combinations
 from typing import List, Dict, Optional, Any
 from datetime import datetime
-from database import DartDatabase, MissingDatabaseError
+from database import DartDatabase, MissingDatabaseError, DOUBLES_TEAM_SIZE
 
 # Sasongen star i matchtiteln, t.ex.
 #   "Stockholmsserien (2025/2026) - 2A Division 2A Doubles1"
@@ -33,12 +34,94 @@ def season_from_date(match_date: datetime) -> str:
     return f"{year - 1}/{year}"
 
 
+# Fran sasongen 2026/2027 borjar alltid lagets forsta spelare varje leg i en
+# dubbel, sa varje besok kan knytas till en spelare (se database.DOUBLES_TEAM_SIZE).
+# Galler bara serier dar regeln ar bekraftad, nyckel = databasfilens namn.
+# Riksserien ar inte bekraftad: fel attribution ger tyst felaktiga spelarsnitt,
+# medan en serie som saknas har bara visar lagsnitt som tidigare. Nar en serie
+# laggs till galler det matcher som importeras darefter.
+FIXED_DOUBLES_ORDER_FROM = {
+    "goldenstat.db": datetime(2026, 8, 1),
+}
+
+
+def fixed_doubles_order_start(db_path: str) -> Optional[datetime]:
+    """Fran vilket datum regeln galler for databasen, None om den inte galler"""
+    return FIXED_DOUBLES_ORDER_FROM.get(os.path.basename(db_path))
+
+
+def fixed_doubles_order_applies(submatch_data: Dict, order: List[Dict], rule_from: Optional[datetime]) -> bool:
+    """Kan lagets besok i den har sub-matchen knytas till enskilda spelare?"""
+    if rule_from is None:
+        return False
+    if len(order) != DOUBLES_TEAM_SIZE:
+        return False
+    for player_info in order:
+        name = (player_info.get('oname') or '').strip()
+        if not name or name == 'Unknown':
+            return False
+
+    start_time = submatch_data.get('startTime', 0)
+    if start_time > 1000000000000:  # Milliseconds
+        start_time = start_time / 1000
+    if not start_time or datetime.fromtimestamp(start_time) < rule_from:
+        return False
+
+    # Attributionen raknar besok fran startmarkoren. Saknas den i nagot leg
+    # skulle alla besok i det leget hamna pa fel spelare.
+    start_score = submatch_data.get('startScore')
+    for leg in submatch_data.get('legData') or []:
+        for visits in leg.get('playerData') or []:
+            if not visits or visits[0].get('score') != 0:
+                return False
+            if start_score and visits[0].get('left') != start_score:
+                return False
+    return True
+
+
+def individual_doubles_averages(leg_data_list: List[Dict], team_index: int) -> List[float]:
+    """Individuellt snitt per plats i lagets kastordning, ur n01:s legData.
+
+    Varje lags playerData borjar med en startmarkor, darefter alternerar
+    besoken mellan order[0] och order[1]. Negativ score ar en checkout dar
+    beloppet ar antal pilar och poangen ar det som aterstod fore besoket.
+    """
+    points = [0] * DOUBLES_TEAM_SIZE
+    darts = [0] * DOUBLES_TEAM_SIZE
+
+    for leg in leg_data_list or []:
+        player_data = leg.get('playerData') or []
+        if team_index >= len(player_data):
+            continue
+
+        prev_left = None
+        for visit_index, visit in enumerate(player_data[team_index]):
+            score = visit.get('score', 0)
+            left = visit.get('left', 0)
+            if visit_index == 0:
+                prev_left = left
+                continue
+
+            position = (visit_index - 1) % DOUBLES_TEAM_SIZE
+            if score < 0:
+                points[position] += prev_left if prev_left is not None else 0
+                darts[position] += abs(score)
+            else:
+                points[position] += score
+                darts[position] += 3
+            prev_left = left
+
+    return [round(p / d * 3, 2) if d else 0 for p, d in zip(points, darts)]
+
+
 class NewSeasonImporter:
     def __init__(self, db_path: str = "goldenstat.db", create_if_missing: bool = False):
         # create_if_missing=False som default: en import ska skriva till en
         # databas som redan finns. Annars kan fel DB_PATH tyst skapa en ny
         # databas och lagga datan i fel serie.
         self.db = DartDatabase(db_path, create_if_missing=create_if_missing)
+        self.db.ensure_throw_order_column()
+        self.fixed_doubles_order_from = fixed_doubles_order_start(db_path)
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -339,7 +422,7 @@ class NewSeasonImporter:
             sub_match_id = self.db.insert_sub_match(sub_match_data)
             
             # Import players
-            self.import_players(sub_match_id, stats, team1_id, team2_id)
+            self.import_players(sub_match_id, stats, team1_id, team2_id, submatch_data)
             
             # Import legs and throws
             leg_data_list = submatch_data.get('legData', [])
@@ -349,31 +432,40 @@ class NewSeasonImporter:
         except Exception as e:
             print(f"❌ Error importing sub-match: {e}")
     
-    def import_players(self, sub_match_id: int, stats_data: List[Dict], team1_id: int, team2_id: int):
+    def import_players(self, sub_match_id: int, stats_data: List[Dict], team1_id: int, team2_id: int,
+                       submatch_data: Dict = None):
         """Import players for this sub-match"""
         try:
             for team_index, team_stats in enumerate(stats_data):
                 team_number = team_index + 1
                 player_avg = 0
-                
+
                 # Calculate player average
                 all_score = team_stats.get('allScore', 0)
                 all_darts = team_stats.get('allDarts', 0)
                 if all_darts > 0:
                     player_avg = round((all_score / all_darts) * 3, 2)
-                
+
                 # Get player names from order
                 order = team_stats.get('order', [])
-                for player_info in order:
+
+                # Dubbel med fast kastordning: individuellt snitt i stallet for lagets
+                fixed_order = submatch_data is not None and fixed_doubles_order_applies(
+                    submatch_data, order, self.fixed_doubles_order_from)
+                individual_avgs = (individual_doubles_averages(submatch_data.get('legData'), team_index)
+                                   if fixed_order else None)
+
+                for position, player_info in enumerate(order):
                     player_name = player_info.get('oname', 'Unknown')
                     player_id = self.db.get_or_create_player(player_name)
-                    
+
                     # Insert participant
                     participant_data = {
                         'sub_match_id': sub_match_id,
                         'player_id': player_id,
                         'team_number': team_number,
-                        'player_avg': player_avg
+                        'player_avg': individual_avgs[position] if fixed_order else player_avg,
+                        'throw_order': position if fixed_order else None
                     }
                     
                     self.db.insert_sub_match_participant(participant_data)

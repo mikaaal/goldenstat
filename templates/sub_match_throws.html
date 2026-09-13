@@ -561,6 +561,7 @@ function displayThrowData(data) {
                                 <span class="stat-label">Höga utg.</span>
                             </div>
                         </div>
+                        ${individualStatsHtml(data, 1)}
                     </div>
                 </div>
             </div>
@@ -626,6 +627,7 @@ function displayThrowData(data) {
                                 <span class="stat-label">Höga utg.</span>
                             </div>
                         </div>
+                        ${individualStatsHtml(data, 2)}
                     </div>
                 </div>
             </div>
@@ -725,11 +727,13 @@ function displayThrowData(data) {
                     dartInfo = team1Throw.remaining_score;
                 }
 
+                const team1Visitor = visitPlayerName(data, 1, team1Throw);
                 const innerContent = `
                     <div class="card ${scoreClass} px-2 py-1 me-2" style="min-width: 60px;">
                         <div class="fw-bold">${displayScore}</div>
                     </div>
                     <small class="${textClass}">${dartInfo}</small>
+                    ${team1Visitor ? `<small class="text-muted ms-2 fst-italic">${team1Visitor}</small>` : ''}
                 `;
 
                 legsHtml += `
@@ -785,7 +789,9 @@ function displayThrowData(data) {
                     dartInfo = team2Throw.remaining_score;
                 }
 
+                const team2Visitor = visitPlayerName(data, 2, team2Throw);
                 const innerContent = `
+                    ${team2Visitor ? `<small class="text-muted me-2 fst-italic">${team2Visitor}</small>` : ''}
                     <small class="${textClass}">${dartInfo}</small>
                     <div class="card ${scoreClass} px-2 py-1" style="min-width: 60px;">
                         <div class="fw-bold">${displayScore}</div>
@@ -824,6 +830,53 @@ function displayThrowData(data) {
     
     document.getElementById('legs-container').innerHTML = legsHtml;
     document.getElementById('throws-content').classList.remove('d-none');
+}
+
+// Dubbel med fast kastordning (fr.o.m. 2026/2027): varje besök hör till en spelare
+function individualStatsHtml(data, teamNumber) {
+    const players = (data.individual_statistics || {})[teamNumber];
+    if (!players || players.length === 0) return '';
+
+    const rows = players.map(p => `
+        <tr>
+            <td class="text-start">${makePlayerNameClickable(p.name)}</td>
+            <td><strong>${p.average.toFixed(2)}</strong></td>
+            <td>${p.throws_100_139}</td>
+            <td>${p.throws_140_179}</td>
+            <td>${p.throws_180}</td>
+            <td>${p.high_finishes_detail.length > 0 ? p.high_finishes_detail.join(', ') : '-'}</td>
+        </tr>
+    `).join('');
+
+    return `
+        <div class="table-responsive mt-2">
+            <table class="table table-sm mb-0 text-center">
+                <thead>
+                    <tr>
+                        <th class="text-start">Egna kast</th>
+                        <th>Snitt</th>
+                        <th>100+</th>
+                        <th>140+</th>
+                        <th>180</th>
+                        <th>Höga utg.</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+    `;
+}
+
+function visitPlayerName(data, teamNumber, throwData) {
+    if (!throwData || throwData.throw_order === null || throwData.throw_order === undefined) return '';
+    const players = (data.individual_statistics || {})[teamNumber] || [];
+    const player = players.find(p => p.throw_order === throwData.throw_order);
+    if (!player) return '';
+
+    // Förnamn räcker, utom när båda spelarna i laget heter samma sak
+    const firstName = player.name.split(' ')[0];
+    const sameFirstName = players.filter(p => p.name.split(' ')[0] === firstName).length > 1;
+    return sameFirstName ? player.name : firstName;
 }
 
 function getScoreClass(score) {
