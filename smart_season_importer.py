@@ -6,7 +6,12 @@ Baserad på NewSeasonImporter men med intelligent spelarmappning
 import time
 import sqlite3
 from typing import List, Dict, Optional
-from new_season_importer import NewSeasonImporter, fixed_doubles_order_applies, individual_doubles_averages
+from new_season_importer import (
+    NewSeasonImporter,
+    detect_match_type,
+    fixed_doubles_order_applies,
+    individual_doubles_averages,
+)
 from smart_import_handler import SmartPlayerMatcher
 import datetime
 
@@ -725,17 +730,16 @@ class SmartSeasonImporter(NewSeasonImporter):
         try:
             # Extract sub-match info (samma som NewSeasonImporter)
             title = submatch_data.get('title', '')
-            # AD (Avgörande Dubbel) is always Doubles
-            if 'Doubles' in title or ' AD' in title or title.endswith('AD'):
-                match_type = 'Doubles'
-            else:
-                match_type = 'Singles'
 
             # Get match name from title
             match_name = title
 
             # Get leg wins for each team
             stats = submatch_data.get('statsData', [])
+
+            # Titeln raknas inte alltid pa engelska (SL6/1FA skriver "Dubbel 1"),
+            # sa antalet spelare i order far avgora nar titeln inte sager nagot
+            match_type = detect_match_type(title, stats)
             team1_legs = stats[0].get('winLegs', 0) if len(stats) > 0 else 0
             team2_legs = stats[1].get('winLegs', 0) if len(stats) > 1 else 0
 

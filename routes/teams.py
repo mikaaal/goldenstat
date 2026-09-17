@@ -6,10 +6,33 @@ from database import throw_order_sql
 
 teams_bp = Blueprint('teams', __name__)
 
+# Namnet avgor singel/dubbel, inte sm.match_type: divisioner som SL6 och 1FA
+# skriver "Dubbel 1" i stallet for "Doubles1", och de matcherna har importerats
+# med match_type = 'Singles'. Samma uttryck anvands i spelarstatistiken.
+CORRECTED_MATCH_TYPE = """CASE
+                            WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %'
+                                 OR sm.match_name LIKE '%Dubbel%' OR sm.match_name LIKE '%Doubles%' THEN 'Doubles'
+                            ELSE sm.match_type
+                        END"""
+
 
 def _get_current_db_path():
     from app import get_current_db_path
     return get_current_db_path()
+
+
+def _lineup_position(match_name, match_type):
+    """Position (S1, D2, AD, Lag) for en delmatch i uppstallningen.
+
+    Samma tolkning som resten av appen, sa att svenska namn ("Singel 5",
+    "Dubbel 3") och engelska ("Singles5") hanteras lika. Tidigare listade
+    SQL-fragan bara Singel 1-4 och Dubbel 1-2, sa ovriga foll bort helt.
+    """
+    from app import parse_match_position
+
+    if match_name and ' Lag (' in match_name:
+        return 'Lag'
+    return parse_match_position(match_name, match_type)
 
 
 def _calculate_trends(cursor, where_clause, params, team_filter, team_filter_op, match_type):
@@ -45,7 +68,6 @@ def _calculate_trends(cursor, where_clause, params, team_filter, team_filter_op,
               AND CASE
                   WHEN sm.match_name LIKE '%% AD' OR sm.match_name LIKE '%% AD %%' THEN 'Doubles'
                   WHEN sm.match_name LIKE '%%Dubbel%%' OR sm.match_name LIKE '%%Doubles%%' THEN 'Doubles'
-                  WHEN sm.match_name LIKE '%%Singel%%' OR sm.match_name LIKE '%%Singles%%' THEN 'Singles'
                   ELSE sm.match_type
               END = ?
               AND smp.player_avg > 0
@@ -242,45 +264,31 @@ def get_team_lineup(team_name):
                     WHERE {where_clause}
                       AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
                     GROUP BY COALESCE(smpm.correct_player_name, p.name), sm.match_name, sm.match_type
-                ),
-                position_stats AS (
-                    SELECT
-                        player_name,
-                        CASE
-                            WHEN match_name LIKE '% AD%' OR match_name LIKE '%AD' THEN 'AD'
-                            WHEN match_name LIKE '% Singles1%' THEN 'S1'
-                            WHEN match_name LIKE '% Singles2%' THEN 'S2'
-                            WHEN match_name LIKE '% Singles3%' THEN 'S3'
-                            WHEN match_name LIKE '% Singles4%' THEN 'S4'
-                            WHEN match_name LIKE '% Singles5%' THEN 'S5'
-                            WHEN match_name LIKE '% Singles6%' THEN 'S6'
-                            WHEN match_name LIKE '% Doubles1%' THEN 'D1'
-                            WHEN match_name LIKE '% Doubles2%' THEN 'D2'
-                            WHEN match_name LIKE '% Doubles3%' THEN 'D3'
-                            WHEN match_name LIKE '%Singel 1 %' OR match_name LIKE '%Singel 1(%' THEN 'S1'
-                            WHEN match_name LIKE '%Singel 2 %' OR match_name LIKE '%Singel 2(%' THEN 'S2'
-                            WHEN match_name LIKE '%Singel 3 %' OR match_name LIKE '%Singel 3(%' THEN 'S3'
-                            WHEN match_name LIKE '%Singel 4 %' OR match_name LIKE '%Singel 4(%' THEN 'S4'
-                            WHEN match_name LIKE '%Dubbel 1 %' OR match_name LIKE '%Dubbel 1(%' THEN 'D1'
-                            WHEN match_name LIKE '%Dubbel 2 %' OR match_name LIKE '%Dubbel 2(%' THEN 'D2'
-                            WHEN match_name LIKE '% Lag (%' THEN 'Lag'
-                            ELSE 'Unknown'
-                        END as position,
-                        SUM(matches_in_position) as total_matches
-                    FROM position_data
-                    GROUP BY player_name, position
-                    HAVING position != 'Unknown'
                 )
-                SELECT
-                    position,
-                    player_name,
-                    total_matches,
-                    ROW_NUMBER() OVER (PARTITION BY position ORDER BY total_matches DESC) as rank
-                FROM position_stats
-                ORDER BY position, total_matches DESC
+                SELECT player_name, match_name, match_type, matches_in_position
+                FROM position_data
             """, params + [team_name])
 
-            position_data = cursor.fetchall()
+            # Positionen tolkas i Python, sa att alla namnvarianter hanteras
+            position_totals = defaultdict(int)
+            for row in cursor.fetchall():
+                position = _lineup_position(row['match_name'], row['match_type'])
+                if position:
+                    position_totals[(position, row['player_name'])] += row['matches_in_position']
+
+            position_data = []
+            for position in sorted({pos for pos, _ in position_totals}):
+                players = sorted(
+                    ((name, total) for (pos, name), total in position_totals.items() if pos == position),
+                    key=lambda item: (-item[1], item[0])
+                )
+                for rank, (name, total) in enumerate(players, 1):
+                    position_data.append({
+                        'position': position,
+                        'player_name': name,
+                        'total_matches': total,
+                        'rank': rank,
+                    })
 
             # Get total team matches for percentage calculation
             cursor.execute(f"""
@@ -436,10 +444,7 @@ def get_team_players(team_name):
                         COALESCE(smpm.correct_player_name, p.name) as player_name,
                         sm.id as sub_match_id,
                         sm.match_name,
-                        CASE
-                            WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' THEN 'Doubles'
-                            ELSE sm.match_type
-                        END as corrected_match_type,
+                        {CORRECTED_MATCH_TYPE} as corrected_match_type,
                         m.id as match_id,
                         m.season,
                         smp.team_number,
@@ -518,10 +523,7 @@ def get_team_players(team_name):
                         )
                           AND {where_clause}
                           AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) = ?
-                          AND CASE
-                              WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' THEN 'Doubles'
-                              ELSE sm.match_type
-                          END = 'Singles'
+                          AND {CORRECTED_MATCH_TYPE} = 'Singles'
                           AND smp.player_avg > 0
                     """, [player_id, player_name] + params + [team_name])
 
@@ -1046,10 +1048,7 @@ def get_club_players(club_name):
                         COALESCE(smpm.correct_player_name, p.name) as player_name,
                         sm.id as sub_match_id,
                         sm.match_name,
-                        CASE
-                            WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' THEN 'Doubles'
-                            ELSE sm.match_type
-                        END as corrected_match_type,
+                        {CORRECTED_MATCH_TYPE} as corrected_match_type,
                         m.id as match_id,
                         m.season,
                         smp.team_number,
@@ -1129,10 +1128,7 @@ def get_club_players(club_name):
                         )
                           AND {where_clause}
                           AND (CASE WHEN smp.team_number = 1 THEN t1.name ELSE t2.name END) IN ({team_name_placeholders})
-                          AND CASE
-                              WHEN sm.match_name LIKE '% AD' OR sm.match_name LIKE '% AD %' THEN 'Doubles'
-                              ELSE sm.match_type
-                          END = 'Singles'
+                          AND {CORRECTED_MATCH_TYPE} = 'Singles'
                           AND smp.player_avg > 0
                     """, [player_id, player_name] + params + team_names)
 
