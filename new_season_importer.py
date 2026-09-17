@@ -114,6 +114,25 @@ def individual_doubles_averages(leg_data_list: List[Dict], team_index: int) -> L
     return [round(p / d * 3, 2) if d else 0 for p, d in zip(points, darts)]
 
 
+def detect_match_type(title: str, stats_data: List[Dict]) -> str:
+    """Singel eller dubbel for en sub-match.
+
+    Titeln avgor i forsta hand (Doubles/Dubbel/AD), men divisioner skriver den
+    olika: SL6 och 1FA bytte till svenska namn sasongen 2026/2027. Antalet
+    spelare i lagets order ar facit nar titeln inte sager nagot.
+    """
+    title_lower = (title or '').lower()
+    if ('doubles' in title_lower or 'dubbel' in title_lower
+            or ' ad' in title_lower or title_lower.endswith('ad')):
+        return 'Doubles'
+
+    for team_stats in stats_data or []:
+        if len(team_stats.get('order') or []) > 1:
+            return 'Doubles'
+
+    return 'Singles'
+
+
 class NewSeasonImporter:
     def __init__(self, db_path: str = "goldenstat.db", create_if_missing: bool = False):
         # create_if_missing=False som default: en import ska skriva till en
@@ -373,12 +392,6 @@ class NewSeasonImporter:
         try:
             # Extract sub-match info
             title = submatch_data.get('title', '')
-            title_lower = title.lower()
-            # AD (Avgörande Dubbel) is always Doubles - use case-insensitive check
-            if 'doubles' in title_lower or 'dubbel' in title_lower or ' ad' in title_lower or title_lower.endswith('ad'):
-                match_type = 'Doubles'
-            else:
-                match_type = 'Singles'
 
             # Get match name from title
             match_name = title
@@ -386,11 +399,7 @@ class NewSeasonImporter:
             # Get leg wins for each team
             stats = submatch_data.get('statsData', [])
 
-            # Also check player count - if more than 1 player per team, it's doubles
-            team1_players = len([p for p in stats if p.get('tn') == 1])
-            team2_players = len([p for p in stats if p.get('tn') == 2])
-            if team1_players > 1 or team2_players > 1:
-                match_type = 'Doubles'
+            match_type = detect_match_type(title, stats)
             team1_legs = stats[0].get('winLegs', 0) if len(stats) > 0 else 0
             team2_legs = stats[1].get('winLegs', 0) if len(stats) > 1 else 0
             
