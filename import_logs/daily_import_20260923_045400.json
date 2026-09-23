@@ -1,0 +1,213 @@
+{
+  "import_id": "20260923_045400",
+  "start_time": "2026-09-23T04:54:00.582426",
+  "end_time": "2026-09-23T05:04:50.320500",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "current_match_urls/t_32LA_7602_match_urlsDS.txt",
+      "division_id": "t_32LA_7602",
+      "division_name": "DS",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T04:54:28.223939"
+    },
+    {
+      "file": "current_match_urls/t_dpKj_3369_match_urlsX1.txt",
+      "division_id": "t_dpKj_3369",
+      "division_name": "X1",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T04:54:43.913513"
+    },
+    {
+      "file": "current_match_urls/t_x93M_0624_match_urls3A.txt",
+      "division_id": "t_x93M_0624",
+      "division_name": "3A",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T04:55:02.340940"
+    },
+    {
+      "file": "current_match_urls/t_rTdF_8606_match_urlsSL6.txt",
+      "division_id": "t_rTdF_8606",
+      "division_name": "SL6",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T04:55:27.525461"
+    },
+    {
+      "file": "current_match_urls/t_tixC_9261_match_urls2B.txt",
+      "division_id": "t_tixC_9261",
+      "division_name": "2B",
+      "status": "success",
+      "matches_imported": 3,
+      "players_processed": 80,
+      "processed_at": "2026-09-23T04:55:51.868000"
+    },
+    {
+      "file": "current_match_urls/t_qpkW_3609_match_urlsSL4.txt",
+      "division_id": "t_qpkW_3609",
+      "division_name": "SL4",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T04:56:30.773530"
+    },
+    {
+      "file": "current_match_urls/t_FF3U_8995_match_urls3FA.txt",
+      "division_id": "t_FF3U_8995",
+      "division_name": "3FA",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T04:57:03.288698"
+    },
+    {
+      "file": "current_match_urls/t_H0pB_1342_match_urls2FA.txt",
+      "division_id": "t_H0pB_1342",
+      "division_name": "2FA",
+      "status": "success",
+      "matches_imported": 4,
+      "players_processed": 64,
+      "processed_at": "2026-09-23T04:57:46.025673"
+    },
+    {
+      "file": "current_match_urls/t_rE5E_7254_match_urls2FC.txt",
+      "division_id": "t_rE5E_7254",
+      "division_name": "2FC",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 96,
+      "processed_at": "2026-09-23T04:58:32.544822"
+    },
+    {
+      "file": "current_match_urls/t_7H5u_7019_match_urls3FF.txt",
+      "division_id": "t_7H5u_7019",
+      "division_name": "3FF",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T04:59:11.570682"
+    },
+    {
+      "file": "current_match_urls/t_fi8m_7108_match_urls1A.txt",
+      "division_id": "t_fi8m_7108",
+      "division_name": "1A",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T04:59:50.586325"
+    },
+    {
+      "file": "current_match_urls/t_WCna_0422_match_urls2FB.txt",
+      "division_id": "t_WCna_0422",
+      "division_name": "2FB",
+      "status": "success",
+      "matches_imported": 6,
+      "players_processed": 100,
+      "processed_at": "2026-09-23T05:00:37.101252"
+    },
+    {
+      "file": "current_match_urls/t_9Hn7_9308_match_urlsX2.txt",
+      "division_id": "t_9Hn7_9308",
+      "division_name": "X2",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T05:00:52.206722"
+    },
+    {
+      "file": "current_match_urls/t_ociN_8335_match_urls1FA.txt",
+      "division_id": "t_ociN_8335",
+      "division_name": "1FA",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T05:01:17.320742"
+    },
+    {
+      "file": "current_match_urls/t_egyN_6328_match_urls3FB.txt",
+      "division_id": "t_egyN_6328",
+      "division_name": "3FB",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T05:01:56.220948"
+    },
+    {
+      "file": "current_match_urls/t_dSZg_5782_match_urls3FD.txt",
+      "division_id": "t_dSZg_5782",
+      "division_name": "3FD",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T05:02:28.884123"
+    },
+    {
+      "file": "current_match_urls/t_tfvE_5300_match_urls1FB.txt",
+      "division_id": "t_tfvE_5300",
+      "division_name": "1FB",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T05:02:54.093796"
+    },
+    {
+      "file": "current_match_urls/t_ChE6_7771_match_urls3FC.txt",
+      "division_id": "t_ChE6_7771",
+      "division_name": "3FC",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T05:03:33.142811"
+    },
+    {
+      "file": "current_match_urls/t_KgUA_1037_match_urls3FE.txt",
+      "division_id": "t_KgUA_1037",
+      "division_name": "3FE",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T05:04:05.660252"
+    },
+    {
+      "file": "current_match_urls/t_RM4G_1438_match_urls4F.txt",
+      "division_id": "t_RM4G_1438",
+      "division_name": "4F",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-09-23T05:04:26.278968"
+    },
+    {
+      "file": "current_match_urls/t_sNUs_0075_match_urls2A.txt",
+      "division_id": "t_sNUs_0075",
+      "division_name": "2A",
+      "status": "success",
+      "matches_imported": 3,
+      "players_processed": 76,
+      "processed_at": "2026-09-23T05:04:50.319536"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 21,
+    "successful_files": 21,
+    "failed_files": 0,
+    "total_matches_imported": 22,
+    "total_players_processed": 416,
+    "auto_matched_high_confidence": 406,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 10
+  }
+}
