@@ -20,6 +20,17 @@ def _get_cache_backend():
     return None
 
 
+KNOWN_LEAGUES = ('riksserien', 'sommarserien')
+
+
+def _cache_key(prefix, *params):
+    """Cachenyckel av namngivna parametrar, sa att pahittade parametrar inte kringgar cachen."""
+    league = request.args.get('league', '')
+    parts = [league if league in KNOWN_LEAGUES else '']
+    parts += [request.args.get(p, '') for p in params]
+    return f"{prefix}_{'|'.join(parts)}"
+
+
 def get_current_season(db_path=None):
     """Aktuell sasong = sasongen for den senast spelade matchen.
 
@@ -290,7 +301,7 @@ def get_overview():
 def get_top_stats():
     """API endpoint to get top statistics"""
     cache_backend = _get_cache_backend()
-    cache_key = f"top_stats_{request.query_string.decode()}"
+    cache_key = _cache_key("top_stats", "season")
     if cache_backend:
         cached = cache_backend.get(cache_key)
         if cached is not None:
@@ -304,8 +315,10 @@ def get_top_stats():
             # Get optional season filter from query parameter
             season = request.args.get('season')
             season_filter = ""
+            season_params = []
             if season:
-                season_filter = f"AND m.season = '{season}'"
+                season_filter = "AND m.season = ?"
+                season_params = [season]
 
             # Top 10 highest averages in a single match (Singles only)
             cursor.execute(f"""
@@ -328,7 +341,7 @@ def get_top_stats():
                 {season_filter}
                 ORDER BY smp.player_avg DESC
                 LIMIT 10
-            """)
+            """, season_params)
             top_averages = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 highest checkouts
@@ -359,7 +372,7 @@ def get_top_stats():
                     {season_filter}
                 ORDER BY prev.remaining_score DESC, m.match_date DESC
                 LIMIT 10
-            """)
+            """, season_params)
             top_checkouts = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 shortest legs (minimum darts)
@@ -403,7 +416,7 @@ def get_top_stats():
                     {season_filter}
                 ORDER BY ld.total_darts ASC, m.match_date DESC
                 LIMIT 10
-            """)
+            """, season_params)
             shortest_sets = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 most 180s in a single match
@@ -438,7 +451,7 @@ def get_top_stats():
                 {season_filter}
                 ORDER BY m180.count_180 DESC, m.match_date DESC
                 LIMIT 10
-            """)
+            """, season_params)
             most_180s = [dict(row) for row in cursor.fetchall()]
 
             result = jsonify({
@@ -460,7 +473,7 @@ def get_top_stats():
 def get_weekly_stats():
     """API endpoint to get statistics for the current week"""
     cache_backend = _get_cache_backend()
-    cache_key = f"weekly_stats_{request.query_string.decode()}"
+    cache_key = _cache_key("weekly_stats", "division", "date_start", "date_end", "week_offset")
     if cache_backend:
         cached = cache_backend.get(cache_key)
         if cached is not None:
@@ -497,10 +510,12 @@ def get_weekly_stats():
                 end_of_week = start_of_week + timedelta(days=6, hours=23, minutes=59, seconds=59)
 
             # Build filter for SQL
-            week_filter = f"AND m.match_date >= '{start_of_week.strftime('%Y-%m-%d %H:%M:%S')}' AND m.match_date <= '{end_of_week.strftime('%Y-%m-%d %H:%M:%S')}'"
+            week_filter = "AND m.match_date >= ? AND m.match_date <= ?"
+            week_params = [start_of_week.strftime('%Y-%m-%d %H:%M:%S'), end_of_week.strftime('%Y-%m-%d %H:%M:%S')]
 
             if division:
-                week_filter += f" AND m.division = '{division}'"
+                week_filter += " AND m.division = ?"
+                week_params.append(division)
 
             # Top 10 highest averages this week
             # Note: We check both match_type AND player count to handle misclassified matches
@@ -537,7 +552,7 @@ def get_weekly_stats():
                 {week_filter}
                 ORDER BY smp.player_avg DESC
                 LIMIT 10
-            """)
+            """, week_params)
             top_averages = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 highest checkouts this week
@@ -582,7 +597,7 @@ def get_weekly_stats():
                 {week_filter}
                 ORDER BY prev.remaining_score DESC, m.match_date DESC
                 LIMIT 10
-            """)
+            """, week_params)
             top_checkouts = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 shortest legs this week
@@ -640,7 +655,7 @@ def get_weekly_stats():
                 {week_filter}
                 ORDER BY ld.total_darts ASC, m.match_date DESC
                 LIMIT 10
-            """)
+            """, week_params)
             shortest_sets = [dict(row) for row in cursor.fetchall()]
 
             # Top 10 most 100+ throws in a single match this week
@@ -689,7 +704,7 @@ def get_weekly_stats():
                 {week_filter}
                 ORDER BY m100.count_100plus DESC, m.match_date DESC
                 LIMIT 10
-            """)
+            """, week_params)
             most_100plus = [dict(row) for row in cursor.fetchall()]
 
             # Get total matches this week for context
@@ -697,7 +712,7 @@ def get_weekly_stats():
                 SELECT COUNT(DISTINCT m.id) as total_matches
                 FROM matches m
                 WHERE 1=1 {week_filter}
-            """)
+            """, week_params)
             total_matches = cursor.fetchone()['total_matches']
 
             result = jsonify({
@@ -724,7 +739,7 @@ def get_weekly_stats():
 def get_available_weeks():
     """API endpoint to get list of weeks (or rounds for riksserien) that have match data"""
     cache_backend = _get_cache_backend()
-    cache_key = f"available_weeks_{request.query_string.decode()}"
+    cache_key = _cache_key("available_weeks")
     if cache_backend:
         cached = cache_backend.get(cache_key)
         if cached is not None:
