@@ -42,8 +42,8 @@
     <!-- Players Tab -->
     <div class="tab-pane fade{% if tab == 'players' %} show active{% endif %}" id="players-tab-content" role="tabpanel">
 
-<!-- Nyhetsbanner -->
-{% if league != 'sommarserien' %}
+<!-- Nyhetsbanner: dold tills vidare, byt false mot ett villkor för att visa den igen -->
+{% if false %}
 <div class="news-banner mb-4">
     <div class="news-banner-header">
         <span class="news-icon">🎉</span>
@@ -124,20 +124,6 @@
             <div class="card-body" id="teamResultsBody">
                 <!-- Team lineup will be loaded here -->
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Beta-varning längst ner -->
-<div class="row justify-content-center mt-5">
-    <div class="col-md-10 col-lg-8">
-        <div class="alert alert-warning alert-dismissible d-flex align-items-center py-2" role="alert">
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <div class="flex-grow-1">
-                <small class="text-muted mb-0">Statistik för spelade seriematcher baserat på data från nakka.com</small>
-                <strong>Betaversion:</strong> Det kan förekomma fel i hur data visas.
-            </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     </div>
 </div>
