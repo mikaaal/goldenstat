@@ -366,12 +366,10 @@ function makePlayerNameClickable(playerName) {
         const players = playerName.split(' / ');
         return players.map(player => {
             const trimmedPlayer = player.trim();
-            const escapedName = trimmedPlayer.replace(/'/g, "\\'");
-            return `<span class="player-link" onclick="navigateToPlayer('${escapedName}', event)" title="Klicka for att se ${trimmedPlayer}">${trimmedPlayer}</span>`;
+            return `<span class="player-link" onclick="navigateToPlayer('${escJs(trimmedPlayer)}', event)" title="Klicka for att se ${esc(trimmedPlayer)}">${esc(trimmedPlayer)}</span>`;
         }).join(' / ');
     } else {
-        const escapedName = playerName.replace(/'/g, "\\'");
-        return `<span class="player-link" onclick="navigateToPlayer('${escapedName}', event)" title="Klicka for att se ${playerName}">${playerName}</span>`;
+        return `<span class="player-link" onclick="navigateToPlayer('${escJs(playerName)}', event)" title="Klicka for att se ${esc(playerName)}">${esc(playerName)}</span>`;
     }
 }
 
@@ -400,7 +398,7 @@ async function loadMatchOverview() {
 
         displayMatchOverview(data);
     } catch (error) {
-        document.getElementById('error-message').innerHTML = `Fel: ${error.message}`;
+        document.getElementById('error-message').innerHTML = `Fel: ${esc(error.message)}`;
         document.getElementById('error-message').classList.remove('d-none');
     } finally {
         document.getElementById('loading').classList.add('d-none');
@@ -471,14 +469,14 @@ function displayMatchOverview(data) {
     matchHeader.innerHTML = `
         <div class="text-center mb-3 match-info-badges">
             <span class="badge bg-secondary fs-6 px-3 py-2">${matchInfo.match_date ? new Date(matchInfo.match_date).toLocaleDateString('sv-SE') : 'Okant datum'}</span>
-            <span class="badge bg-info fs-6 px-3 py-2">${matchInfo.season || ''}</span>
-            <span class="badge bg-primary fs-6 px-3 py-2">${matchInfo.division || ''}</span>
+            <span class="badge bg-info fs-6 px-3 py-2">${esc(matchInfo.season || '')}</span>
+            <span class="badge bg-primary fs-6 px-3 py-2">${esc(matchInfo.division || '')}</span>
         </div>
         <div class="row text-center mb-4 align-items-center">
             <div class="col-md-5">
                 <a href="/?tab=teams&team=${encodeURIComponent(matchInfo.team1_name)}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="team-link ${team1BoxClass}">
                     <span class="team-icon">${team1Icon}</span>
-                    <h5 class="team-name mb-0">${matchInfo.team1_name}</h5>
+                    <h5 class="team-name mb-0">${esc(matchInfo.team1_name)}</h5>
                 </a>
             </div>
             <div class="col-md-2 d-flex align-items-center justify-content-center">
@@ -489,7 +487,7 @@ function displayMatchOverview(data) {
             <div class="col-md-5">
                 <a href="/?tab=teams&team=${encodeURIComponent(matchInfo.team2_name)}${LEAGUE_PARAM ? '&' + LEAGUE_PARAM : ''}" class="team-link ${team2BoxClass}">
                     <span class="team-icon">${team2Icon}</span>
-                    <h5 class="team-name mb-0">${matchInfo.team2_name}</h5>
+                    <h5 class="team-name mb-0">${esc(matchInfo.team2_name)}</h5>
                 </a>
             </div>
         </div>
@@ -502,9 +500,9 @@ function displayMatchOverview(data) {
             <thead class="table-light">
                 <tr>
                     <th class="text-center" style="width: 50px;">Match</th>
-                    <th class="text-end">${matchInfo.team1_name}</th>
+                    <th class="text-end">${esc(matchInfo.team1_name)}</th>
                     <th class="text-center" style="width: 70px;">Resultat</th>
-                    <th>${matchInfo.team2_name}</th>
+                    <th>${esc(matchInfo.team2_name)}</th>
                     <th class="text-center" style="width: 70px;">Ställning</th>
                     <th class="click-indicator-cell" style="width: 30px;"></th>
                 </tr>
@@ -535,17 +533,17 @@ function displayMatchOverview(data) {
 
         // Format player names with averages (plain text, no links)
         const team1PlayerDisplay = sm.team1_players
-            ? `${sm.team1_players}${sm.team1_avg ? `<br><span class="avg-badge">${sm.team1_avg}</span>` : ''}`
+            ? `${esc(sm.team1_players)}${sm.team1_avg ? `<br><span class="avg-badge">${sm.team1_avg}</span>` : ''}`
             : '<span class="text-muted">-</span>';
 
         const team2PlayerDisplay = sm.team2_players
-            ? `${sm.team2_players}${sm.team2_avg ? `<br><span class="avg-badge">${sm.team2_avg}</span>` : ''}`
+            ? `${esc(sm.team2_players)}${sm.team2_avg ? `<br><span class="avg-badge">${sm.team2_avg}</span>` : ''}`
             : '<span class="text-muted">-</span>';
 
         tableHtml += `
-            <tr class="sub-match-row" data-submatch-id="${sm.id}" data-player-name="${(sm.team1_players || '').replace(/"/g, '&quot;')}">
+            <tr class="sub-match-row" data-submatch-id="${sm.id}" data-player-name="${esc(sm.team1_players || '')}">
                 <td class="text-center align-middle">
-                    <span class="badge ${badgeClass} position-badge">${sm.position}</span>
+                    <span class="badge ${badgeClass} position-badge">${esc(sm.position)}</span>
                 </td>
                 <td class="text-end ${team1CellClass} align-middle">
                     ${team1PlayerDisplay}

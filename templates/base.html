@@ -38,6 +38,23 @@
         }
         window.location.href = path;
     }
+
+    // Text från databasen (namn kommer från nakka/n01) ska alltid gå via esc() innan den hamnar i HTML.
+    function esc(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    // För strängar i inline-handlers, t.ex. onclick="fn('${escJs(namn)}')": JS-escape först, sedan HTML.
+    function escJs(value) {
+        if (value === null || value === undefined) return '';
+        return esc(String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/[\r\n]/g, ' '));
+    }
     </script>
 
     <!-- Google Analytics -->

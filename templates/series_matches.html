@@ -221,7 +221,7 @@ async function loadMatches() {
         displayedWeeks = 0;
         displayMatches();
     } catch (error) {
-        document.getElementById('error-message').innerHTML = `Fel: ${error.message}`;
+        document.getElementById('error-message').innerHTML = `Fel: ${esc(error.message)}`;
         document.getElementById('error-message').classList.remove('d-none');
     } finally {
         document.getElementById('loading').classList.add('d-none');
@@ -326,7 +326,7 @@ function displayMatches() {
             htmlParts.push(`
                 <div class="week-section mb-4">
                     <div class="week-header">
-                        <h5>${week.week_label || 'Okänd vecka'}</h5>
+                        <h5>${esc(week.week_label || 'Okänd vecka')}</h5>
                     </div>
             `);
 
@@ -359,7 +359,7 @@ function displayMatches() {
 
                 htmlParts.push(`
                     <div class="division-section mb-3">
-                        <div class="division-header">${cleanDivisionName(division)}</div>
+                        <div class="division-header">${esc(cleanDivisionName(division))}</div>
                         <div class="row g-2">
                 `);
 
@@ -395,10 +395,10 @@ function displayMatches() {
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="teams-column">
                                             <div class="team-row ${team1Class}">
-                                                ${team1Icon}<span class="team-name">${cleanTeamName(match.team1_name)}</span>
+                                                ${team1Icon}<span class="team-name">${esc(cleanTeamName(match.team1_name))}</span>
                                             </div>
                                             <div class="team-row ${team2Class}">
-                                                ${team2Icon}<span class="team-name">${cleanTeamName(match.team2_name)}</span>
+                                                ${team2Icon}<span class="team-name">${esc(cleanTeamName(match.team2_name))}</span>
                                             </div>
                                         </div>
                                         <div class="match-result">

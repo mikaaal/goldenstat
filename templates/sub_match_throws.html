@@ -336,13 +336,11 @@ function makePlayerNameClickable(playerName, isDoubles = false) {
         const players = playerName.split(' / ');
         return players.map(player => {
             const trimmedPlayer = player.trim();
-            const escapedName = trimmedPlayer.replace(/'/g, "\\'");
-            return `<span class="player-link" onclick="navigateToPlayer('${escapedName}')" title="Klicka för att se ${trimmedPlayer}">${trimmedPlayer}</span>`;
+            return `<span class="player-link" onclick="navigateToPlayer('${escJs(trimmedPlayer)}')" title="Klicka för att se ${esc(trimmedPlayer)}">${esc(trimmedPlayer)}</span>`;
         }).join(' / ');
     } else {
         // Single player
-        const escapedName = playerName.replace(/'/g, "\\'");
-        return `<span class="player-link" onclick="navigateToPlayer('${escapedName}')" title="Klicka för att se ${playerName}">${playerName}</span>`;
+        return `<span class="player-link" onclick="navigateToPlayer('${escJs(playerName)}')" title="Klicka för att se ${esc(playerName)}">${esc(playerName)}</span>`;
     }
 }
 
@@ -474,7 +472,7 @@ async function loadThrowData() {
         
         displayThrowData(data);
     } catch (error) {
-        document.getElementById('error-message').innerHTML = `Fel: ${error.message}`;
+        document.getElementById('error-message').innerHTML = `Fel: ${esc(error.message)}`;
         document.getElementById('error-message').classList.remove('d-none');
     } finally {
         document.getElementById('loading').classList.add('d-none');
@@ -512,10 +510,10 @@ function displayThrowData(data) {
                 <div class="stats-card ${team1CardClass}">
                     <div class="stats-card-header">
                         <span class="me-2">${team1Icon}</span>
-                        ${window.matchTeamData.team1_name}
+                        ${esc(window.matchTeamData.team1_name)}
                     </div>
                     <div class="stats-card-body">
-                        <div class="player-names text-center">${window.matchTeamData.team1_players}</div>
+                        <div class="player-names text-center">${esc(window.matchTeamData.team1_players)}</div>
                         <div class="stat-row">
                             <div class="stat-item stat-highlight">
                                 <span class="stat-value">${team1Stats.average_score ? parseFloat(team1Stats.average_score).toFixed(2) : 'N/A'}</span>
@@ -568,7 +566,7 @@ function displayThrowData(data) {
 
             <div class="col-md-2">
                 <div class="result-center h-100">
-                    ${window.matchTeamData.position ? `<div class="position-badge-large">${window.matchTeamData.position}</div>` : ''}
+                    ${window.matchTeamData.position ? `<div class="position-badge-large">${esc(window.matchTeamData.position)}</div>` : ''}
                     <div class="result-score-large">${window.matchTeamData.team1_legs} - ${window.matchTeamData.team2_legs}</div>
                     <div class="result-label">Resultat</div>
                 </div>
@@ -578,10 +576,10 @@ function displayThrowData(data) {
                 <div class="stats-card ${team2CardClass}">
                     <div class="stats-card-header">
                         <span class="me-2">${team2Icon}</span>
-                        ${window.matchTeamData.team2_name}
+                        ${esc(window.matchTeamData.team2_name)}
                     </div>
                     <div class="stats-card-body">
-                        <div class="player-names text-center">${window.matchTeamData.team2_players}</div>
+                        <div class="player-names text-center">${esc(window.matchTeamData.team2_players)}</div>
                         <div class="stat-row">
                             <div class="stat-item stat-highlight">
                                 <span class="stat-value">${team2Stats.average_score ? parseFloat(team2Stats.average_score).toFixed(2) : 'N/A'}</span>
@@ -649,7 +647,7 @@ function displayThrowData(data) {
                 <div class="card-header bg-light">
                     <div class="d-flex justify-content-between align-items-center">
                         <h6 class="mb-0">Leg ${leg.leg_number}</h6>
-                        <span class="badge bg-success">${winningTeamName}</span>
+                        <span class="badge bg-success">${esc(winningTeamName)}</span>
                     </div>
                 </div>
                 <div class="card-body">
@@ -733,7 +731,7 @@ function displayThrowData(data) {
                         <div class="fw-bold">${displayScore}</div>
                     </div>
                     <small class="${textClass}">${dartInfo}</small>
-                    ${team1Visitor ? `<small class="text-muted ms-2 fst-italic">${team1Visitor}</small>` : ''}
+                    ${team1Visitor ? `<small class="text-muted ms-2 fst-italic">${esc(team1Visitor)}</small>` : ''}
                 `;
 
                 legsHtml += `
@@ -791,7 +789,7 @@ function displayThrowData(data) {
 
                 const team2Visitor = visitPlayerName(data, 2, team2Throw);
                 const innerContent = `
-                    ${team2Visitor ? `<small class="text-muted me-2 fst-italic">${team2Visitor}</small>` : ''}
+                    ${team2Visitor ? `<small class="text-muted me-2 fst-italic">${esc(team2Visitor)}</small>` : ''}
                     <small class="${textClass}">${dartInfo}</small>
                     <div class="card ${scoreClass} px-2 py-1" style="min-width: 60px;">
                         <div class="fw-bold">${displayScore}</div>
