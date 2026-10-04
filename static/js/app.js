@@ -635,17 +635,16 @@ class GoldenStat {
 
     // Make player name clickable
     makePlayerNameClickable(playerName, isDoubles = false) {
-        const escapedName = playerName.replace(/'/g, "\\'");
         if (isDoubles && (playerName.includes(' + ') || playerName.includes(' / '))) {
             // Handle doubles - make each player clickable
             const separator = playerName.includes(' + ') ? ' + ' : ' / ';
             const players = playerName.split(separator);
             const newSeparator = ' / ';
             return players.map(player =>
-                `<span class="player-name-link" onclick="goldenStat.searchAndShowPlayer('${player.trim().replace(/'/g, "\\'")}')">${player.trim()}</span>`
+                `<span class="player-name-link" onclick="goldenStat.searchAndShowPlayer('${escJs(player.trim())}')">${esc(player.trim())}</span>`
             ).join(newSeparator);
         } else {
-            return `<span class="player-name-link" onclick="goldenStat.searchAndShowPlayer('${escapedName}')">${playerName}</span>`;
+            return `<span class="player-name-link" onclick="goldenStat.searchAndShowPlayer('${escJs(playerName)}')">${esc(playerName)}</span>`;
         }
     }
 

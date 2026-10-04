@@ -1384,10 +1384,10 @@ async function searchCupPlayer() {
                 const clickable = f.link || f.filter_tournaments;
                 let clickAction = '';
                 if (f.filter_tournaments) {
-                    const label = `${f.title}: ${f.text}`.replace(/'/g, "\\'");
+                    const label = escJs(`${f.title}: ${f.text}`);
                     clickAction = `onclick="filterCupTournaments(${JSON.stringify(f.filter_tournaments).replace(/"/g, '&quot;')}, '${label}')" title="Filtrera turneringar"`;
                 } else if (f.link) {
-                    clickAction = `onclick="window.location.href='${f.link}'" title="Klicka för mer info"`;
+                    clickAction = `onclick="window.location.href='${escJs(f.link)}'" title="Klicka för mer info"`;
                 }
                 return `<div class="fun-fact-card${clickable ? ' fun-fact-clickable' : ''}${hidden ? ' fun-fact-hidden' : ''}" ${clickAction}>
                     <div class="fun-fact-emoji">${f.emoji}</div>
@@ -1557,19 +1557,6 @@ function clearCupTournamentFilter() {
     document.querySelectorAll('.cup-tournament-card').forEach(c => c.style.display = '');
     const resetBar = document.getElementById('cupFilterResetBar');
     if (resetBar) resetBar.remove();
-}
-
-// ============= Helpers =============
-function esc(str) {
-    if (!str) return '';
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-}
-
-function escJs(str) {
-    if (!str) return '';
-    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 }
 
 // ============= Tracking =============
