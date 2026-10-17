@@ -22,7 +22,6 @@ LEAGUE_API = "https://tk2-228-23746.vs.sakura.ne.jp/n01/league/n01_league.php"
 # Leagues to monitor for new tournaments
 LEAGUES = [
     {"lgid": "lg_zAAr_1368", "name": "East Cup"},
-    {"lgid": "lg_w7Bw_7076", "name": "SoFo House Poängsamlarcup"},
     {"lgid": "lg_qaVN_1417", "name": "SoFo House Poängsamlarcup 2027"},
     {"lgid": "lg_InWB_0595", "name": "Oilers Poängsamlarcup"},
     {"lgid": "lg_obTt_7229", "name": "NWD Poängsamlarcup"},
