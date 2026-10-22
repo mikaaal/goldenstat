@@ -84,3 +84,6 @@ apply_batch.py
 apply_cup_mappings.py
 find_cup_duplicates.py
 scan_remaining.py
+
+# Lokala curl-cookies
+cookies.txt
