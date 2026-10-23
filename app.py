@@ -8,6 +8,7 @@ from flask import Flask, request
 from flask_caching import Cache
 import os
 import re
+import secrets
 import sqlite3
 import logging
 from database import DartDatabase
@@ -95,7 +96,8 @@ def parse_match_position(match_name, match_type):
 # --- Flask app setup ---
 
 app = Flask(__name__)
-app.secret_key = 'goldenstat-secret-key'
+# Sessions används inte idag; utan SECRET_KEY slumpas en nyckel per process
+app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 
 # Configure caching
 cache = Cache(app, config={
