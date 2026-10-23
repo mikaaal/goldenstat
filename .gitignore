@@ -75,6 +75,7 @@ Thumbs.db
 *.tmp
 *.temp
 test_*.py
+!tests/test_*.py
 goldenstat.db.backup
 separate_robban_players.py
 separate_pelle_players.py
