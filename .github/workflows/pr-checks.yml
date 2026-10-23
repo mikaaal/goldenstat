@@ -47,3 +47,15 @@ jobs:
             print(f'❌ Import error: {e}')
             exit(1)
         "
+    - name: Download databases from GitHub Release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # Testerna kör mot kopior av de riktiga databaserna (tests/conftest.py)
+        gh release download db-latest --pattern goldenstat.db --pattern riksserien.db --pattern cups.db
+        ls -lh *.db
+
+    - name: Run tests
+      run: |
+        pip install pytest
+        python -m pytest -q
