@@ -165,7 +165,21 @@ jobs:
             echo "Inga ändringar att committa"
           else
             git commit -m "🤖 Daily import $(date +%Y-%m-%d)"
-            git push || echo "⚠️ Kunde inte pusha ändringar"
+            # main kan ha flyttats under importen (t.ex. en merge), och det är
+            # pushen som får Railway att deploya de nya databaserna. Rebasa
+            # och försök igen, och låt körningen falla om det ändå inte går.
+            pushed=false
+            for attempt in 1 2 3; do
+              if git pull --rebase origin main && git push; then
+                pushed=true
+                break
+              fi
+              sleep 10
+            done
+            if [ "$pushed" != true ]; then
+              echo "::error::Kunde inte pusha importloggen, Railway deployar inte de nya databaserna"
+              exit 1
+            fi
           fi
 
       - name: Upload import logs as artifact
