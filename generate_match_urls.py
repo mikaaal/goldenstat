@@ -9,6 +9,8 @@ import sys
 from typing import List, Dict
 from datetime import datetime
 
+from n01_api import TOURNAMENT_API, MATCH_DATA_URL
+
 class MatchUrlGenerator:
     def __init__(self):
         self.session = requests.Session()
@@ -25,7 +27,7 @@ class MatchUrlGenerator:
         try:
             print(f"Fetching scheduled matches for division {tdid}...")
 
-            schedule_url = 'https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_lg_schedule'
+            schedule_url = f'{TOURNAMENT_API}?cmd=get_lg_schedule'
             payload = {'tdid': tdid, 'div': 0}
 
             response = self.session.post(schedule_url, json=payload, timeout=15)
@@ -56,7 +58,7 @@ class MatchUrlGenerator:
 
     def generate_match_urls(self, tdid: str) -> List[str]:
         """Generate match URLs based on actual scheduled matches"""
-        base_url = 'https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid='
+        base_url = MATCH_DATA_URL
         match_urls = []
 
         # Get actual scheduled matches
