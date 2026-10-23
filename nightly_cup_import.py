@@ -16,8 +16,8 @@ import sqlite3
 import json
 import requests
 from import_cup import CupImporter
+from n01_api import LEAGUE_API
 
-LEAGUE_API = "https://tk2-228-23746.vs.sakura.ne.jp/n01/league/n01_league.php"
 
 # Leagues to monitor for new tournaments
 LEAGUES = [

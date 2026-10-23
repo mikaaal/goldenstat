@@ -13,6 +13,7 @@ from new_season_importer import (
     individual_doubles_averages,
 )
 from smart_import_handler import SmartPlayerMatcher
+from n01_api import match_url, mirrored_tmid, tmid_from_url
 import datetime
 
 class SmartSeasonImporter(NewSeasonImporter):
@@ -627,14 +628,20 @@ class SmartSeasonImporter(NewSeasonImporter):
         with open(url_file_path, 'r', encoding='utf-8') as f:
             urls = [line.strip() for line in f if line.strip() and not line.startswith('#')]
 
-        # Hämta redan importerade match_urls för att skippa dem
-        existing_urls = set()
+        # Hämta redan importerade matcher för att skippa dem. matches.match_url
+        # innehåller tmid (äldre rader hela URL:en), så jämför på tmid.
         with sqlite3.connect(self.db.db_path) as conn:
             cursor = conn.execute("SELECT match_url FROM matches WHERE match_url IS NOT NULL")
-            existing_urls = {row[0] for row in cursor.fetchall()}
+            existing_tmids = {tmid_from_url(row[0]) for row in cursor.fetchall()}
 
-        new_urls = [u for u in urls if u not in existing_urls]
-        print(f"  {len(urls)} URLs totalt, {len(new_urls)} nya att hämta ({len(urls) - len(new_urls)} redan importerade)")
+        # URL-filerna har varje match med lagen i båda ordningarna och bara den
+        # ena ger data, så skippa även den spegelvända av en importerad match
+        tmids = [tmid_from_url(u) for u in urls]
+        new_tmids = [t for t in tmids
+                     if t not in existing_tmids and mirrored_tmid(t) not in existing_tmids]
+        print(f"  {len(tmids)} URLs totalt, {len(new_tmids)} nya att hämta ({len(tmids) - len(new_tmids)} redan importerade)")
+        # Bygg om URL:en från tmid så att värdnamnet i URL-filerna inte spelar roll
+        new_urls = [match_url(t) for t in new_tmids]
 
         if not new_urls:
             print(f"  Import slutford: 0 matcher (allt redan importerat)")
@@ -674,7 +681,9 @@ class SmartSeasonImporter(NewSeasonImporter):
                 time.sleep(0.5)
 
             except Exception as e:
-                # Still failure - fortsätt med nästa URL
+                # Logga och fortsätt med nästa URL
+                print(f"    FEL vid {url}: {e}")
+                self.import_log["errors"].append(f"{url}: {e}")
                 continue
 
         print(f"  Import slutford: {matches_imported} matcher, {self.import_log['statistics']['total_players_processed']} spelare")

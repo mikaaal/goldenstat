@@ -5,9 +5,11 @@ Hämtar divisionerna för Riksserien 2025/2026 från Nakka API
 import sys
 import requests
 import json
+
+from n01_api import TOURNAMENT_BASE, TOURNAMENT_API
 sys.stdout.reconfigure(encoding='utf-8')
 
-BASE_URL = 'https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/'
+BASE_URL = TOURNAMENT_BASE + '/'
 LGID = 'lg_UUtS_2240'
 
 session = requests.Session()
@@ -23,7 +25,7 @@ get_urls = [
     f"{BASE_URL}n01_tournament.php?cmd=get_tdid_list&lgid={LGID}",
     f"{BASE_URL}n01_tournament.php?lgid={LGID}",
     f"{BASE_URL}n01_online_t.php?cmd=get_setdata&lgid={LGID}",
-    f"https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_lg_schedule&lgid={LGID}&div=0",
+    f"{TOURNAMENT_API}?cmd=get_lg_schedule&lgid={LGID}&div=0",
 ]
 
 for url in get_urls:

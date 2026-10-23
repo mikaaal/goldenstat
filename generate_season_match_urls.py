@@ -22,11 +22,11 @@ from typing import Dict, List
 import requests
 
 from generate_match_urls import MatchUrlGenerator
+from n01_api import LEAGUE_API
 
 # StDF - Stockholms Dartforbund
 DEFAULT_LGID = 'lg_S4To_8117'
 
-LEAGUE_API = 'https://tk2-228-23746.vs.sakura.ne.jp/n01/league/n01_league.php'
 
 # 10=Preparing, 20=Accepting entries, 25=Making table, 30=In session, 40=Completed
 ALL_STATUSES = [10, 20, 25, 30, 40]

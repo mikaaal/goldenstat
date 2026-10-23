@@ -12,6 +12,7 @@ from itertools import combinations
 from typing import List, Dict, Optional, Any
 from datetime import datetime
 from database import DartDatabase, MissingDatabaseError, DOUBLES_TEAM_SIZE
+from n01_api import TOURNAMENT_API, MATCH_DATA_URL
 
 # Sasongen star i matchtiteln, t.ex.
 #   "Stockholmsserien (2025/2026) - 2A Division 2A Doubles1"
@@ -155,7 +156,7 @@ class NewSeasonImporter:
     
     def get_team_ids(self, tdid: str) -> List[str]:
         """Get all team IDs from division"""
-        stats_url = f'https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_lg_stats_list&tdid={tdid}'
+        stats_url = f'{TOURNAMENT_API}?cmd=get_lg_stats_list&tdid={tdid}'
         
         try:
             print(f"🔍 Fetching team IDs for division {tdid}...")
@@ -179,7 +180,7 @@ class NewSeasonImporter:
         try:
             print(f"🔍 Fetching round codes for division {tdid}...")
             
-            schedule_url = 'https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_lg_schedule'
+            schedule_url = f'{TOURNAMENT_API}?cmd=get_lg_schedule'
             payload = {'tdid': tdid, 'div': 0}
             
             response = self.session.post(schedule_url, json=payload, timeout=15)
@@ -209,7 +210,7 @@ class NewSeasonImporter:
         try:
             print(f"🔍 Fetching scheduled matches for division {tdid}...")
             
-            schedule_url = 'https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_lg_schedule'
+            schedule_url = f'{TOURNAMENT_API}?cmd=get_lg_schedule'
             payload = {'tdid': tdid, 'div': 0}
             
             response = self.session.post(schedule_url, json=payload, timeout=15)
@@ -240,7 +241,7 @@ class NewSeasonImporter:
 
     def generate_match_urls(self, tdid: str) -> List[str]:
         """Generate match URLs based on actual scheduled matches"""
-        base_url = 'https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid='
+        base_url = MATCH_DATA_URL
         match_urls = []
         
         # Get actual scheduled matches

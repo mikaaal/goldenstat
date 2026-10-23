@@ -11,7 +11,7 @@ https://n01darts.com/n01/tournament/comp.php?id={tdid}
 
 All turneringsdata finns tillgänglig via n01:s JSON-API på:
 ```
-https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/
+https://lb.n01darts.com/n01/tournament/
 ```
 
 `cup_database.py` och `import_cup.py` hämtar data från detta API och sparar till en lokal SQLite-databas (`cups.db`). Denna databas är **separat** från projektets huvuddatabas `goldenstat.db` och `riksserien.db` som innehåller ligamatcher (Stockholmsserien, Riksserien). De tre databaserna delar ingen data och har olika scheman - `cups.db` har egna `players`-, `legs`- och `throws`-tabeller. Däremot samlas allt i en app där användaren kan välja att titta på statistik från Stockholmsserien eller Riksserien. Nu ska även olika cuper bli tillgängliga.
@@ -56,19 +56,19 @@ Varje fas har sin egen inställning för antal legs per match (`limit_leg_count`
 ### SoFo House Poängsamlarcup
 | tdid | Typ | Beskrivning | API-data |
 |------|-----|-------------|----------|
-| `t_ALIS_0219` | Dubbel, handicap | startScore per par (530-670), 21 par | [JSON](https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_ALIS_0219) |
-| `t_7zbm_0674` | Singel, 501 | 45 deltagare, 15 grupper om 3 | [JSON](https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_7zbm_0674) |
+| `t_ALIS_0219` | Dubbel, handicap | startScore per par (530-670), 21 par | [JSON](https://lb.n01darts.com/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_ALIS_0219) |
+| `t_7zbm_0674` | Singel, 501 | 45 deltagare, 15 grupper om 3 | [JSON](https://lb.n01darts.com/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_7zbm_0674) |
 
 ### East Cup
 | tdid | Typ | Beskrivning | API-data |
 |------|-----|-------------|----------|
-| `t_cOBD_2552` | Singel, 501 | 38 deltagare, 10 grupper om 3-4 | [JSON](https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_cOBD_2552) |
-| `t_fR8b_7492` | Singel, **301 double-in** | 26 deltagare, 7 grupper | [JSON](https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_fR8b_7492) |
-| `t_2xO7_7499` | Singel, 501 | 45 deltagare, 12 grupper | [JSON](https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_2xO7_7499) |
+| `t_cOBD_2552` | Singel, 501 | 38 deltagare, 10 grupper om 3-4 | [JSON](https://lb.n01darts.com/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_cOBD_2552) |
+| `t_fR8b_7492` | Singel, **301 double-in** | 26 deltagare, 7 grupper | [JSON](https://lb.n01darts.com/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_fR8b_7492) |
+| `t_2xO7_7499` | Singel, 501 | 45 deltagare, 12 grupper | [JSON](https://lb.n01darts.com/n01/tournament/n01_tournament.php?cmd=get_data&tdid=t_2xO7_7499) |
 
 ## API
 
-Bas-URL: `https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament/`
+Bas-URL: `https://lb.n01darts.com/n01/tournament/`
 
 ### Turneringsdata
 ```

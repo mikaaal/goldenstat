@@ -15,11 +15,12 @@ import time
 import requests
 from datetime import datetime
 from cup_database import CupDatabase
+from n01_api import TOURNAMENT_BASE
 
 # Regex for common team name separators: " & ", "/", " + ", " och "
 TEAM_NAME_SEPARATOR = re.compile(r'\s+&\s+|\s*/\s*|\s+\+\s+|\s+och\s+', re.IGNORECASE)
 
-BASE_URL = "https://tk2-228-23746.vs.sakura.ne.jp/n01/tournament"
+BASE_URL = TOURNAMENT_BASE
 
 
 class CupImporter:
