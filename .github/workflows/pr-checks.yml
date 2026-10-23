@@ -51,8 +51,9 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
-        # Testerna kör mot kopior av de riktiga databaserna (tests/conftest.py)
-        gh release download db-latest --pattern goldenstat.db --pattern riksserien.db --pattern cups.db
+        # Testerna kör mot kopior av de riktiga databaserna (tests/conftest.py).
+        # --clobber: importkontrollen ovan skapar en tom goldenstat.db
+        gh release download db-latest --pattern goldenstat.db --pattern riksserien.db --pattern cups.db --clobber
         ls -lh *.db
 
     - name: Run tests
