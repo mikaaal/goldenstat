@@ -98,3 +98,64 @@ class TestTournamentPages:
     def test_tournaments_players_page(self, client):
         resp = client.get("/tournaments/players")
         assert resp.status_code == 200
+
+
+def _cup_match(match_id, p1, p2, date, tournament_id=1, p1_legs=3, p2_legs=1):
+    return {
+        "id": match_id, "p1_name": p1, "p2_name": p2,
+        "p1_legs_won": p1_legs, "p2_legs_won": p2_legs,
+        "p1_average": 50.0, "p2_average": 45.0,
+        "tournament_id": tournament_id, "tournament_title": f"Cup {tournament_id}, extra",
+        "tournament_date": date, "phase_label": "Poolspel",
+    }
+
+
+def _highest_checkout(facts):
+    return next((f for f in facts if f["title"] == "Högsta utgång"), None)
+
+
+class TestHighestCheckoutFact:
+    def _facts(self, matches, checkouts):
+        from routes.tournaments import calculate_fun_facts
+        return calculate_fun_facts(matches, "Anna", checkouts)
+
+    def test_uses_players_own_side(self):
+        matches = [_cup_match(1, "Anna", "Bo", "2026-01-01"), _cup_match(2, "Cia", "Anna", "2026-02-01")]
+        # Motståndarnas utgångar (sida 2 i match 1, sida 1 i match 2) ska inte räknas
+        fact = _highest_checkout(self._facts(matches, {(1, 1): 81, (1, 2): 170, (2, 1): 160, (2, 2): 121}))
+        assert fact["text"] == "121 mot Cia"
+        assert fact["detail"] == "Cup 1 (2026-02-01)"
+        assert fact["filter_tournaments"] == [1]
+
+    def test_doubles_are_ignored(self):
+        matches = [_cup_match(1, "Anna & Bo", "Cia & Dan", "2026-01-01"), _cup_match(2, "Anna", "Bo", "2026-02-01")]
+        fact = _highest_checkout(self._facts(matches, {(1, 1): 150, (2, 1): 40}))
+        assert fact["text"] == "40 mot Bo"
+
+    def test_tie_shows_most_recent(self):
+        matches = [_cup_match(1, "Anna", "Bo", "2026-03-01", tournament_id=2), _cup_match(2, "Anna", "Cia", "2026-01-01")]
+        fact = _highest_checkout(self._facts(matches, {(1, 1): 100, (2, 1): 100}))
+        assert fact["text"] == "100 mot Bo"
+
+    def test_no_checkouts_no_fact(self):
+        assert _highest_checkout(self._facts([_cup_match(1, "Anna", "Bo", "2026-01-01")], {})) is None
+
+
+class TestPlayerCheckouts:
+    def test_checkouts_are_valid_finishes(self, test_db_dir):
+        from routes.tournaments import get_player_checkouts
+        db = os.path.join(test_db_dir, "cups.db")
+        if not os.path.exists(db):
+            return
+        conn = sqlite3.connect(db)
+        player_id = conn.execute("""
+            SELECT pp.player_id FROM participant_players pp
+            JOIN cup_matches cm ON cm.participant1_id = pp.participant_id
+            WHERE cm.has_detail = 1 LIMIT 1""").fetchone()
+        if player_id is None:
+            conn.close()
+            return
+        checkouts = get_player_checkouts(conn.cursor(), [player_id[0]])
+        conn.close()
+        assert checkouts
+        assert all(2 <= v <= 170 and side in (1, 2) for (_, side), v in checkouts.items())
