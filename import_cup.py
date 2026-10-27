@@ -341,7 +341,20 @@ class CupImporter:
         for submatch in set_data:
             leg_data_list = submatch.get('legData', [])
             for leg_index, leg_data in enumerate(leg_data_list, 1):
+                if self._is_unplayed_leg(leg_data):
+                    continue
                 self._import_leg(cup_match_id, leg_index, leg_data, sides_reversed)
+
+    @staticmethod
+    def _is_unplayed_leg(leg_data: dict) -> bool:
+        """True för ett leg som n01 lagt upp men som aldrig spelades.
+
+        Sådana legs har endFlag 0 och bara startraden i playerData. winner är
+        då 0, vilket annars sparas som en vinst för sida 1.
+        """
+        if leg_data.get('endFlag') == 1:
+            return False
+        return all(len(rows) <= 1 for rows in leg_data.get('playerData', []))
 
     def _import_leg(self, cup_match_id: int, leg_number: int, leg_data: dict, sides_reversed: bool = False):
         """Import a single leg with its throws. Same logic as new_season_importer.py."""
