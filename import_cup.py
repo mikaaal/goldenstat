@@ -44,6 +44,8 @@ class CupImporter:
             'throws': 0,
             'errors': [],
         }
+        # Matcher vars sidor inte kunde avgöras via statsData.tpid
+        self._unverified_sides = set()
 
     def fetch_tournament_data(self, tdid: str) -> dict:
         """Fetch full tournament data from the n01 API."""
@@ -286,7 +288,7 @@ class CupImporter:
 
             try:
                 set_data = self.fetch_set_data(tmid)
-                sides_reversed = False
+                fetched_reversed = False
 
                 # If empty, try reversed tpid order
                 if not set_data or set_data == []:
@@ -295,9 +297,15 @@ class CupImporter:
                         alt_tmid = f"{alt_parts[0]}_{alt_parts[2]}_{alt_parts[1]}"
                         set_data = self.fetch_set_data(alt_tmid)
                         if set_data and set_data != []:
-                            sides_reversed = True
+                            fetched_reversed = True
 
                 if set_data and set_data != []:
+                    # Sidorna avgörs av statsData.tpid. Att datan hämtades med
+                    # omvänd tmid säger inget om sidornas ordning i svaret.
+                    sides_reversed = self._sides_reversed(set_data, p1_tpid, p2_tpid)
+                    if sides_reversed is None:
+                        sides_reversed = fetched_reversed
+                        self._unverified_sides.add(match_id)
                     self._import_set_data(match_id, set_data, sides_reversed)
                     self.db.mark_match_has_detail(match_id)
                     if self._check_bad_data(match_id):
@@ -315,6 +323,17 @@ class CupImporter:
                 self.stats['errors'].append(error_msg)
 
             time.sleep(0.5)
+
+    @staticmethod
+    def _sides_reversed(set_data: list, p1_tpid: str, p2_tpid: str):
+        """True om sida 0 i set_data är p2, False om den är p1, None om det inte går att avgöra."""
+        stats = set_data[0].get('statsData') or []
+        tpids = [s.get('tpid') for s in stats[:2]]
+        if tpids == [p1_tpid, p2_tpid]:
+            return False
+        if tpids == [p2_tpid, p1_tpid]:
+            return True
+        return None
 
     def _import_set_data(self, cup_match_id: int, set_data: list, sides_reversed: bool = False):
         """Import leg and throw data from set_data API response."""
@@ -434,17 +453,25 @@ class CupImporter:
         return False
 
     def _fix_swapped_sides(self, tournament_id: int):
-        """Detect and fix matches where side 1/2 are swapped relative to p1/p2."""
+        """Detect and fix matches where side 1/2 are swapped relative to p1/p2.
+
+        Gäller bara matcher vars sidor inte kunde avgöras via statsData.tpid.
+        Jämförelsen av snitt vänder fel när spelarnas snitt ligger nära varandra.
+        """
         import sqlite3
+        if not self._unverified_sides:
+            return
         with sqlite3.connect(self.db.db_path) as conn:
             conn.row_factory = sqlite3.Row
             c = conn.cursor()
 
-            c.execute("""
+            ids = sorted(self._unverified_sides)
+            c.execute(f"""
                 SELECT id, p1_average, p2_average
                 FROM cup_matches
                 WHERE tournament_id = ? AND has_detail = 1 AND p1_average > 0 AND p2_average > 0
-            """, (tournament_id,))
+                  AND id IN ({','.join('?' * len(ids))})
+            """, (tournament_id, *ids))
             matches = c.fetchall()
 
             swapped_ids = []
