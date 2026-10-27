@@ -8,10 +8,14 @@ tournaments_bp = Blueprint('tournaments', __name__)
 TOURNAMENTS_DB_PATH = os.getenv('TOURNAMENTS_DATABASE_PATH', 'cups.db')
 
 
-def calculate_fun_facts(matches, player_name):
-    """Calculate personalized fun facts for a player based on their matches."""
+def calculate_fun_facts(matches, player_name, checkouts=None):
+    """Calculate personalized fun facts for a player based on their matches.
+
+    checkouts: {(match_id, side_number): högsta utgång i matchen} från get_player_checkouts
+    """
     if not matches:
         return []
+    checkouts = checkouts or {}
 
     import re
     fun_facts = []
@@ -39,6 +43,7 @@ def calculate_fun_facts(matches, player_name):
 
     # Track best match
     best_match = {'avg': 0, 'opponent': '', 'tournament': '', 'date': ''}
+    best_checkout = {'score': 0}
     first_match = None
 
     # Track best placement - separate for singles and doubles
@@ -161,6 +166,18 @@ def calculate_fun_facts(matches, player_name):
                 'tournament_id': m.get('tournament_id')
             }
 
+        # Highest checkout (singles only). >= so the most recent wins a tie,
+        # matches are iterated oldest first.
+        checkout = checkouts.get((m.get('id'), 1 if is_p1 else 2))
+        if is_singles and checkout and checkout >= best_checkout['score']:
+            best_checkout = {
+                'score': checkout,
+                'opponent': opponent,
+                'tournament': m.get('tournament_title', ''),
+                'date': (m.get('tournament_date') or '')[:10],
+                'tournament_id': m.get('tournament_id')
+            }
+
         # Whitewash tracking (singles only)
         if is_singles and won and o_legs == 0:
             whitewash_count += 1
@@ -266,6 +283,16 @@ def calculate_fun_facts(matches, player_name):
             'text': f"{best_match['avg']:.1f} i snitt mot {best_match['opponent']}",
             'detail': f"{best_match['tournament'].split(',')[0]} ({best_match['date']})",
             'filter_tournaments': [best_match['tournament_id']] if best_match.get('tournament_id') else None
+        })
+
+    # 2. Highest checkout
+    if best_checkout['score'] > 0:
+        fun_facts.append({
+            'emoji': '💥',
+            'title': 'Högsta utgång',
+            'text': f"{best_checkout['score']} mot {best_checkout['opponent']}",
+            'detail': f"{best_checkout['tournament'].split(',')[0]} ({best_checkout['date']})",
+            'filter_tournaments': [best_checkout['tournament_id']] if best_checkout.get('tournament_id') else None
         })
 
     # 3. Best placement - prefer singles, fall back to doubles
@@ -537,6 +564,43 @@ def calculate_fun_facts(matches, player_name):
         })
 
     return fun_facts
+
+
+def get_player_checkouts(cursor, player_ids):
+    """Högsta utgång per match och sida i spelarens cupmatcher.
+
+    Utgången är remaining_score i kastet före det som når 0, för sidan som
+    vann leget (samma som topplistan i routes/league.py). Över 170 är dålig data.
+    Returnerar {(match_id, side_number): utgång}.
+    """
+    placeholders = ','.join('?' * len(player_ids))
+    # CROSS JOIN låser ordningen: spelarens matcher först, sedan legs och kast
+    # via index. Annars väljer SQLite att skanna hela throws.
+    cursor.execute(f"""
+        WITH player_matches AS (
+            SELECT cm.id FROM cup_matches cm
+            WHERE cm.bad_data = 0
+              AND (cm.participant1_id IN (
+                  SELECT pp.participant_id FROM participant_players pp
+                  WHERE pp.player_id IN ({placeholders})
+              ) OR cm.participant2_id IN (
+                  SELECT pp.participant_id FROM participant_players pp
+                  WHERE pp.player_id IN ({placeholders})
+              ))
+        )
+        SELECT l.cup_match_id, curr.side_number, MAX(prev.remaining_score)
+        FROM player_matches pm
+        CROSS JOIN legs l ON l.cup_match_id = pm.id
+        CROSS JOIN throws curr ON curr.leg_id = l.id
+            AND curr.side_number = l.winner_side
+            AND curr.remaining_score = 0
+        CROSS JOIN throws prev ON prev.leg_id = curr.leg_id
+            AND prev.side_number = curr.side_number
+            AND prev.round_number = curr.round_number - 1
+        WHERE prev.remaining_score BETWEEN 2 AND 170
+        GROUP BY l.cup_match_id, curr.side_number
+    """, player_ids + player_ids)
+    return {(r[0], r[1]): r[2] for r in cursor.fetchall()}
 
 
 def _ensure_cups_schema():
@@ -1170,6 +1234,7 @@ def api_tournament_player_matches(player_name):
             GROUP BY tournament_id, phase
         """)
         max_rounds = {(r[0], r[1]): r[2] for r in cursor.fetchall()}
+        checkouts = get_player_checkouts(cursor, player_ids)
         conn.close()
 
         def knockout_round_name(phase, phase_detail, tournament_id):
@@ -1198,7 +1263,7 @@ def api_tournament_player_matches(player_name):
             matches.append(m)
 
         # Calculate fun facts
-        fun_facts = calculate_fun_facts(matches, player_name)
+        fun_facts = calculate_fun_facts(matches, player_name, checkouts)
 
         return jsonify({
             'player_name': player_name,
