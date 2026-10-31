@@ -16,6 +16,11 @@ on:
         required: false
         default: true
         type: boolean
+      cup_backfill:
+        description: 'Sök cuper bakåt till SEARCH_SINCE och lägg de som saknas i kön (cup_backlog)'
+        required: false
+        default: false
+        type: boolean
 
   # Kör när importfiler ändras (för testning)
   push:
@@ -95,7 +100,7 @@ jobs:
       - name: Run nightly cup import
         run: |
           echo "🏆 Kör cup-import..."
-          python nightly_cup_import.py
+          python nightly_cup_import.py ${{ inputs.cup_backfill && '--backfill' || '' }}
 
       - name: Check if databases were updated
         id: check_changes
