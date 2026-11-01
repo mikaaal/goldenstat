@@ -23,6 +23,13 @@ TEAM_NAME_SEPARATOR = re.compile(r'\s+&\s+|\s*/\s*|\s+\+\s+|\s+och\s+', re.IGNOR
 BASE_URL = TOURNAMENT_BASE
 
 
+def tournament_date_from(data: dict):
+    """ISO date of a tournament from n01's get_data, or None if it has none."""
+    # t_date is 0 for most club cups, so fall back to when the cup was started
+    ts = data.get('t_date') or data.get('s_date') or data.get('createTime')
+    return datetime.fromtimestamp(ts).isoformat() if ts else None
+
+
 class CupImporter:
     def __init__(self, db_path: str = "cups.db"):
         self.db = CupDatabase(db_path)
@@ -62,8 +69,8 @@ class CupImporter:
         response.raise_for_status()
         return response.json()
 
-    def import_tournament(self, tdid: str):
-        """Main import flow for a tournament."""
+    def import_tournament(self, tdid: str, min_players: int = 0) -> bool:
+        """Main import flow for a tournament. False if it had too few players."""
         # Step 1: Fetch tournament overview
         data = self.fetch_tournament_data(tdid)
 
@@ -73,10 +80,7 @@ class CupImporter:
         if rr_setting.get('startScore'):
             start_score = rr_setting['startScore']
 
-        tournament_date = None
-        t_date = data.get('t_date')
-        if t_date:
-            tournament_date = datetime.fromtimestamp(t_date).isoformat()
+        tournament_date = tournament_date_from(data)
 
         # Detect doubles: check if any participant name contains a team separator
         entry_list = data.get('entry_list', [])
@@ -86,6 +90,12 @@ class CupImporter:
             if entry.get('name')
         )
         team_games = 1 if is_doubles else data.get('team_games', 0)
+
+        players = len(entry_list) * (2 if team_games else 1)
+        if players < min_players:
+            print(f"Skipping {data.get('title', tdid)}: {players} players, "
+                  f"fewer than {min_players}")
+            return False
 
         tournament_id = self.db.get_or_create_tournament({
             'tdid': tdid,
@@ -157,6 +167,7 @@ class CupImporter:
         # Step 6: Log results
         self._write_log(tdid)
         self._print_summary()
+        return True
 
     def _process_round_robin(self, tdid, tournament_id, rr_table, rr_result, participant_map):
         """Process round-robin phase results."""

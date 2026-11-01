@@ -120,3 +120,80 @@ class TestBacklog:
         nci.save_backlog([t], db)
         nci.save_backlog([t], db)
         assert len(nci.load_backlog(db)) == 1
+
+
+class TestDates:
+    def test_t_date_is_used_when_set(self):
+        assert nci.tournament_date_from({"t_date": _ts("2026-10-30"), "createTime": 1}) \
+            == "2026-10-30T00:00:00"
+
+    def test_missing_t_date_falls_back_to_start_time(self):
+        data = {"t_date": 0, "s_date": _ts("2026-10-30"), "createTime": _ts("2026-10-29")}
+        assert nci.tournament_date_from(data) == "2026-10-30T00:00:00"
+        assert nci.tournament_date_from({"t_date": 0, "createTime": _ts("2026-10-29")}) \
+            == "2026-10-29T00:00:00"
+
+    def test_no_time_at_all_gives_none(self):
+        assert nci.tournament_date_from({"t_date": 0}) is None
+
+    @patch("nightly_cup_import.time.sleep")
+    @patch("nightly_cup_import.CupImporter")
+    def test_undated_tournaments_get_a_date(self, importer, _sleep, tmp_path):
+        db = str(tmp_path / "cups.db")
+        conn = nci.sqlite3.connect(db)
+        conn.execute("CREATE TABLE tournaments (tdid VARCHAR(50), tournament_date TIMESTAMP)")
+        conn.execute("INSERT INTO tournaments VALUES ('t_a', NULL), ('t_b', '2025-01-01')")
+        conn.commit()
+        conn.close()
+        importer.return_value.fetch_tournament_data.return_value = \
+            {"t_date": 0, "s_date": _ts("2026-10-30")}
+
+        nci.fill_missing_dates(db)
+
+        importer.return_value.fetch_tournament_data.assert_called_once_with("t_a")
+        conn = nci.sqlite3.connect(db)
+        rows = dict(conn.execute("SELECT tdid, tournament_date FROM tournaments"))
+        conn.close()
+        assert rows == {"t_a": "2026-10-30T00:00:00", "t_b": "2025-01-01"}
+
+
+def _entries(names):
+    return [{"tpid": f"tp{i}", "name": n} for i, n in enumerate(names)]
+
+
+class TestMinPlayers:
+    def _importer(self, entry_list):
+        importer = nci.CupImporter.__new__(nci.CupImporter)
+        importer.db = MagicMock()
+        importer.fetch_tournament_data = MagicMock(
+            return_value={"title": "Liten cup", "entry_list": entry_list})
+        return importer
+
+    def test_small_singles_cup_is_skipped_before_anything_is_written(self):
+        importer = self._importer(_entries([f"Spelare {i}" for i in range(11)]))
+        assert importer.import_tournament("t_a", min_players=12) is False
+        importer.db.get_or_create_tournament.assert_not_called()
+
+    def test_doubles_count_both_players(self):
+        # 6 pairs is 12 players, which is enough
+        importer = self._importer(_entries([f"A{i} & B{i}" for i in range(6)]))
+        importer.db.get_or_create_tournament.side_effect = RuntimeError("past the check")
+        try:
+            importer.import_tournament("t_a", min_players=12)
+        except RuntimeError as e:
+            assert str(e) == "past the check"
+        else:
+            raise AssertionError("cup with 12 players was skipped")
+
+    def test_skipped_cups_count_as_existing_and_leave_the_backlog(self, tmp_path):
+        db = str(tmp_path / "cups.db")
+        conn = nci.sqlite3.connect(db)
+        conn.execute("CREATE TABLE tournaments (tdid VARCHAR(50))")
+        conn.commit()
+        conn.close()
+        nci.save_backlog([{"tdid": "t_a", "title": "Liten cup", "t_date": 1, "league": "X"}], db)
+
+        nci.save_skipped("t_a", "Liten cup", db)
+
+        assert nci.get_existing_tdids(db) == {"t_a"}
+        assert nci.load_backlog(db) == []
