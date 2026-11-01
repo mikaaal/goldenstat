@@ -24,11 +24,18 @@ RUN git clone --branch ${RAILWAY_GIT_BRANCH:-main} --single-branch --depth 1 \
     && cp -r /tmp/repo/* /app/ \
     && rm -rf /tmp/repo
 
-# Ladda ner databaser från GitHub Release
-RUN curl -sL -o /app/goldenstat.db "https://github.com/mikaaal/goldenstat/releases/download/db-latest/goldenstat.db" \
-    && curl -sL -o /app/cups.db "https://github.com/mikaaal/goldenstat/releases/download/db-latest/cups.db" \
-    && curl -sL -o /app/riksserien.db "https://github.com/mikaaal/goldenstat/releases/download/db-latest/riksserien.db" \
-    && curl -sL -o /app/sommarserien.db "https://github.com/mikaaal/goldenstat/releases/download/db-latest/sommarserien.db" \
+# Ladda ner databaser från GitHub Release. En nedladdning som avbryts kan
+# lämna en halv fil utan att curl klagar, så varje databas kontrolleras och
+# hämtas om. Går det ändå inte stoppas bygget och den förra deployen ligger kvar.
+RUN for db in goldenstat cups riksserien sommarserien; do \
+        for attempt in 1 2 3; do \
+            curl -fsSL --retry 3 -o /app/$db.db \
+                "https://github.com/mikaaal/goldenstat/releases/download/db-latest/$db.db" \
+                && python /app/check_database.py /app/$db.db && break; \
+            if [ $attempt = 3 ]; then echo "$db.db kunde inte hämtas hel" >&2; exit 1; fi; \
+            sleep 10; \
+        done; \
+    done \
     && echo "Databases downloaded:" && ls -lh /app/*.db
 
 # Installera Python dependencies
