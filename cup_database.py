@@ -1,3 +1,4 @@
+import re
 import sqlite3
 import os
 from typing import Optional, Dict, Any
@@ -195,6 +196,12 @@ class CupDatabase:
             return name
 
         name = name.strip()
+
+        # Some cups put the seeding in front of the name ("16Jonas Norling"). Only dropped
+        # before a full name, so nicknames such as "180x2" and "100%" are left alone.
+        seedless = re.sub(r'^\d{1,3}\s*', '', name)
+        if seedless != name and seedless[:1].isalpha() and len(seedless.split()) >= 2:
+            name = seedless
 
         # Some cups (SSDC Closed, SvedF events) add the club in parentheses,
         # which made "Linus Dellby (Bålsta Dart Club)" a player of its own.

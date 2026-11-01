@@ -23,6 +23,17 @@ class TestNormalizePlayerName:
     def test_name_without_club_is_unchanged(self):
         assert CupDatabase.normalize_player_name("anna-lena vilén") == "Anna-Lena Vilén"
 
+    def test_seeding_before_name_is_dropped(self):
+        assert CupDatabase.normalize_player_name("16Jonas Norling") == "Jonas Norling"
+        assert CupDatabase.normalize_player_name("30Per-Åke Edström") == "Per-Åke Edström"
+        assert CupDatabase.normalize_player_name("2 Albin Lindmark") == "Albin Lindmark"
+
+    def test_nickname_with_number_is_kept(self):
+        assert CupDatabase.normalize_player_name("180x2") == "180x2"
+        assert CupDatabase.normalize_player_name("100%") == "100%"
+        assert CupDatabase.normalize_player_name("Micke 170") == "Micke 170"
+        assert CupDatabase.normalize_player_name("Wc1") == "Wc1"
+
 
 def _db(tmp_path, players):
     path = str(tmp_path / "cups.db")
@@ -75,3 +86,11 @@ class TestMergeMigrations:
         apply_migrations(path, MIGRATIONS)
 
         assert _mappings(conn) == {2: (1, "John Westerlund"), 3: (1, "John Westerlund")}
+
+    def test_seeded_names_join_the_player_without_number(self, tmp_path):
+        path, conn = _db(tmp_path, [(170, "Jonas Norling"), (7455, "16jonas Norling")])
+        apply_migrations(path, MIGRATIONS)
+
+        assert _mappings(conn) == {7455: (170, "Jonas Norling")}
+        links = dict(conn.execute("SELECT participant_id, player_id FROM participant_players"))
+        assert links == {170: 170, 7455: 170}
