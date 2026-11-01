@@ -181,13 +181,21 @@ jobs:
             exit 1
           fi
 
+      - name: Collect changed databases
+        if: steps.mode.outputs.dry_run == 'true' && steps.changes.outputs.changed != ''
+        env:
+          CHANGED: ${{ steps.changes.outputs.changed }}
+        run: |
+          # Bara de ändrade ska med i artefakten, de andra är samma som i releasen
+          mkdir "$RUNNER_TEMP/changed"
+          mv $CHANGED "$RUNNER_TEMP/changed/"
+
       - name: Save changed databases as artifact
         if: steps.mode.outputs.dry_run == 'true' && steps.changes.outputs.changed != ''
         uses: actions/upload-artifact@v4
         with:
           name: db-maintenance-${{ github.run_number }}
-          path: |
-            *.db
+          path: ${{ runner.temp }}/changed/
           retention-days: 3
 
       - name: Summary
