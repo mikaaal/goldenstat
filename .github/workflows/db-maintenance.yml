@@ -1,0 +1,219 @@
+name: DB Maintenance
+
+# Rena databasuppdateringar utan import: hämta databaserna, kör nya
+# migreringar och eventuellt ett skript (t.ex. namnsammanslagningar),
+# ladda upp de databaser som ändrats och låt Railway deploya.
+# Cup Backlog Import använder samma steg via workflow_call.
+on:
+  workflow_call:
+    inputs:
+      script:
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        required: false
+        default: false
+        type: boolean
+
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'Skript att köra efter migreringarna, t.ex. "fix_player_averages.py" (tomt = bara migreringar)'
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        description: 'Torrkörning: ladda inte upp, spara ändrade databaser som artefakt i stället'
+        required: false
+        default: false
+        type: boolean
+
+  # En mergad migrering ska ut direkt, utan att vänta på en hel import
+  push:
+    paths:
+      - 'migrations/**'
+      - 'apply_migrations.py'
+      - '.github/workflows/db-maintenance.yml'
+    branches:
+      - main
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    # Samma grupp som Daily Database Import. Båda laddar upp till db-latest,
+    # och körningar som överlappar skriver över varandras databaser. Gruppen
+    # ligger på jobbet så att en anropande workflow inte låser sig själv.
+    concurrency:
+      group: db-release
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Decide whether to upload
+        id: mode
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          # Från en annan gren än main blir det alltid en torrkörning, så att
+          # en migrering kan provas mot riktiga databaser innan den mergas
+          if [ "$DRY_RUN" = "true" ] || [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "dry_run=true" >> "$GITHUB_OUTPUT"
+            echo "🧪 Torrkörning från $GITHUB_REF_NAME, inget laddas upp"
+          else
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download databases from GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download db-latest --pattern "*.db" --clobber
+          ls -lh *.db
+          sha256sum *.db > "$RUNNER_TEMP/before.sha256"
+
+      - name: Apply database migrations
+        run: |
+          {
+            python apply_migrations.py goldenstat.db migrations/goldenstat
+            python apply_migrations.py cups.db migrations/cups
+            python apply_migrations.py sommarserien.db migrations/sommarserien
+          } | tee "$RUNNER_TEMP/migrations.txt"
+
+      - name: Run script
+        if: ${{ inputs.script != '' }}
+        env:
+          SCRIPT: ${{ inputs.script }}
+        run: |
+          read -ra args <<< "$SCRIPT"
+          if [[ "${args[0]}" != *.py ]] || [ ! -f "${args[0]}" ]; then
+            echo "::error::${args[0]} är inget Python-skript i repot"
+            exit 1
+          fi
+          python -u "${args[@]}" < /dev/null 2>&1 | tee "$RUNNER_TEMP/script.txt"
+
+      - name: Find changed databases
+        id: changes
+        run: |
+          changed=""
+          for db in *.db; do
+            if ! grep -qF "$(sha256sum "$db")" "$RUNNER_TEMP/before.sha256"; then
+              changed="$changed $db"
+            fi
+          done
+          changed="${changed# }"
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          if [ -n "$changed" ]; then
+            echo "✏️ Ändrade: $changed"
+            ls -lh $changed
+          else
+            echo "Inga databaser ändrades"
+          fi
+
+      - name: Upload changed databases to GitHub Release
+        if: steps.mode.outputs.dry_run == 'false' && steps.changes.outputs.changed != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANGED: ${{ steps.changes.outputs.changed }}
+        run: |
+          # Avbryt inte körningen under det här steget: --clobber ersätter
+          # filerna en i taget och en avbruten uppladdning kan lämna en saknad
+          gh release upload db-latest $CHANGED --clobber
+          echo "✅ Uppladdade: $CHANGED"
+
+      - name: Commit and push maintenance log
+        if: steps.mode.outputs.dry_run == 'false' && steps.changes.outputs.changed != ''
+        env:
+          SCRIPT: ${{ inputs.script }}
+          CHANGED: ${{ steps.changes.outputs.changed }}
+        run: |
+          # Det är pushen som får Railway att deploya de nya databaserna
+          log="import_logs/db_maintenance_$(date -u +%Y%m%d_%H%M%S).json"
+          python - "$log" "$RUNNER_TEMP/migrations.txt" <<'EOF'
+          import json, os, sys
+          from datetime import datetime, timezone
+          log, migrations = sys.argv[1], open(sys.argv[2], encoding="utf-8").read()
+          json.dump({
+              "ran_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "commit": os.environ["GITHUB_SHA"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "script": os.environ["SCRIPT"],
+              "changed_databases": os.environ["CHANGED"].split(),
+              "migrations": [line for line in migrations.splitlines() if "Kör " in line],
+          }, open(log, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          EOF
+          cat "$log"
+
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add "$log"
+          git commit -m "🤖 DB maintenance $(date +%Y-%m-%d)"
+          pushed=false
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push; then
+              pushed=true
+              break
+            fi
+            sleep 10
+          done
+          if [ "$pushed" != true ]; then
+            echo "::error::Kunde inte pusha loggen, Railway deployar inte de nya databaserna"
+            exit 1
+          fi
+
+      - name: Save changed databases as artifact
+        if: steps.mode.outputs.dry_run == 'true' && steps.changes.outputs.changed != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-maintenance-${{ github.run_number }}
+          path: |
+            *.db
+          retention-days: 3
+
+      - name: Summary
+        if: always()
+        env:
+          SCRIPT: ${{ inputs.script }}
+          CHANGED: ${{ steps.changes.outputs.changed }}
+          DRY_RUN: ${{ steps.mode.outputs.dry_run }}
+        run: |
+          {
+            echo "## 🔧 DB Maintenance"
+            echo ""
+            echo "- Torrkörning: ${DRY_RUN:-?}"
+            echo "- Skript: ${SCRIPT:-inget}"
+            echo "- Ändrade databaser: ${CHANGED:-inga}"
+            echo ""
+            if [ -s "$RUNNER_TEMP/migrations.txt" ]; then
+              echo "### Migreringar"
+              echo '```'
+              cat "$RUNNER_TEMP/migrations.txt"
+              echo '```'
+            fi
+            if [ -s "$RUNNER_TEMP/script.txt" ]; then
+              echo "### Skriptets utskrift (sista 100 raderna)"
+              echo '```'
+              tail -100 "$RUNNER_TEMP/script.txt"
+              echo '```'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
