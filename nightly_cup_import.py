@@ -22,7 +22,7 @@ import sqlite3
 import json
 from datetime import datetime, timedelta
 import requests
-from import_cup import CupImporter
+from import_cup import CupImporter, tournament_date_from
 from n01_api import LEAGUE_API, TOURNAMENT_API
 
 
@@ -129,6 +129,10 @@ EXTRA_TDIDS = [
     "t_aBJt_1457",
 ]
 
+# Smaller cups are not imported. They are noted in cup_skipped instead, and
+# cups imported before the limit was introduced stay in the database.
+MIN_PLAYERS = 12
+
 # Date corrections for tournaments with wrong dates in the API
 DATE_FIXES = {
     "t_ES9R_8042": "2025-08-23",  # NWD omg3 - API has 1970-01-01
@@ -202,6 +206,25 @@ def ensure_backlog_table(conn):
     """)
 
 
+def ensure_skipped_table(conn):
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS cup_skipped (
+            tdid VARCHAR(50) PRIMARY KEY,
+            title VARCHAR(255),
+            skipped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+
+def save_skipped(tdid: str, title: str, db_path: str = "cups.db"):
+    """Remember a tournament with too few players so it is never fetched again."""
+    conn = sqlite3.connect(db_path)
+    ensure_skipped_table(conn)
+    conn.execute("INSERT OR IGNORE INTO cup_skipped (tdid, title) VALUES (?, ?)", (tdid, title))
+    conn.commit()
+    conn.close()
+
+
 def save_backlog(tournaments: list, db_path: str = "cups.db"):
     """Queue tournaments found by --backfill for later runs."""
     conn = sqlite3.connect(db_path)
@@ -220,11 +243,33 @@ def load_backlog(db_path: str = "cups.db") -> list:
         return []
     conn = sqlite3.connect(db_path)
     ensure_backlog_table(conn)
-    conn.execute("DELETE FROM cup_backlog WHERE tdid IN (SELECT tdid FROM tournaments)")
+    ensure_skipped_table(conn)
+    conn.execute("DELETE FROM cup_backlog WHERE tdid IN (SELECT tdid FROM tournaments)"
+                 " OR tdid IN (SELECT tdid FROM cup_skipped)")
     conn.commit()
     rows = conn.execute("SELECT tdid, title, t_date, source FROM cup_backlog").fetchall()
     conn.close()
     return [{"tdid": r[0], "title": r[1], "t_date": r[2] or 0, "league": r[3]} for r in rows]
+
+
+def fill_missing_dates(db_path: str = "cups.db"):
+    """Date tournaments imported before the start time fallback existed."""
+    conn = sqlite3.connect(db_path)
+    tdids = [r[0] for r in conn.execute(
+        "SELECT tdid FROM tournaments WHERE tournament_date IS NULL")]
+    importer = CupImporter(db_path)
+    for tdid in tdids:
+        try:
+            date = tournament_date_from(importer.fetch_tournament_data(tdid))
+        except Exception as e:
+            print(f"Could not fetch date for {tdid}: {e}")
+            continue
+        if date:
+            conn.execute("UPDATE tournaments SET tournament_date = ? WHERE tdid = ?",
+                         (date, tdid))
+        time.sleep(1)
+    conn.commit()
+    conn.close()
 
 
 def apply_date_fixes(db_path: str = "cups.db"):
@@ -242,11 +287,12 @@ def apply_date_fixes(db_path: str = "cups.db"):
 
 
 def get_existing_tdids(db_path: str = "cups.db") -> set:
-    """Get all tdids already in the database."""
+    """Get all tdids already imported or skipped for having too few players."""
     if not os.path.exists(db_path):
         return set()
     conn = sqlite3.connect(db_path)
-    cursor = conn.execute("SELECT tdid FROM tournaments")
+    ensure_skipped_table(conn)
+    cursor = conn.execute("SELECT tdid FROM tournaments UNION SELECT tdid FROM cup_skipped")
     tdids = {row[0] for row in cursor.fetchall()}
     conn.close()
     return tdids
@@ -344,6 +390,7 @@ def main():
 
     # Import new tournaments
     success = 0
+    skipped = 0
     failed = []
     deadline = time.monotonic() + IMPORT_MINUTES_PER_RUN * 60
 
@@ -360,8 +407,11 @@ def main():
 
         importer = CupImporter()
         try:
-            importer.import_tournament(tdid)
-            success += 1
+            if importer.import_tournament(tdid, min_players=MIN_PLAYERS):
+                success += 1
+            else:
+                save_skipped(tdid, title)
+                skipped += 1
         except Exception as e:
             print(f"FAILED: {e}")
             failed.append((tdid, title, str(e)))
@@ -369,10 +419,11 @@ def main():
         if i < len(new_tournaments):
             time.sleep(2)
 
+    fill_missing_dates()
     apply_date_fixes()
 
     print(f"\n{'='*60}")
-    print(f"DONE: {success} imported, {len(failed)} failed")
+    print(f"DONE: {success} imported, {skipped} skipped, {len(failed)} failed")
     if failed:
         print("\nFailed tournaments:")
         for tdid, title, err in failed:
@@ -380,7 +431,7 @@ def main():
 
     # During a backfill one bad tournament must not fail the step, since the
     # workflow then skips the upload and every import from the run is lost
-    return 0 if success else 1
+    return 0 if success or skipped else 1
 
 
 if __name__ == "__main__":
