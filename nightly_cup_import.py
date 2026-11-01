@@ -5,14 +5,12 @@ Nightly cup import script.
 Fetches tournament lists from configured leagues and title searches via
 the n01 API, finds tournaments not yet in cups.db, and imports them.
 
-A normal run only searches the last RECENT_DAYS. --backfill searches back to
-SEARCH_SINCE and puts everything missing in the cup_backlog table, which later
-runs then work through, IMPORT_MINUTES_PER_RUN at a time.
+The title searches only go back RECENT_DAYS. Older cups are queued in the
+cup_backlog table and imported separately by cup_backlog_import.py.
 
 Usage:
     python nightly_cup_import.py              # Import new completed tournaments
     python nightly_cup_import.py --dry        # Dry run - show what would be imported
-    python nightly_cup_import.py --backfill   # Also queue older tournaments from the searches
 """
 import os
 import re
@@ -94,8 +92,8 @@ SEARCHES = [
 ]
 
 # Importing takes about 15 ms per dart thrown (1-2 minutes for a normal cup, 5-6
-# for a big open class), so a backfill of years of cups is spread over several
-# runs. The rest is left for the next run once this many minutes have passed.
+# for a big open class), so years of cups are spread over several runs. The rest
+# is left for the next run once this many minutes have passed.
 IMPORT_MINUTES_PER_RUN = 150
 
 # Extra tournaments not in any league (imported by tdid directly)
@@ -226,7 +224,7 @@ def save_skipped(tdid: str, title: str, db_path: str = "cups.db"):
 
 
 def save_backlog(tournaments: list, db_path: str = "cups.db"):
-    """Queue tournaments found by --backfill for later runs."""
+    """Queue older tournaments for cup_backlog_import.py."""
     conn = sqlite3.connect(db_path)
     ensure_backlog_table(conn)
     conn.executemany(
@@ -298,15 +296,9 @@ def get_existing_tdids(db_path: str = "cups.db") -> set:
     return tdids
 
 
-def main():
-    dry_run = "--dry" in sys.argv
-    backfill = "--backfill" in sys.argv
-
-    existing = get_existing_tdids()
-    print(f"Existing tournaments in database: {len(existing)}")
-
-    new_tournaments = []
-
+def league_tournaments(existing: set) -> list:
+    """Completed tournaments in the monitored leagues that are not imported yet."""
+    found = []
     for league in LEAGUES:
         lgid = league["lgid"]
         name = league["name"]
@@ -318,7 +310,7 @@ def main():
 
             for t in tournaments:
                 if t["tdid"] not in existing and t["tdid"] not in SKIP_TDIDS:
-                    new_tournaments.append({
+                    found.append({
                         "tdid": t["tdid"],
                         "title": t["title"],
                         "league": name,
@@ -326,12 +318,12 @@ def main():
                     })
         except Exception as e:
             print(f"  ERROR fetching {name}: {e}")
+    return found
 
-    queued = {t["tdid"] for t in new_tournaments}
-    if backfill:
-        since = datetime.fromisoformat(SEARCH_SINCE)
-    else:
-        since = datetime.now() - timedelta(days=RECENT_DAYS)
+
+def searched_tournaments(existing: set, since: datetime) -> list:
+    """Completed tournaments from the title searches back to since that are not imported yet."""
+    seen = set(existing)
     found = []
     for search in SEARCHES:
         name = search["name"]
@@ -341,8 +333,8 @@ def main():
             print(f"  Found {len(tournaments)} completed tournaments")
             for t in tournaments:
                 tdid = t["tdid"]
-                if tdid not in existing and tdid not in SKIP_TDIDS and tdid not in queued:
-                    queued.add(tdid)
+                if tdid not in seen and tdid not in SKIP_TDIDS:
+                    seen.add(tdid)
                     found.append({
                         "tdid": tdid,
                         "title": t["title"],
@@ -352,57 +344,41 @@ def main():
         except Exception as e:
             print(f"  ERROR searching {name}: {e}")
         time.sleep(1)
-    new_tournaments += found
+    return found
 
-    if backfill and not dry_run:
-        save_backlog(found)
-        print(f"\nQueued {len(found)} tournaments in cup_backlog")
 
-    for t in load_backlog():
-        if t["tdid"] not in existing and t["tdid"] not in SKIP_TDIDS and t["tdid"] not in queued:
-            queued.add(t["tdid"])
-            new_tournaments.append(t)
-
-    # Add extra standalone tournaments not in any league
-    for tdid in EXTRA_TDIDS:
-        if tdid not in existing and tdid not in SKIP_TDIDS and tdid not in queued:
-            new_tournaments.append({
-                "tdid": tdid,
-                "title": tdid,
-                "league": "Extra",
-                "t_date": 0,
-            })
-
-    if not new_tournaments:
+def import_tournaments(tournaments: list, minutes: int = IMPORT_MINUTES_PER_RUN,
+                       dry_run: bool = False) -> int:
+    """Import newest first until the time budget is used. Returns the exit code."""
+    if not tournaments:
         print("\nNo new tournaments to import.")
         return 0
 
-    # Newest first, so this week's cups are not held up by the historical backfill
-    new_tournaments.sort(key=lambda t: t["t_date"], reverse=True)
+    # Newest first, so the latest cups are in before older ones
+    tournaments = sorted(tournaments, key=lambda t: t["t_date"], reverse=True)
 
-    print(f"\nNew tournaments to import: {len(new_tournaments)}")
-    for t in new_tournaments:
+    print(f"\nNew tournaments to import: {len(tournaments)}")
+    for t in tournaments:
         print(f"  [{t['league']}] {t['tdid']} - {t['title']}")
 
     if dry_run:
         print("\nDry run - nothing imported.")
         return 0
 
-    # Import new tournaments
     success = 0
     skipped = 0
     failed = []
-    deadline = time.monotonic() + IMPORT_MINUTES_PER_RUN * 60
+    deadline = time.monotonic() + minutes * 60
 
-    for i, t in enumerate(new_tournaments, 1):
+    for i, t in enumerate(tournaments, 1):
         if time.monotonic() > deadline:
-            print(f"\nTime budget of {IMPORT_MINUTES_PER_RUN} minutes used, "
-                  f"{len(new_tournaments) - i + 1} tournaments left for later runs")
+            print(f"\nTime budget of {minutes} minutes used, "
+                  f"{len(tournaments) - i + 1} tournaments left for later runs")
             break
         tdid = t["tdid"]
         title = t["title"]
         print(f"\n{'='*60}")
-        print(f"[{i}/{len(new_tournaments)}] {title} ({tdid})")
+        print(f"[{i}/{len(tournaments)}] {title} ({tdid})")
         print(f"{'='*60}")
 
         importer = CupImporter()
@@ -416,7 +392,7 @@ def main():
             print(f"FAILED: {e}")
             failed.append((tdid, title, str(e)))
 
-        if i < len(new_tournaments):
+        if i < len(tournaments):
             time.sleep(2)
 
     fill_missing_dates()
@@ -429,9 +405,34 @@ def main():
         for tdid, title, err in failed:
             print(f"  {tdid} ({title}): {err}")
 
-    # During a backfill one bad tournament must not fail the step, since the
-    # workflow then skips the upload and every import from the run is lost
+    # One bad tournament must not fail the step, since the workflow then
+    # skips the upload and every import from the run is lost
     return 0 if success or skipped else 1
+
+
+def main():
+    dry_run = "--dry" in sys.argv
+
+    existing = get_existing_tdids()
+    print(f"Existing tournaments in database: {len(existing)}")
+
+    new_tournaments = league_tournaments(existing)
+    queued = existing | {t["tdid"] for t in new_tournaments}
+    since = datetime.now() - timedelta(days=RECENT_DAYS)
+    new_tournaments += searched_tournaments(queued, since)
+    queued |= {t["tdid"] for t in new_tournaments}
+
+    # Add extra standalone tournaments not in any league
+    for tdid in EXTRA_TDIDS:
+        if tdid not in queued and tdid not in SKIP_TDIDS:
+            new_tournaments.append({
+                "tdid": tdid,
+                "title": tdid,
+                "league": "Extra",
+                "t_date": 0,
+            })
+
+    return import_tournaments(new_tournaments, dry_run=dry_run)
 
 
 if __name__ == "__main__":

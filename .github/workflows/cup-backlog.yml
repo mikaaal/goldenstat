@@ -1,0 +1,26 @@
+name: Cup Backlog Import
+
+# Importerar äldre cuper från kön i cup_backlog, nyaste först. Nattjobbet tar
+# bara nyligen spelade cuper, så kön betas av genom att köra den här då och då.
+on:
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'Minuter att importera (högst 320, jobbet stoppas efter 6 timmar)'
+        required: false
+        default: 300
+        type: number
+      search:
+        description: 'Sök först cuper bakåt till SEARCH_SINCE och lägg de som saknas i kön'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    uses: ./.github/workflows/db-maintenance.yml
+    with:
+      script: cup_backlog_import.py --minutes ${{ inputs.minutes }}${{ inputs.search && ' --search' || '' }}

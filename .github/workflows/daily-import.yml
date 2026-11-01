@@ -16,11 +16,6 @@ on:
         required: false
         default: true
         type: boolean
-      cup_backfill:
-        description: 'Sök cuper bakåt till SEARCH_SINCE och lägg de som saknas i kön (cup_backlog)'
-        required: false
-        default: false
-        type: boolean
 
   # Kör när importfiler ändras (för testning)
   push:
@@ -30,14 +25,18 @@ on:
       - 'nightly_cup_import.py'
       - 'import_cup.py'
       - 'cup_database.py'
-      - 'apply_migrations.py'
-      - 'migrations/**'
       - '.github/workflows/daily-import.yml'
     branches:
       - main
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+# Samma grupp som DB Maintenance. Båda laddar upp till db-latest,
+# och körningar som överlappar skriver över varandras databaser.
+concurrency:
+  group: db-release
+  cancel-in-progress: false
 
 # Grant write permissions to push changes back to repo
 permissions:
@@ -100,7 +99,8 @@ jobs:
       - name: Run nightly cup import
         run: |
           echo "🏆 Kör cup-import..."
-          python nightly_cup_import.py ${{ inputs.cup_backfill && '--backfill' || '' }}
+          # Bara nyligen spelade cuper, äldre importeras av Cup Backlog Import
+          python nightly_cup_import.py
 
       - name: Check if databases were updated
         id: check_changes

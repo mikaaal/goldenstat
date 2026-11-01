@@ -197,3 +197,72 @@ class TestMinPlayers:
 
         assert nci.get_existing_tdids(db) == {"t_a"}
         assert nci.load_backlog(db) == []
+
+
+def _cup(tdid, t_date):
+    return {"tdid": tdid, "title": tdid, "league": "X", "t_date": t_date}
+
+
+@patch("nightly_cup_import.apply_date_fixes")
+@patch("nightly_cup_import.fill_missing_dates")
+@patch("nightly_cup_import.time.sleep")
+@patch("nightly_cup_import.CupImporter")
+class TestImportTournaments:
+    def test_newest_first(self, importer, _sleep, _fill, _fix):
+        nci.import_tournaments([_cup("t_old", 1), _cup("t_new", 3), _cup("t_mid", 2)])
+        calls = [c.args[0] for c in importer.return_value.import_tournament.call_args_list]
+        assert calls == ["t_new", "t_mid", "t_old"]
+
+    def test_stops_starting_cups_when_the_budget_is_used(self, importer, _sleep, _fill, _fix):
+        with patch("nightly_cup_import.time.monotonic", side_effect=[0, 0, 61, 61]):
+            nci.import_tournaments([_cup("t_a", 2), _cup("t_b", 1)], minutes=1)
+        assert importer.return_value.import_tournament.call_count == 1
+
+
+class TestNightly:
+    @patch("nightly_cup_import.import_tournaments", return_value=0)
+    @patch("nightly_cup_import.load_backlog")
+    @patch("nightly_cup_import.searched_tournaments", return_value=[_cup("t_s", 2)])
+    @patch("nightly_cup_import.league_tournaments", return_value=[_cup("t_l", 1)])
+    @patch("nightly_cup_import.get_existing_tdids", return_value={"t_x"})
+    def test_only_recent_cups_and_not_the_backlog(self, _existing, _leagues, searched,
+                                                  backlog, imported):
+        with patch.object(nci.sys, "argv", ["nightly_cup_import.py"]):
+            assert nci.main() == 0
+        backlog.assert_not_called()
+        since = searched.call_args.args[1]
+        assert (datetime.now() - since).days == nci.RECENT_DAYS
+        assert {t["tdid"] for t in imported.call_args.args[0]} \
+            == {"t_l", "t_s"} | set(nci.EXTRA_TDIDS)
+
+
+class TestBacklogImport:
+    def _run(self, *argv, backlog=(), found=()):
+        import cup_backlog_import as cbi
+        with patch.object(cbi.sys, "argv", ["cup_backlog_import.py", *argv]), \
+                patch.object(nci, "get_existing_tdids", return_value=set()), \
+                patch.object(nci, "load_backlog", return_value=list(backlog)), \
+                patch.object(nci, "searched_tournaments", return_value=list(found)) as searched, \
+                patch.object(nci, "save_backlog") as saved, \
+                patch.object(nci, "import_tournaments", return_value=0) as imported:
+            assert cbi.main() == 0
+        return searched, saved, imported
+
+    def test_imports_the_queue_for_the_given_minutes(self):
+        searched, saved, imported = self._run("--minutes", "300", backlog=[_cup("t_a", 1)])
+        searched.assert_not_called()
+        saved.assert_not_called()
+        assert [t["tdid"] for t in imported.call_args.args[0]] == ["t_a"]
+        assert imported.call_args.kwargs == {"minutes": 300, "dry_run": False}
+
+    def test_search_queues_missing_cups_back_to_search_since(self):
+        searched, saved, _ = self._run("--search", found=[_cup("t_b", 1)])
+        assert searched.call_args.args[1] == datetime.fromisoformat(nci.SEARCH_SINCE)
+        assert [t["tdid"] for t in saved.call_args.args[0]] == ["t_b"]
+
+    def test_dry_search_saves_nothing_but_shows_what_was_found(self):
+        _, saved, imported = self._run("--search", "--dry", backlog=[_cup("t_a", 2)],
+                                       found=[_cup("t_a", 2), _cup("t_b", 1)])
+        saved.assert_not_called()
+        assert [t["tdid"] for t in imported.call_args.args[0]] == ["t_a", "t_b"]
+        assert imported.call_args.kwargs["dry_run"] is True
