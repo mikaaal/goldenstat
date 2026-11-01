@@ -190,11 +190,18 @@ class CupDatabase:
     @staticmethod
     def normalize_player_name(name: str) -> str:
         """Normalize player name to title case to avoid duplicates from ALL CAPS entries.
-        Preserves parenthesized content (club abbreviations) and handles hyphens."""
+        Drops a club in parentheses after a full name and handles hyphens."""
         if not name:
             return name
 
         name = name.strip()
+
+        # Some cups (SSDC Closed, SvedF events) add the club in parentheses,
+        # which made "Linus Dellby (Bålsta Dart Club)" a player of its own.
+        # Single names keep it, since "Micke" alone says nothing about who it is.
+        before = name.split('(', 1)[0].strip()
+        if '(' in name and len(before.split()) >= 2:
+            name = before
 
         # Handle parenthesized suffix: "DANIEL LARSSON (SSDC)" -> name + club kept as-is
         if '(' in name and ')' in name:
