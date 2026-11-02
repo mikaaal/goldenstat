@@ -1,0 +1,10 @@
+{
+  "ran_at": "2026-11-02T02:10:59+00:00",
+  "commit": "70dec0f50da20b76afa7c6d75d06ac3d9292f766",
+  "run_id": "41350467231",
+  "script": "cup_backlog_import.py --minutes 300",
+  "changed_databases": [
+    "cups.db"
+  ],
+  "migrations": []
+}
