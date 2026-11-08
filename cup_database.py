@@ -203,6 +203,12 @@ class CupDatabase:
         if seedless != name and seedless[:1].isalpha() and len(seedless.split()) >= 2:
             name = seedless
 
+        # Handicap cups can have the player's average after the name ("JOCKE EKNER 21,83").
+        # Only a decimal number after a full name, so "Wc 1" and "Oscar 2.0" are left alone.
+        averageless = re.sub(r'[\s,]+\d{1,2}\s*[.,]\s*\d{1,2}$', '', name)
+        if averageless != name and len(averageless.split()) >= 2:
+            name = averageless
+
         # Some cups (SSDC Closed, SvedF events) add the club in parentheses,
         # which made "Linus Dellby (Bålsta Dart Club)" a player of its own.
         # Single names keep it, since "Micke" alone says nothing about who it is.

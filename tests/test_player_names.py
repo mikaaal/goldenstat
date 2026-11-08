@@ -28,11 +28,20 @@ class TestNormalizePlayerName:
         assert CupDatabase.normalize_player_name("30Per-Åke Edström") == "Per-Åke Edström"
         assert CupDatabase.normalize_player_name("2 Albin Lindmark") == "Albin Lindmark"
 
+    def test_average_after_name_is_dropped(self):
+        assert CupDatabase.normalize_player_name("JOCKE EKNER 21,83") == "Jocke Ekner"
+        assert CupDatabase.normalize_player_name("MAUD JANSSON 18.95") == "Maud Jansson"
+        assert CupDatabase.normalize_player_name("HENRIK HOLLSTEN, 14,81") == "Henrik Hollsten"
+        assert CupDatabase.normalize_player_name('PETER "ISAK" ISAKSSON 18, 7') == 'Peter "Isak" Isaksson'
+        assert CupDatabase.normalize_player_name("MIKAEL BERG (AIK) 18,79") == "Mikael Berg"
+
     def test_nickname_with_number_is_kept(self):
         assert CupDatabase.normalize_player_name("180x2") == "180x2"
         assert CupDatabase.normalize_player_name("100%") == "100%"
         assert CupDatabase.normalize_player_name("Micke 170") == "Micke 170"
         assert CupDatabase.normalize_player_name("Wc1") == "Wc1"
+        assert CupDatabase.normalize_player_name("Wc 1") == "Wc 1"
+        assert CupDatabase.normalize_player_name("Oscar 2.0") == "Oscar 2.0"
 
 
 def _db(tmp_path, players):
@@ -94,3 +103,11 @@ class TestMergeMigrations:
         assert _mappings(conn) == {7455: (170, "Jonas Norling")}
         links = dict(conn.execute("SELECT participant_id, player_id FROM participant_players"))
         assert links == {170: 170, 7455: 170}
+
+    def test_names_with_average_join_the_player_without_it(self, tmp_path):
+        path, conn = _db(tmp_path, [(14, "Jocke Ekner"), (9265, "Jocke Ekner 21,83")])
+        apply_migrations(path, MIGRATIONS)
+
+        assert _mappings(conn) == {9265: (14, "Jocke Ekner")}
+        links = dict(conn.execute("SELECT participant_id, player_id FROM participant_players"))
+        assert links == {14: 14, 9265: 14}
