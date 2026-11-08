@@ -1,0 +1,12 @@
+{
+  "ran_at": "2026-11-08T11:53:52+00:00",
+  "commit": "5491495b5a41e735e9be3e337972c548fb43417f",
+  "run_id": "42477632860",
+  "script": "",
+  "changed_databases": [
+    "cups.db"
+  ],
+  "migrations": [
+    "[MIGRATIONS] Kör 011_drop_average_from_names.sql på cups.db..."
+  ]
+}
