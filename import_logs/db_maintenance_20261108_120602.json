@@ -1,0 +1,12 @@
+{
+  "ran_at": "2026-11-08T12:06:02+00:00",
+  "commit": "50af5f34e49d2bbd5c7840cba0df7e62a297cb21",
+  "run_id": "42478619061",
+  "script": "",
+  "changed_databases": [
+    "cups.db"
+  ],
+  "migrations": [
+    "[MIGRATIONS] Kör 012_peter_book_nicknames.sql på cups.db..."
+  ]
+}
