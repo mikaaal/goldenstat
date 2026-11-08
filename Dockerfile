@@ -27,13 +27,16 @@ RUN git clone --branch ${RAILWAY_GIT_BRANCH:-main} --single-branch --depth 1 \
 # Ladda ner databaser från GitHub Release. En nedladdning som avbryts kan
 # lämna en halv fil utan att curl klagar, så varje databas kontrolleras och
 # hämtas om. Går det ändå inte stoppas bygget och den förra deployen ligger kvar.
+# En workflow som laddar upp samtidigt ersätter filerna en i taget, och cups.db
+# har då gett 404 i över en minut, så det försöks i ungefär fyra minuter.
 RUN for db in goldenstat cups riksserien sommarserien; do \
-        for attempt in 1 2 3; do \
+        for attempt in 1 2 3 4 5 6 7 8 9 10; do \
             curl -fsSL --retry 3 -o /app/$db.db \
                 "https://github.com/mikaaal/goldenstat/releases/download/db-latest/$db.db" \
                 && python /app/check_database.py /app/$db.db && break; \
-            if [ $attempt = 3 ]; then echo "$db.db kunde inte hämtas hel" >&2; exit 1; fi; \
-            sleep 10; \
+            if [ $attempt = 10 ]; then echo "$db.db kunde inte hämtas hel" >&2; exit 1; fi; \
+            echo "$db.db: försök $attempt misslyckades, väntar 30 s"; \
+            sleep 30; \
         done; \
     done \
     && echo "Databases downloaded:" && ls -lh /app/*.db
