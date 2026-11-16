@@ -21,6 +21,7 @@ on:
   push:
     paths:
       - 'daily_import.py'
+      - 'riksserien_daily_import.py'
       - 'smart_season_importer.py'
       - 'nightly_cup_import.py'
       - 'import_cup.py'
@@ -87,6 +88,13 @@ jobs:
         run: |
           echo "🤖 Kör daglig import..."
           python daily_import.py
+
+      # Riksserien läses alltid in: skriptet genererar om URL-filerna från
+      # ligan på n01 först, eftersom schemat fylls på inför varje omgång.
+      - name: Run Riksserien import
+        run: |
+          echo "🎯 Kör Riksserien-import..."
+          python riksserien_daily_import.py
 
       # Sommarserien 2026 är avslutad (2026-08-30) - importen avstängd.
       # Databasen hämtas och laddas upp som vanligt så att datan finns kvar.
@@ -163,6 +171,10 @@ jobs:
           if [ -f "$latest_log" ]; then
             git add "$latest_log" || true
           fi
+          latest_riks_log=$(ls -t import_logs/riksserien_daily_import_*.json 2>/dev/null | head -1)
+          if [ -f "$latest_riks_log" ]; then
+            git add "$latest_riks_log" || true
+          fi
           git add import_logs/cup_*.json 2>/dev/null || true
           git add import_logs/sommarserien_*.json 2>/dev/null || true
 
@@ -194,6 +206,7 @@ jobs:
           name: import-log-${{ github.run_number }}
           path: |
             import_logs/daily_import_*.json
+            import_logs/riksserien_daily_import_*.json
             import_logs/cup_*.json
             import_logs/sommarserien_*.json
           retention-days: 30
