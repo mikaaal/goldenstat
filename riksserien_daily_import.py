@@ -6,6 +6,7 @@ Processar alla divisioner i Riksserien med separat databas (riksserien.db)
 Usage: python riksserien_daily_import.py
 """
 import os
+import re
 import sys
 import datetime
 import json
@@ -13,7 +14,13 @@ import traceback
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from generate_match_urls import MatchUrlGenerator
+from generate_season_match_urls import get_divisions
 from smart_season_importer import SmartSeasonImporter
+
+# Riksseriens liga pa n01 (2026/27). Far en ny sasong en ny liga byts id:t har.
+LGID = "lg_dE4q_3778"
+URL_DIR = Path("riksserien_match_urls")
 
 class RiksserienDailyImport:
     """Automatiserad daglig import for Riksserien"""
@@ -67,7 +74,9 @@ class RiksserienDailyImport:
                 self.save_log()
                 return
 
-            url_files = list(Path("riksserien_match_urls").glob("*_match_urls*.txt"))
+            self.refresh_url_files()
+
+            url_files = list(URL_DIR.glob("*_match_urls*.txt"))
 
             if not url_files:
                 print("[ERROR] Inga match-url filer hittades i riksserien_match_urls katalogen")
@@ -88,6 +97,41 @@ class RiksserienDailyImport:
             self.import_log["errors"].append(f"Critical error: {str(e)}")
             self.import_log["status"] = "failed"
             self.save_log()
+
+    def refresh_url_files(self):
+        """Generera om URL-filerna fran ligans divisioner pa n01.
+
+        Schemat fylls pa infor varje omgang, och nya divisioner kan tillkomma,
+        sa filerna kan inte genereras en gang per sasong. Gar det inte att na
+        n01 anvands filerna som redan finns."""
+        try:
+            divisions = get_divisions(LGID)
+        except Exception as e:
+            msg = f"Kunde inte hamta divisioner for {LGID}, anvander befintliga URL-filer: {e}"
+            print(f"[WARN] {msg}")
+            self.import_log["warnings"].append(msg)
+            return
+
+        URL_DIR.mkdir(exist_ok=True)
+        generator = MatchUrlGenerator()
+        for d in divisions:
+            url_file = URL_DIR / f"{d['tdid']}_match_urls{self.division_code(d['title'])}.txt"
+            if not generator.save_urls_to_file(d["tdid"], str(url_file)):
+                msg = f"Kunde inte generera URL:er for {d['title']} ({d['tdid']})"
+                print(f"[WARN] {msg}")
+                self.import_log["warnings"].append(msg)
+
+    @staticmethod
+    def division_code(title: str) -> str:
+        """Divisionens titel pa n01 som kod i filnamnet: 'Div 3I' -> 'RS3I'"""
+        title = title.strip()
+        for code, name in RiksserienDailyImport.DIVISION_NAME_MAP.items():
+            if name == title:
+                return code
+        match = re.fullmatch(r"Div (\d[A-Z])", title)
+        if match:
+            return f"RS{match.group(1)}"
+        return "RS" + "".join(c for c in title if c.isalnum())
 
     def process_url_file(self, url_file: Path):
         """Processa en URL-fil med smart spelarmappning"""
@@ -167,7 +211,10 @@ class RiksserienDailyImport:
 
         division_id = parts[0] if parts else "unknown"
         suffix = parts[1] if len(parts) > 1 else "unknown"
-        division_name = self.DIVISION_NAME_MAP.get(suffix, suffix)
+        division_name = self.DIVISION_NAME_MAP.get(suffix)
+        if division_name is None:
+            match = re.fullmatch(r"RS(\d[A-Z])", suffix)
+            division_name = f"Div {match.group(1)}" if match else suffix
 
         return {
             "division_id": division_id,
