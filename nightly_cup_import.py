@@ -26,7 +26,8 @@ from n01_api import LEAGUE_API, TOURNAMENT_API
 
 # Leagues to monitor for new tournaments
 LEAGUES = [
-    {"lgid": "lg_zAAr_1368", "name": "East Cup"},
+    # East bytte liga i november 2026, lg_zAAr_1368 svarar inte längre
+    {"lgid": "lg_DZQh_9561", "name": "East Poängsamlarcup"},
     {"lgid": "lg_qaVN_1417", "name": "SoFo House Poängsamlarcup 2027"},
     {"lgid": "lg_InWB_0595", "name": "Oilers Poängsamlarcup"},
     {"lgid": "lg_obTt_7229", "name": "NWD Poängsamlarcup"},
