@@ -177,6 +177,9 @@ jobs:
           fi
           git add import_logs/cup_*.json 2>/dev/null || true
           git add import_logs/sommarserien_*.json 2>/dev/null || true
+          # Riksserie-importen genererar om URL-filerna varje natt. De committas
+          # så att filerna i repot är aktuella om n01 inte svarar en natt.
+          git add riksserien_match_urls 2>/dev/null || true
 
           if git diff --staged --quiet; then
             echo "Inga ändringar att committa"
@@ -185,9 +188,11 @@ jobs:
             # main kan ha flyttats under importen (t.ex. en merge), och det är
             # pushen som får Railway att deploya de nya databaserna. Rebasa
             # och försök igen, och låt körningen falla om det ändå inte går.
+            # --autostash så att andra filer som importen ändrat inte stoppar
+            # rebasen.
             pushed=false
             for attempt in 1 2 3; do
-              if git pull --rebase origin main && git push; then
+              if git pull --rebase --autostash origin main && git push; then
                 pushed=true
                 break
               fi
