@@ -1,5 +1,4 @@
 # Match URLs for division t_r54U_6405
-# Generated: 2026-11-17 07:08:24
 # Total URLs: 30
 #
 https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_r54U_6405_lg_0_abk9_ubUs_bPwp

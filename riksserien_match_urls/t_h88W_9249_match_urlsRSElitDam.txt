@@ -1,5 +1,4 @@
 # Match URLs for division t_h88W_9249
-# Generated: 2026-11-17 07:08:25
 # Total URLs: 18
 #
 https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_h88W_9249_lg_0_7pfv_R6uO_MNNd

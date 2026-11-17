@@ -7,7 +7,6 @@ import requests
 import json
 import sys
 from typing import List, Dict
-from datetime import datetime
 
 from n01_api import TOURNAMENT_API, MATCH_DATA_URL
 
@@ -90,9 +89,9 @@ class MatchUrlGenerator:
         # Save to file
         try:
             with open(output_file, 'w', encoding='utf-8') as f:
-                # Write header with metadata
+                # Ingen tidsstämpel: filerna genereras om varje natt och
+                # ska bara ändras när schemat gör det.
                 f.write(f"# Match URLs for division {tdid}\n")
-                f.write(f"# Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
                 f.write(f"# Total URLs: {len(match_urls)}\n")
                 f.write("#\n")
 

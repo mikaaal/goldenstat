@@ -1,5 +1,4 @@
 # Match URLs for division t_aGL7_5675
-# Generated: 2026-11-17 07:08:23
 # Total URLs: 30
 #
 https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_aGL7_5675_lg_0_66d4_4lKS_7moj
