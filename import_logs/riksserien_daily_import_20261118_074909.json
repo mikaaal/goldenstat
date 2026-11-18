@@ -1,0 +1,186 @@
+{
+  "import_id": "20261118_074909",
+  "start_time": "2026-11-18T07:49:09.582163",
+  "end_time": "2026-11-18T07:49:12.731914",
+  "status": "completed",
+  "files_processed": [
+    {
+      "file": "riksserien_match_urls/t_hOga_1518_match_urlsRS1A.txt",
+      "division_id": "t_hOga_1518",
+      "division_name": "Div 1A",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.695782"
+    },
+    {
+      "file": "riksserien_match_urls/t_rBY8_1996_match_urlsRS2A.txt",
+      "division_id": "t_rBY8_1996",
+      "division_name": "Div 2A",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.697690"
+    },
+    {
+      "file": "riksserien_match_urls/t_gmtL_7319_match_urlsRS3F.txt",
+      "division_id": "t_gmtL_7319",
+      "division_name": "Div 3F",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.699604"
+    },
+    {
+      "file": "riksserien_match_urls/t_Nu1V_7497_match_urlsRS3D.txt",
+      "division_id": "t_Nu1V_7497",
+      "division_name": "Div 3D",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.701499"
+    },
+    {
+      "file": "riksserien_match_urls/t_r54U_6405_match_urlsRS1B.txt",
+      "division_id": "t_r54U_6405",
+      "division_name": "Div 1B",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.703345"
+    },
+    {
+      "file": "riksserien_match_urls/t_gyK3_0637_match_urlsRS3H.txt",
+      "division_id": "t_gyK3_0637",
+      "division_name": "Div 3H",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.705191"
+    },
+    {
+      "file": "riksserien_match_urls/t_h88W_9249_match_urlsRSElitDam.txt",
+      "division_id": "t_h88W_9249",
+      "division_name": "Elit Dam",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.707030"
+    },
+    {
+      "file": "riksserien_match_urls/t_2Yx2_4652_match_urlsRS3C.txt",
+      "division_id": "t_2Yx2_4652",
+      "division_name": "Div 3C",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.708936"
+    },
+    {
+      "file": "riksserien_match_urls/t_I6Qm_5295_match_urlsRS3G.txt",
+      "division_id": "t_I6Qm_5295",
+      "division_name": "Div 3G",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.711446"
+    },
+    {
+      "file": "riksserien_match_urls/t_BhOJ_0098_match_urlsRS3A.txt",
+      "division_id": "t_BhOJ_0098",
+      "division_name": "Div 3A",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.714392"
+    },
+    {
+      "file": "riksserien_match_urls/t_aGL7_5675_match_urlsRS2D.txt",
+      "division_id": "t_aGL7_5675",
+      "division_name": "Div 2D",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.717402"
+    },
+    {
+      "file": "riksserien_match_urls/t_qdAs_3195_match_urlsRS3E.txt",
+      "division_id": "t_qdAs_3195",
+      "division_name": "Div 3E",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.720343"
+    },
+    {
+      "file": "riksserien_match_urls/t_LhCN_0179_match_urlsRS3I.txt",
+      "division_id": "t_LhCN_0179",
+      "division_name": "Div 3I",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.722400"
+    },
+    {
+      "file": "riksserien_match_urls/t_817F_2404_match_urlsRSElit.txt",
+      "division_id": "t_817F_2404",
+      "division_name": "Elit",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.724319"
+    },
+    {
+      "file": "riksserien_match_urls/t_ykdL_0420_match_urlsRS2B.txt",
+      "division_id": "t_ykdL_0420",
+      "division_name": "Div 2B",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.727171"
+    },
+    {
+      "file": "riksserien_match_urls/t_tQ76_7665_match_urlsRS2C.txt",
+      "division_id": "t_tQ76_7665",
+      "division_name": "Div 2C",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.728733"
+    },
+    {
+      "file": "riksserien_match_urls/t_kiJx_6992_match_urlsRSSup.txt",
+      "division_id": "t_kiJx_6992",
+      "division_name": "Superettan",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.730336"
+    },
+    {
+      "file": "riksserien_match_urls/t_gwNc_0917_match_urlsRS3B.txt",
+      "division_id": "t_gwNc_0917",
+      "division_name": "Div 3B",
+      "status": "success",
+      "matches_imported": 0,
+      "players_processed": 0,
+      "processed_at": "2026-11-18T07:49:12.731897"
+    }
+  ],
+  "players_handled": [],
+  "mappings_applied": [],
+  "new_players_created": [],
+  "warnings": [],
+  "errors": [],
+  "statistics": {
+    "total_files": 18,
+    "successful_files": 18,
+    "failed_files": 0,
+    "total_matches_imported": 0,
+    "total_players_processed": 0,
+    "auto_matched_high_confidence": 0,
+    "auto_matched_medium_confidence": 0,
+    "auto_created_with_context": 0,
+    "auto_created_new": 0
+  }
+}
