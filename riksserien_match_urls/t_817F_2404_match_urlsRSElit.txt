@@ -1,5 +1,5 @@
 # Match URLs for division t_817F_2404
-# Total URLs: 30
+# Total URLs: 60
 #
 https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_15yb_pTUE_qi0p
 https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_15yb_qi0p_pTUE
@@ -31,3 +31,33 @@ https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_8
 https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_olyz_J23D_dBK5
 https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_kz1m_qi0p_uPBi
 https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_kz1m_uPBi_qi0p
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_mqse_J23D_pTUE
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_mqse_pTUE_J23D
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_jfma_qi0p_DGFX
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_jfma_DGFX_qi0p
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_2p8a_uPBi_euJ6
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_2p8a_euJ6_uPBi
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_4vks_X2vb_dBK5
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_4vks_dBK5_X2vb
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_fsm5_dmmQ_VHlr
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_fsm5_VHlr_dmmQ
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_ishs_VHlr_X2vb
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_ishs_X2vb_VHlr
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_yryr_dBK5_qi0p
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_yryr_qi0p_dBK5
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_fg5e_DGFX_dmmQ
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_fg5e_dmmQ_DGFX
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_nnt7_euJ6_J23D
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_nnt7_J23D_euJ6
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_1sh5_pTUE_uPBi
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_1sh5_uPBi_pTUE
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_8upf_qi0p_euJ6
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_8upf_euJ6_qi0p
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_wa2j_DGFX_VHlr
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_wa2j_VHlr_DGFX
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_8xcm_X2vb_pTUE
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_8xcm_pTUE_X2vb
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_pxbn_dmmQ_dBK5
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_pxbn_dBK5_dmmQ
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_26zb_J23D_uPBi
+https://lb.n01darts.com/n01/tournament/n01_online_t.php?cmd=get_setdata&tmid=t_817F_2404_lg_0_26zb_uPBi_J23D
